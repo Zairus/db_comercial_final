@@ -1,4 +1,2 @@
-*.sql -diff
-*.sql -text
-*.sql text
 *.sql diff
+*.sql text
