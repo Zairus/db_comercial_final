@@ -11,8 +11,6 @@ AS
 
 SET NOCOUNT ON
 
---Prueba de cambio
-
 DECLARE
 	@total1 AS DECIMAL(18,6)
 	,@total2 AS DECIMAL(18,6)
