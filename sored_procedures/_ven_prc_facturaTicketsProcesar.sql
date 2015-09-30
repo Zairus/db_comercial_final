@@ -105,6 +105,8 @@ BEGIN
 	RETURN
 END
 
+EXEC _ven_prc_existenciaComprometer
+
 INSERT INTO ew_sys_transacciones2 (
 	 idtran
 	,idestado
