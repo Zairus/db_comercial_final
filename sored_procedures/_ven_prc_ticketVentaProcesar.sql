@@ -11,8 +11,6 @@ AS
 
 SET NOCOUNT ON
 
---Prueba de cambios en GIT
-
 DECLARE
 	@credito AS BIT
 	,@pago_total AS DECIMAL(18,6)
@@ -64,7 +62,10 @@ END
 EXEC [dbo].[_ven_prc_ticketVentaSurtir] @idtran
 
 --Pagar
-EXEC [dbo].[_ven_prc_ticketVentaPagos] @idtran, @idu
+IF @pago_total > 0
+BEGIN
+	EXEC [dbo].[_ven_prc_ticketVentaPagos] @idtran, @idu
+END
 
 SELECT costo = ISNULL(SUM(costo),0) FROM ew_ven_transacciones_mov WHERE idtran = @idtran
 GO
