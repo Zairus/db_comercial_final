@@ -98,10 +98,12 @@ END
 UPDATE ew_cxp_transacciones SET 
 	aplicado = 1
 	,aplicado_fecha = @aplicado_fecha
-	--,saldo = total
+	,saldo = total
 WHERE 
 	idtran = @idtran
 	AND aplicado = 0
+
+EXEC _cxp_prc_referenciaAplicar @idtran
 
 --------------------------------------------------------------------------------
 -- EW_CXP_TRANSACCIONES_MOV. Cuando una transaccion (IDTRAN) se encuentra en una moneda 
