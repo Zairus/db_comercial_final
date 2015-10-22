@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE [db_cortez_datos]
 GO
 -- ==========================================================================================
 -- Autor:		Laurence Saavedra
@@ -89,7 +89,6 @@ Error al registrar el movimiento.'
 		(idtran, idestado, idu)
 	VALUES 
 		(@idtran, dbo.fn_sys_estadoID('APL'), @idu)
-	
 END
 
 --------------------------------------------------------------------------------
