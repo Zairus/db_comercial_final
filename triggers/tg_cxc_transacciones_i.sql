@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- ==========================================================================================
 -- Autor:		Laurence Saavedra
@@ -70,7 +70,7 @@ BEGIN
 
 	IF @tipo = 1
 	BEGIN
-		EXEC _cxc_prc_clienteValidar @idcliente
+		EXEC _cxc_prc_clienteValidar @idcliente, @idtran
 	END
 
 	FETCH NEXT FROM cur_tg_cxc_transacciones_i INTO

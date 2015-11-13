@@ -5,8 +5,9 @@ GO
 -- Create date: 20151027
 -- Description:	Validar terminos de cobranza
 -- =============================================
-ALTER PROCEDURE _cxc_prc_clienteValidar
+ALTER PROCEDURE [dbo].[_cxc_prc_clienteValidar]
 	@idcliente AS INT
+	,@idtran AS INT = 0
 AS
 
 SET NOCOUNT ON
@@ -18,6 +19,8 @@ DECLARE
 	,@saldo AS DECIMAL(15,2)
 	,@documentos_vencidos AS INT
 	,@mensaje AS VARCHAR(500) = ''
+	,@idestado AS INT
+	,@transaccion AS VARCHAR(4)
 
 SELECT
 	@credito = credito
@@ -34,6 +37,26 @@ WHERE
 IF @credito = 0
 BEGIN
 	RETURN
+END
+
+IF @idtran > 0
+BEGIN
+	SELECT
+		@idestado = st.idestado
+		,@transaccion = ct.transaccion
+	FROM
+		ew_ven_transacciones AS ct
+		LEFT JOIN ew_ven_ordenes AS vo
+			ON vo.idtran = ct.idtran2
+		LEFT JOIN ew_sys_transacciones AS st
+			ON st.idtran = vo.idtran
+	WHERE
+		ct.idtran = @idtran
+
+	IF @idestado = 3 OR @transaccion LIKE 'FD%'
+	BEGIN
+		RETURN
+	END
 END
 
 SELECT @documentos_vencidos = COUNT(*)
