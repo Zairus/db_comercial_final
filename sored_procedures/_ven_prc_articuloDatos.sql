@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -220,7 +220,7 @@ SELECT
 	,a.idarticulo
 	,[descripcion] = a.nombre
 	,a.nombre_corto
-	,[marca] = m.nombre
+	,[marca] = ISNULL(m.nombre, '')
 	,[idum] = um.idum
 	,[maneja_lote] = a.lotes
 	,a.autorizable
@@ -268,7 +268,7 @@ SELECT
 	
 	,[existencia] = (
 		dbo.fn_inv_existenciaReal(a.idarticulo, @idalmacen)
-		-dbo.fn_ven_pedidos(a.idarticulo, @idalmacen, 1)
+		-dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
 	)
 	,[idimpuesto1] = i1.idimpuesto
 	,[idimpuesto1_valor] = i1.valor

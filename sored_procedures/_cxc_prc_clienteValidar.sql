@@ -45,9 +45,11 @@ BEGIN
 		@idestado = st.idestado
 		,@transaccion = ct.transaccion
 	FROM
-		ew_ven_transacciones AS ct
+		ew_cxc_transacciones AS ct
+		LEFT JOIN ew_ven_transacciones AS vt
+			ON vt.idtran = ct.idtran
 		LEFT JOIN ew_ven_ordenes AS vo
-			ON vo.idtran = ct.idtran2
+			ON vo.idtran = vt.idtran2
 		LEFT JOIN ew_sys_transacciones AS st
 			ON st.idtran = vo.idtran
 	WHERE
