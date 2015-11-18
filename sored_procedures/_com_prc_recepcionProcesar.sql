@@ -17,6 +17,7 @@ SET NOCOUNT ON
 DECLARE
 	@idsucursal AS SMALLINT
 	,@idu AS SMALLINT
+	,@idlista AS INT
 
 DECLARE
 	@sql AS VARCHAR(2000)
@@ -29,12 +30,13 @@ DECLARE
 -- OBTENER DATOS ###############################################################
 
 SELECT
-	@idsucursal = idsucursal
-	,@idu = idu
-	,@idmoneda = idmoneda
-FROM ew_com_transacciones
+	@idsucursal = ct.idsucursal
+	,@idu = ct.idu
+	,@idmoneda = ct.idmoneda
+FROM 
+	ew_com_transacciones AS ct
 WHERE
-	idtran = @idtran
+	ct.idtran = @idtran
 
 SELECT
 	@usuario = usuario
@@ -214,4 +216,27 @@ WHERE
 		)
 	)
 	AND rd.idtran = @idtran
+
+SELECT
+	@idlista = s.idlista
+FROM
+	ew_sys_sucursales AS s
+WHERE
+	s.idsucursal = @idsucursal
+
+IF @idlista IS NULL
+BEGIN
+	SELECT @idlista = 0
+END
+
+UPDATE vlm SET
+	vlm.precio_neto = ctm.precio_neto
+FROM
+	ew_com_transacciones_mov AS ctm
+	LEFT JOIN ew_ven_listaprecios_mov AS vlm
+		ON vlm.idarticulo = ctm.idarticulo
+		AND vlm.idlista = @idlista
+WHERE
+	ctm.precio_neto > 0
+	AND ctm.idtran = @idtran
 GO
