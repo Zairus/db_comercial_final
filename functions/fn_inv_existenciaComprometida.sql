@@ -5,9 +5,9 @@ GO
 -- Create date: 20151116
 -- Description:	Obtener existencia comprometida por articulo por almacen
 -- =============================================
-ALTER FUNCTION fn_inv_existenciaComprometida
+ALTER FUNCTION [dbo].[fn_inv_existenciaComprometida]
 (
-	@idtarticulo AS INT
+	@idarticulo AS INT
 	,@idalmacen AS INT
 )
 RETURNS DECIMAL(18,6)
@@ -36,8 +36,8 @@ BEGIN
 				vt.idtran2 = vo.idtran
 				AND vt.cancelado = 0
 		) = 0
-		AND vom.idarticulo = 11
-		AND vo.idalmacen = 1
+		AND vom.idarticulo = @idarticulo
+		AND vo.idalmacen = @idalmacen
 
 	SELECT @comprometida = ISNULL(@comprometida, 0)
 
