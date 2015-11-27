@@ -17,6 +17,7 @@ SET NOCOUNT ON
 DECLARE
 	@idturno AS INT
 	,@pago_en_caja AS BIT
+	,@idcuenta AS INT
 
 SELECT @idturno = dbo.fn_sys_turnoActual(@idu)
 SELECT @pago_en_caja = CONVERT(BIT, valor) FROM objetos_datos WHERE grupo = 'GLOBAL' AND codigo = 'PAGO_EN_CAJA'
@@ -25,6 +26,12 @@ IF @idu > 0 AND @idturno IS NULL AND @pago_en_caja = 0
 BEGIN
 	RAISERROR('Error: El usuario no ha iniciado turno.', 16, 1)
 	RETURN
+END
+
+IF @pago_en_caja = 0
+BEGIN
+	SELECT @idcuenta = idcuenta FROM ew_sys_turnos WHERE idturno = @idturno
+	EXEC _ban_prc_validarCorteAbierto @idcuenta
 END
 
 SELECT

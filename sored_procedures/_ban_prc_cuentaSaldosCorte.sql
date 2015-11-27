@@ -10,31 +10,7 @@ ALTER PROCEDURE [dbo].[_ban_prc_cuentaSaldosCorte]
 	,@fecha AS SMALLDATETIME = NULL
 AS
 
-DECLARE
-	@corte_idtran AS INT
-	,@corte_folio AS VARCHAR(15)
-	,@error_mensaje AS VARCHAR(500)
-
-SELECT
-	@corte_idtran = bd.idtran
-	,@corte_folio = bd.folio
-FROM
-	ew_ban_documentos AS bd
-	LEFT JOIN ew_sys_transacciones AS st
-		ON st.idtran = bd.idtran
-WHERE
-	st.idestado = 0
-	AND bd.cancelado = 0
-	AND bd.transaccion = 'BPR2'
-	AND bd.idcuenta1 = @idcuenta
-
-IF @corte_idtran IS NOT NULL
-BEGIN
-	SELECT @error_mensaje = 'Error: Existe el corte folio ' + @corte_folio + ', elaborado para esta caja. Favor de autorizar o cerrar el corte abierto.'
-
-	RAISERROR(@error_mensaje, 16, 1)
-	RETURN
-END
+EXEC _ban_prc_validarCorteAbierto @idcuenta
 
 SELECT @fecha = CONVERT(VARCHAR(8), ISNULL(@fecha, GETDATE()), 3) + ' 00:00'
 

@@ -17,7 +17,7 @@ BEGIN
 		@comprometida AS DECIMAL(18,6)
 
 	SELECT
-		@comprometida = SUM(vom.cantidad_ordenada - vom.cantidad_facturada + vom.cantidad_devuelta)
+		@comprometida = SUM(vom.cantidad_autorizada - vom.cantidad_facturada + vom.cantidad_devuelta)
 	FROM
 		ew_ven_ordenes_mov AS vom
 		LEFT JOIN ew_ven_ordenes AS vo
