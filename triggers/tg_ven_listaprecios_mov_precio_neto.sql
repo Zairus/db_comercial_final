@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -12,11 +12,21 @@ AS
 
 SET NOCOUNT ON
 
-IF UPDATE(precio_neto)
+IF (
+	UPDATE(precio_neto)
+	OR UPDATE(precio_neto2)
+	OR UPDATE(precio_neto3)
+	OR UPDATE(precio_neto4)
+	OR UPDATE(precio_neto5)
+)
 BEGIN
 	UPDATE vlm SET
-		vlm.precio_nuevo = (vlm.precio_neto / (1 + (s.iva / 100)))
-		,vlm.precio1 = (vlm.precio_neto / (1 + (s.iva / 100)))
+		vlm.precio_nuevo = (i.precio_neto / (1 + (s.iva / 100)))
+		,vlm.precio1 = (i.precio_neto / (1 + (s.iva / 100)))
+		,vlm.precio2 = (i.precio_neto2 / (1 + (s.iva / 100)))
+		,vlm.precio3 = (i.precio_neto3 / (1 + (s.iva / 100)))
+		,vlm.precio4 = (i.precio_neto4 / (1 + (s.iva / 100)))
+		,vlm.precio5 = (i.precio_neto5 / (1 + (s.iva / 100)))
 	FROM 
 		inserted AS i
 		LEFT JOIN ew_ven_listaprecios_mov AS vlm

@@ -231,6 +231,10 @@ END
 
 UPDATE vlm SET
 	vlm.precio_neto = ctm.precio_neto
+	,vlm.precio_neto2 = ctm.precio_neto2
+	,vlm.precio_neto3 = ctm.precio_neto3
+	,vlm.precio_neto4 = ctm.precio_neto4
+	,vlm.precio_neto5 = ctm.precio_neto5
 FROM
 	ew_com_transacciones_mov AS ctm
 	LEFT JOIN ew_ven_listaprecios_mov AS vlm
