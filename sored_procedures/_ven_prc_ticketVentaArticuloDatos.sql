@@ -14,6 +14,8 @@ ALTER PROCEDURE [dbo].[_ven_prc_ticketVentaArticuloDatos]
 
 	,@credito AS BIT = 0
 	,@cantidad AS DECIMAL(18,6) = 0
+
+	,@llave AS VARCHAR(8) = ''
 AS
 
 SET NOCOUNT ON
@@ -28,6 +30,20 @@ DECLARE
 DECLARE
 	 @idpromocion AS INT
 	,@cantidad_minima AS DECIMAL(18,6)
+
+DECLARE
+	 @i AS TINYINT
+
+IF LEN(@llave) = 0
+BEGIN
+	SELECT @i = 0
+
+	WHILE @i < 8
+	BEGIN
+		SELECT @llave = @llave + CONVERT(VARCHAR(1), FLOOR(RAND() *  10))
+		SELECT @i = @i + 1
+	END
+END
 
 SELECT
 	@idarticulo = idarticulo
@@ -190,7 +206,7 @@ BEGIN
 	DEALLOCATE cur_promociones
 END
 
-SELECT * FROM #_tmp_articuloDatos
+SELECT *, [llave] = @llave FROM #_tmp_articuloDatos
 
 DROP TABLE #_tmp_articuloDatos
 GO
