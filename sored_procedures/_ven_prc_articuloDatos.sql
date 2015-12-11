@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -272,8 +272,14 @@ SELECT
 	)
 	,[idimpuesto1] = i1.idimpuesto
 	,[idimpuesto1_valor] = i1.valor
-	,[idimpuesto2] = ISNULL(a.idimpuesto2, 0)
-	,[idimpuesto2_valor] = ISNULL(i2.valor, 0)
+	,[idimpuesto2] = ISNULL(
+		(SELECT TOP 1 ait.idimpuesto FROM ew_articulos_impuestos_tasas AS ait WHERE ait.idarticulo = a.idarticulo ORDER BY ait.idr)
+		, ISNULL(a.idimpuesto2, 0)
+	)
+	,[idimpuesto2_valor] = ISNULL(
+		(SELECT TOP 1 ait.tasa FROM ew_articulos_impuestos_tasas AS ait WHERE ait.idarticulo = a.idarticulo ORDER BY ait.idr)
+		, ISNULL(i2.valor, 0)
+	)
 	,[idimpuesto1_ret] = a.idimpuesto1_ret
 	,[idimpuesto1_ret_valor] = i3.valor
 	,[precio_congelado] = CONVERT(BIT, (CASE WHEN sucar.cambiar_precio = 1 THEN 0 ELSE 1 END))
