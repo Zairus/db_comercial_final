@@ -22,9 +22,9 @@ SELECT
 FROM 
 	db_comercial.dbo.evoluware_objetos_datos AS odg
 WHERE
-	odg.grupo NOT IN (
+	odg.codigo NOT IN (
 		SELECT
-			odl.grupo
+			odl.codigo
 		FROM
 			ew_cat_objetos_datos AS odl
 		WHERE

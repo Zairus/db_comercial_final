@@ -1,0 +1,33 @@
+USE db_comercial_final
+
+IF OBJECT_ID('_tmp_cxp_carga') IS NOT NULL
+BEGIN
+	DROP TABLE _tmp_cxp_carga
+END
+
+IF OBJECT_ID('ew_cxp_migracion') IS NOT NULL
+BEGIN
+	DROP TABLE ew_cxp_migracion
+END
+
+CREATE TABLE ew_cxp_migracion (
+	idr INT NOT NULL IDENTITY
+	,idproveedor INT NOT NULL
+	,folio VARCHAR(15) NOT NULL
+	,fecha SMALLDATETIME NOT NULL DEFAULT (GETDATE())
+	,vencimiento SMALLDATETIME NOT NULL DEFAULT (GETDATE())
+	,codprovee VARCHAR(30) NOT NULL DEFAULT ''
+	,idmoneda SMALLINT NOT NULL DEFAULT 0
+	,saldo DECIMAL(18,6) NOT NULL DEFAULT 0
+	,importe DECIMAL(18,6) NOT NULL DEFAULT 0
+	,impuesto1 DECIMAL(18,6) NOT NULL DEFAULT 0
+	,impuesto2 DECIMAL(18,6) NOT NULL DEFAULT 0
+	,impuesto3 DECIMAL(18,6) NOT NULL DEFAULT 0
+	,impuesto4 DECIMAL(18,6) NOT NULL DEFAULT 0
+	, CONSTRAINT [PK_ew_cxp_migracion] PRIMARY KEY CLUSTERED (
+		[idproveedor] ASC
+		,[folio] ASC
+	)
+) ON [PRIMARY]
+
+SELECT * FROM ew_cxp_migracion
