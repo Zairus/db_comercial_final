@@ -17,6 +17,8 @@ CREATE TABLE ew_ven_listaprecios_carga (
 	,precio_neto3 DECIMAL(18,6) NOT NULL
 	,precio_neto4 DECIMAL(18,6) NOT NULL
 	,precio_neto5 DECIMAL(18,6) NOT NULL
+	,idimpuesto1_valor DECIMAL(18,6) NOT NULL
+	,idimpuesto2_valor DECIMAL(18,6) NOT NULL
 )
 
 SELECT * FROM ew_ven_listaprecios_carga

@@ -54,7 +54,7 @@ DECLARE
 DECLARE
 	 @idpromocion AS INT
 	,@cantidad_minima AS DECIMAL(18,6)
-		
+
 SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
 
 SELECT
@@ -469,7 +469,42 @@ BEGIN
 	DEALLOCATE cur_promociones
 END
 
-SELECT * FROM #_tmp_articuloDatos
+SELECT
+	[codarticulo] = tad.codarticulo
+	,[idlista] = tad.idlista
+	,[idarticulo] = tad.idarticulo
+	,[descripcion] = tad.descripcion
+	,[nombre_corto] = tad.nombre_corto
+	,[marca] = tad.marca
+	,[idum] = tad.idum
+	,[maneja_lote] = tad.maneja_lote
+	,[autorizable] = tad.autorizable
+	,[factor] = tad.factor
+	,[unidad] = tad.unidad
+	,[idmoneda_m] = tad.idmoneda_m
+	,[tipocambio_m] = tad.tipocambio_m
+	,[cantidad_facturada] = tad.cantidad_facturada
+	,[precio_unitario_m] = tad.precio_unitario_m
+	,[precio_unitario_m2] = tad.precio_unitario_m2
+	,[precio_minimo] = tad.precio_minimo
+	,[existencia] = tad.existencia
+	,[idimpuesto1] = tad.idimpuesto1
+	,[idimpuesto1_valor] = tad.idimpuesto1_valor
+	,[idimpuesto2] = tad.idimpuesto2
+	,[idimpuesto2_valor] = tad.idimpuesto2_valor
+	,[idimpuesto1_ret] = tad.idimpuesto1_ret
+	,[idimpuesto1_ret_valor] = tad.idimpuesto1_ret_valor
+	,[precio_congelado] = tad.precio_congelado
+	,[cantidad_mayoreo] = tad.cantidad_mayoreo
+	,[max_descuento1] = tad.descuento1
+	,[max_descuento2] = tad.descuento2
+	,[objerrmsg] = tad.objerrmsg
+	,[cuenta_sublinea] = tad.cuenta_sublinea
+	,[descuento1] = 0
+	,[descuento2] = tad.descuento2
+	,[descuento3] = tad.descuento3
+FROM 
+	#_tmp_articuloDatos AS tad
 
 DROP TABLE #_tmp_articuloDatos
 GO

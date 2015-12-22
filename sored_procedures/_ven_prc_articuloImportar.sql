@@ -16,6 +16,8 @@ ALTER PROCEDURE [dbo].[_ven_prc_articuloImportar]
 	,@precio3 AS DECIMAL(18,6)
 	,@precio4 AS DECIMAL(18,6)
 	,@precio5 AS DECIMAL(18,6)
+	,@idimpuesto1_valor AS DECIMAL(18,6)
+	,@idimpuesto2_valor AS DECIMAL(18,6)
 AS
 
 SET NOCOUNT ON
@@ -35,6 +37,7 @@ BEGIN
 	UPDATE ew_articulos SET
 		nombre = @nombre
 		,nombre_corto = @nombre_corto
+		,idimpuesto1 = ISNULL((SELECT TOP 1 idimpuesto FROM ew_cat_impuestos WHERE grupo = 'IVA' AND valor >= @idimpuesto1_valor ORDER BY valor), 0)
 	WHERE
 		idarticulo = @idarticulo
 END
@@ -63,9 +66,53 @@ BEGIN
 		,@nombre_corto
 		,0
 		,1
-		,1
+		,ISNULL((SELECT TOP 1 idimpuesto FROM ew_cat_impuestos WHERE grupo = 'IVA' AND valor >= @idimpuesto1_valor ORDER BY valor), 0)
 	)
 END
+
+UPDATE ew_articulos_impuestos_tasas SET
+	tasa = @idimpuesto2_valor
+WHERE
+	idarticulo = @idarticulo
+
+IF @@ROWCOUNT = 0
+BEGIN
+	INSERT INTO ew_articulos_impuestos_tasas (
+		idarticulo
+		,idimpuesto
+		,tasa
+	)
+	VALUES (
+		@idarticulo
+		,11
+		,@idimpuesto2_valor
+	)
+END
+
+INSERT INTO ew_cat_impuestos_tasas (
+	idimpuesto
+	,tasa
+	,descripcion
+)
+SELECT
+	ait.idimpuesto
+	,ait.tasa
+	,[descripcion] = (
+		'Producto IEPS '
+		+CONVERT(VARCHAR(20), ait.tasa * 100)
+		+'%'
+	)
+FROM 
+	ew_articulos_impuestos_tasas AS ait
+WHERE
+	ait.tasa NOT IN (
+		SELECT
+			cit.tasa
+		FROM
+			ew_cat_impuestos_tasas AS cit
+		WHERE
+			cit.idimpuesto = ait.idimpuesto
+	)
 
 UPDATE vlm SET
 	vlm.costo_base = @costo_base
@@ -108,12 +155,16 @@ SELECT
 	,[precio_neto3] = vlm.precio_neto3
 	,[precio_neto4] = vlm.precio_neto4
 	,[precio_neto5] = vlm.precio_neto5
+	,[idimpuesto1_valor] = ISNULL(ci.valor, 0)
+	,[idimpuesto2_valor] = 0
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_ven_listaprecios_mov AS vlm
 		ON vlm.idarticulo = a.idarticulo
 	LEFT JOIN ew_sys_sucursales AS s
 		ON s.idlista = vlm.idlista
+	LEFT JOIN ew_cat_impuestos AS ci
+		ON ci.idimpuesto = a.idimpuesto1
 WHERE
 	a.codigo = @codigo
 	AND s.idsucursal = @idsucursal
