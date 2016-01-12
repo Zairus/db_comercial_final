@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -18,6 +18,7 @@ DECLARE
 	,@idu AS INT
 	,@idturno AS INT
 	,@pago_en_caja AS BIT
+	,@error_mensaje AS VARCHAR(1000)
 
 SELECT
 	@credito = ct.credito
@@ -58,14 +59,68 @@ BEGIN
 		idtran = @idtran
 END
 
+IF EXISTS (
+	SELECT * 
+	FROM 
+		ew_ven_transacciones_mov_datos AS vtmd
+		LEFT JOIN ew_articulos_datos AS ad
+			ON ad.idarticulo = vtmd.idarticulo
+			AND ad.iddato = vtmd.iddato
+	WHERE
+		ad.obligatorio = 1
+		AND LEN(vtmd.valor) = 0
+		AND vtmd.idtran = @idtran
+)
+BEGIN
+	SELECT TOP 1
+		@error_mensaje = (
+			'Debe indicar valor para el campo: ['
+			+sd.nombre
+			+'], del producto: '
+			+a.nombre
+		)
+	FROM 
+		ew_ven_transacciones_mov_datos AS vtmd
+		LEFT JOIN ew_articulos_datos AS ad
+			ON ad.idarticulo = vtmd.idarticulo
+			AND ad.iddato = vtmd.iddato
+		LEFT JOIN ew_sys_datos AS sd
+			ON sd.iddato = ad.iddato
+		LEFT JOIN ew_articulos AS a
+			ON a.idarticulo = vtmd.idarticulo
+	WHERE
+		ad.obligatorio = 1
+		AND LEN(vtmd.valor) = 0
+		AND vtmd.idtran = @idtran
+
+	RAISERROR(@error_mensaje, 16, 1)
+	RETURN
+END
+
 --Surtir
 EXEC [dbo].[_ven_prc_ticketVentaSurtir] @idtran
 
 --Pagar
-IF @pago_total > 0
+IF (
+	@pago_total > 0 
+	AND EXISTS(
+		SELECT * 
+		FROM 
+			ew_ven_transacciones_pagos 
+		WHERE 
+			consecutivo = 0 
+			AND (
+				total > 0
+				OR total2 > 0
+			)
+			AND idtran = @idtran
+	)
+)
 BEGIN
 	EXEC [dbo].[_ven_prc_ticketVentaPagos] @idtran, @idu
 END
+
+EXEC _ven_prc_facturaPagos @idtran
 
 SELECT costo = ISNULL(SUM(costo),0) FROM ew_ven_transacciones_mov WHERE idtran = @idtran
 GO

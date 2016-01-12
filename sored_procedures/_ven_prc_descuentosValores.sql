@@ -61,7 +61,6 @@ FROM
 	ew_ven_descuentos AS vd
 WHERE
 	vd.activo = 1
-	--AND vd.tipo IN (1,3)
 	AND GETDATE() BETWEEN vd.fecha_inicio AND vd.fecha_final
 	AND (
 		@idsucursal IN (SELECT s.valor FROM dbo._sys_fnc_separarMultilinea(vd.condicion, ',') AS s)
@@ -69,61 +68,78 @@ WHERE
 	)
 	AND (
 		(
-			SELECT COUNT(*)
-			FROM
-				ew_ven_descuentos_articulos AS vda
-			WHERE
-				vda.iddescuento  = vd.iddescuento
-				AND vda.activo = 1
-				AND @cantidad BETWEEN vda.cantidad_minima AND (CASE WHEN vda.cantidad_maxima = 0 THEN 9999999999999 ELSE vda.cantidad_maxima END)
-				AND (
-					(
-						vda.grupo = 1
-						AND vda.codigo = @articulo_codigo
+			(
+				SELECT COUNT(*)
+				FROM
+					ew_ven_descuentos_articulos AS vda
+				WHERE
+					vda.iddescuento  = vd.iddescuento
+					AND vda.activo = 1
+					AND @cantidad BETWEEN vda.cantidad_minima AND (CASE WHEN vda.cantidad_maxima = 0 THEN 9999999999999 ELSE vda.cantidad_maxima END)
+					AND (
+						(
+							vda.grupo = 1
+							AND vda.codigo = @articulo_codigo
+						)
+						OR (
+							vda.grupo = 2
+						)
+						OR (
+							vda.grupo = 3
+						)
+						OR vda.grupo = 255
 					)
-					OR (
-						vda.grupo = 2
+			) > 0
+			OR (
+				SELECT COUNT(*)
+				FROM
+					ew_ven_descuentos_articulos AS vda
+				WHERE
+					vda.iddescuento = vd.iddescuento
+			) = 0
+		)
+		AND (
+			(
+				SELECT COUNT(*)
+				FROM
+					ew_ven_descuentos_clientes AS vdc
+				WHERE
+					vdc.iddescuento = vd.iddescuento
+					AND vdc.activo = 1
+					AND (
+						(
+							vdc.grupo = 1
+							AND vdc.codigo = @idcliente
+						)
+						OR (
+							vdc.grupo = 2
+							AND vdc.codigo = @idpolitica
+						)
+						OR (
+							vdc.grupo = 3
+						)
+						OR vdc.grupo = 255
 					)
-					OR (
-						vda.grupo = 3
+					AND (
+						(
+							vdc.idcondicionpago = 1
+							AND 0 = @credito
+						)
+						OR (
+							vdc.idcondicionpago = 2
+							AND 1 = @credito
+						)
+						OR vdc.idcondicionpago = 0
 					)
-					OR vda.grupo = 255
-				)
-		) > 0
-		OR (
-			SELECT COUNT(*)
-			FROM
-				ew_ven_descuentos_clientes AS vdc
-			WHERE
-				vdc.iddescuento = vd.iddescuento
-				AND vdc.activo = 1
-				AND (
-					(
-						vdc.grupo = 1
-						AND vdc.codigo = @idcliente
-					)
-					OR (
-						vdc.grupo = 2
-						AND vdc.codigo = @idpolitica
-					)
-					OR (
-						vdc.grupo = 3
-					)
-					OR vdc.grupo = 255
-				)
-				AND (
-					(
-						vdc.idcondicionpago = 1
-						AND 0 = @credito
-					)
-					OR (
-						vdc.idcondicionpago = 2
-						AND 1 = @credito
-					)
-					OR vdc.idcondicionpago = 0
-				)
-
-		) > 0
+			) > 0
+			OR (
+				SELECT COUNT(*) 
+				FROM 
+					ew_ven_descuentos_clientes AS vdc 
+				WHERE 
+					vdc.iddescuento = vd.iddescuento
+			) = 0
+		)
 	)
 
 IF LEN(@codigos) > 0

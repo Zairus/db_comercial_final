@@ -167,6 +167,8 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[idimpuesto2_valor] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[idimpuesto1_ret] INT NOT NULL DEFAULT 0
 	,[idimpuesto1_ret_valor] DECIMAL(18,6) NOT NULL DEFAULT 0
+	,[idimpuesto2_ret] INT NOT NULL DEFAULT 0
+	,[idimpuesto2_ret_valor] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[precio_congelado] BIT NOT NULL DEFAULT 0
 	,[cantidad_mayoreo] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[max_descuento1] DECIMAL(18,6) NOT NULL DEFAULT 0
@@ -203,6 +205,8 @@ INSERT INTO #_tmp_articuloDatos (
 	,[idimpuesto2_valor]
 	,[idimpuesto1_ret]
 	,[idimpuesto1_ret_valor]
+	,[idimpuesto2_ret]
+	,[idimpuesto2_ret_valor]
 	,[precio_congelado]
 	,[cantidad_mayoreo]
 	,[max_descuento1]
@@ -270,18 +274,120 @@ SELECT
 		dbo.fn_inv_existenciaReal(a.idarticulo, @idalmacen)
 		-dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
 	)
-	,[idimpuesto1] = i1.idimpuesto
-	,[idimpuesto1_valor] = i1.valor
-	,[idimpuesto2] = ISNULL(
-		(SELECT TOP 1 ait.idimpuesto FROM ew_articulos_impuestos_tasas AS ait WHERE ait.idarticulo = a.idarticulo ORDER BY ait.idr)
-		, ISNULL(a.idimpuesto2, 0)
-	)
-	,[idimpuesto2_valor] = ISNULL(
-		(SELECT TOP 1 ait.tasa FROM ew_articulos_impuestos_tasas AS ait WHERE ait.idarticulo = a.idarticulo ORDER BY ait.idr)
-		, ISNULL(i2.valor, 0)
-	)
-	,[idimpuesto1_ret] = a.idimpuesto1_ret
-	,[idimpuesto1_ret_valor] = i3.valor
+	--##########################################
+	,[idimpuesto1] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto1)
+	,[idimpuesto1_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1), 0))
+	,[idimpuesto2] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto2)
+	,[idimpuesto2_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+	,[idimpuesto1_ret] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto1_ret)
+	,[idimpuesto1_ret_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
+	,[idimpuesto2_ret] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'ISR'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto2_ret)
+	,[idimpuesto2_ret_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'ISR'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
+	--##########################################
 	,[precio_congelado] = CONVERT(BIT, (CASE WHEN sucar.cambiar_precio = 1 THEN 0 ELSE 1 END))
 	,[cantidad_mayoreo] = sucar.mayoreo
 	,[max_descuento1] = @descuento_pol
@@ -494,6 +600,8 @@ SELECT
 	,[idimpuesto2_valor] = tad.idimpuesto2_valor
 	,[idimpuesto1_ret] = tad.idimpuesto1_ret
 	,[idimpuesto1_ret_valor] = tad.idimpuesto1_ret_valor
+	,[idimpuesto2_ret] = tad.idimpuesto2_ret
+	,[idimpuesto2_ret_valor] = tad.idimpuesto2_ret_valor
 	,[precio_congelado] = tad.precio_congelado
 	,[cantidad_mayoreo] = tad.cantidad_mayoreo
 	,[max_descuento1] = tad.descuento1
