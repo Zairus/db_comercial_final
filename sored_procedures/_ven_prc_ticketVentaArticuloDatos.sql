@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -26,6 +26,7 @@ DECLARE
 	,@descuento2 AS DECIMAL(18,6)
 	,@descuento3 AS DECIMAL(18,6)
 	,@descuentos_codigos AS VARCHAR(100)
+	,@precio_fijo AS DECIMAL(18,6) = 0
 
 DECLARE
 	 @idpromocion AS INT
@@ -62,6 +63,7 @@ EXEC [dbo].[_ven_prc_descuentosValores]
 	,@descuento2 OUTPUT
 	,@descuento3 OUTPUT
 	,@descuentos_codigos OUTPUT
+	,@precio_fijo OUTPUT
 
 CREATE TABLE #_tmp_articuloDatos (
 	[id] INT IDENTITY
@@ -111,7 +113,7 @@ SELECT
 	,[idalmacen] = @idalmacen
 	,[idum] = a.idum_venta
 	,[cantidad_facturada] = @cantidad
-	,[precio_venta] = ISNULL(vlm.precio1, 0)
+	,[precio_venta] = (CASE WHEN @precio_fijo = 0 THEN ISNULL(vlm.precio1, 0) ELSE @precio_fijo END)
 	--########################################################
 	,[idimpuesto1] = ISNULL((
 		SELECT

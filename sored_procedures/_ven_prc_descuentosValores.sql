@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -15,6 +15,7 @@ ALTER PROCEDURE [dbo].[_ven_prc_descuentosValores]
 	,@descuento2 AS DECIMAL(18,6) OUTPUT
 	,@descuento3 AS DECIMAL(18,6) OUTPUT
 	,@codigos AS VARCHAR(200) OUTPUT
+	,@precio AS DECIMAL(18,6) = 0 OUTPUT
 AS
 
 SET NOCOUNT ON
@@ -23,6 +24,7 @@ DECLARE
 	@articulos_descuento_valor AS DECIMAL(18,6) = 100.00
 	,@idpolitica AS INT
 	,@articulo_codigo AS VARCHAR(30)
+	,@iddescuento AS INT
 
 SELECT @descuento1 = 0
 SELECT @descuento2 = 0
@@ -57,6 +59,7 @@ WHERE
 SELECT
 	@codigos = @codigos + vd.coddescuento + ', '
 	,@articulos_descuento_valor = @articulos_descuento_valor - (@articulos_descuento_valor * (vd.valor / 100))
+	,@iddescuento = vd.iddescuento
 FROM
 	ew_ven_descuentos AS vd
 WHERE
@@ -146,6 +149,16 @@ IF LEN(@codigos) > 0
 	SELECT @codigos = LEFT(@codigos, LEN(@codigos) - 1)
 
 SELECT @descuento2 = 100.0 - @articulos_descuento_valor
+
+SELECT
+	@descuento2 = 0
+	,@precio = vda.precio
+FROM
+	ew_ven_descuentos_articulos AS vda
+WHERE
+	vda.precio > 0
+	AND vda.iddescuento = @iddescuento
+	AND vda.codigo = @articulo_codigo
 
 SELECT
 	@descuento1 = ISNULL(@descuento1, 0)

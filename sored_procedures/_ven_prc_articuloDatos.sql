@@ -54,6 +54,7 @@ DECLARE
 DECLARE
 	 @idpromocion AS INT
 	,@cantidad_minima AS DECIMAL(18,6)
+	,@precio_fijo AS DECIMAL(18,6) = 0
 
 SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
 
@@ -140,6 +141,7 @@ EXEC [dbo].[_ven_prc_descuentosValores]
 	,@descuento2 OUTPUT
 	,@descuento3 OUTPUT
 	,@descuentos_codigos OUTPUT
+	,@precio_fijo OUTPUT
 
 CREATE TABLE #_tmp_articuloDatos (
 	[id] INT IDENTITY
@@ -435,6 +437,11 @@ FROM
 		ON subl.codigo=a.nivel3
 WHERE
 	a.codigo = @codarticulo 
+
+UPDATE #_tmp_articuloDatos SET
+	precio_unitario_m = (CASE WHEN @precio_fijo = 0 THEN precio_unitario_m ELSE @precio_fijo END)
+	,precio_unitario_m2 = (CASE WHEN @precio_fijo = 0 THEN precio_unitario_m2 ELSE @precio_fijo END)
+	,precio_minimo = (CASE WHEN @precio_fijo = 0 THEN precio_minimo ELSE @precio_fijo END)
 
 IF @cantidad > 0
 BEGIN
