@@ -18,13 +18,42 @@ DECLARE
 	@idturno AS INT
 	,@pago_en_caja AS BIT
 	,@idcuenta AS INT
+	,@error_mensaje AS VARCHAR(500)
 
-SELECT @idturno = dbo.fn_sys_turnoActual(@idu)
+SELECT @idturno = [dbo].[fn_sys_turnoActualR2](@idu, 0)
 SELECT @pago_en_caja = CONVERT(BIT, valor) FROM objetos_datos WHERE grupo = 'GLOBAL' AND codigo = 'PAGO_EN_CAJA'
 
 IF @idu > 0 AND @idturno IS NULL AND @pago_en_caja = 0
 BEGIN
-	RAISERROR('Error: El usuario no ha iniciado turno.', 16, 1)
+	SELECT @idturno = [dbo].[fn_sys_turnoActualR2](@idu, 1)
+
+	IF @idturno IS NULL
+	BEGIN
+		SELECT @error_mensaje = 'Error: El usuario no ha iniciado turno.'
+	END
+		ELSE
+	BEGIN
+		SELECT
+			@error_mensaje = (
+				'El usuario '
+				+u.nombre
+				+', '
+				+CHAR(13)
+				+'tiene turno abierto con fecha '
+				+CONVERT(VARCHAR(8), st.fecha_inicio, 3)
+				+'.'
+				+CHAR(13)
+				+'Es necesario primero cerrar ese turno.'
+			)
+		FROM
+			ew_sys_turnos AS st
+			LEFT JOIN evoluware_usuarios AS u
+				ON u.idu = st.idu
+		WHERE
+			idturno = @idturno
+	END
+
+	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
 

@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -102,11 +102,47 @@ SELECT
 	,[estatus] = 0
 	,[consecutivo] = 2
 	,[idsucursal] = ct.idsucursal
+	,[cuenta] = ISNULL((SELECT od.valor FROM objetos_datos AS od WHERE od.grupo = 'GLOBAL' AND od.codigo = 'CLIENTE_CONTADO'), '1130001000')
+	,[tipomov] = 1
+	,[referencia] = (ct.transaccion + ' - ' + ct.folio)
+	,[cargos] = 0
+	,[abonos] = (
+		(
+			ct.total 
+			-ISNULL((SELECT ctm.importe FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
+		)
+		*(CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)
+	)
+	,[importe] = (
+		(
+			ct.total 
+			-ISNULL((SELECT ctm.importe FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
+		)
+		*(CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)
+	)
+	,[moneda] = 0
+	,[tipocambio] = 1
+	,[concepto] = (o.nombre + ' - ' + ct.folio)
+FROM
+	ew_cxc_transacciones AS ct
+	LEFT JOIN objetos AS o
+		ON o.codigo = ct.transaccion
+WHERE
+	ct.idtran = @idtran
+
+UNION ALL
+
+SELECT
+	[idtran] = @poliza_idtran
+	,[idtran2] = @idtran
+	,[estatus] = 0
+	,[consecutivo] = 2
+	,[idsucursal] = ct.idsucursal
 	,[cuenta] = pm.cuenta
 	,[tipomov] = 1
 	,[referencia] = (ct.transaccion + ' - ' + ct.folio)
 	,[cargos] = 0
-	,[abonos] =SUM((ctm.importe2 / f.total) * pm.cargos) --SUM(((ctm.importe / (CASE WHEN f.idmoneda = ct.idmoneda THEN 1 ELSE ctm.tipocambio END)) / f.total) * pm.cargos)
+	,[abonos] =SUM((ctm.importe2 / f.total) * pm.cargos)
 	,[importe] = SUM((ctm.importe2 / f.total) * pm.cargos)
 	,[moneda] = 0
 	,[tipocambio] = 1
