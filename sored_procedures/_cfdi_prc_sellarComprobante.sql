@@ -260,6 +260,12 @@ BEGIN
 						,@xmlBase64 OUTPUT
 						,@respuestaXml OUTPUT
 				END
+				
+				IF @respuestaOk = 'false'
+				BEGIN
+					SELECT @pac_i = 5
+					SELECT @msg = @mensaje
+				END
 
 				IF @codigo = -1
 				BEGIN
@@ -273,7 +279,16 @@ BEGIN
 			
 			IF @UUID IS NULL OR @UUID=''
 			BEGIN
-				RAISERROR('Error, no se obtuvo UUID', 16, 1)
+				IF @respuestaOk = 'false'
+				BEGIN
+					SELECT @msg = @mensaje
+				END
+					ELSE
+				BEGIN
+					SELECT @msg = 'Error, no se obtuvo UUID'
+				END
+
+				RAISERROR(@msg, 16, 1)
 				RETURN
 			END
 			

@@ -113,7 +113,7 @@ INSERT INTO ew_sys_transacciones2 (
 )
 SELECT
 	 [idtran] = idtran2
-	,[idestado] = 251
+	,[idestado] = 51
 FROM
 	ew_cxc_transacciones_rel
 WHERE

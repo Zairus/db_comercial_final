@@ -14,12 +14,12 @@ SET NOCOUNT ON
 SELECT
 	[referencia] = ct.idtran
 	,[idtran2] = ct.idtran
-	,[objidtran] = ct.idtran
 	,[r_fecha] = ct.fecha
 	,[r_folio] = ct.folio
 	,[r_cliente] = c.nombre
 	,[r_importe] = ct.subtotal
 	,[r_impuesto1] = ct.impuesto1
+	,[r_impuesto2] = ct.impuesto2
 	,[r_total] = ct.total
 	,[saldo] = ct.saldo
 FROM 
