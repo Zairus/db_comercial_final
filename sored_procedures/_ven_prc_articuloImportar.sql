@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -70,49 +70,80 @@ BEGIN
 	)
 END
 
-UPDATE ew_articulos_impuestos_tasas SET
-	tasa = @idimpuesto2_valor
+INSERT INTO ew_articulos_impuestos_tasas (
+	idarticulo
+	,idtasa
+)
+
+SELECT
+	[idarticulo] = @idarticulo
+	,cit.idtasa
+FROM 
+	ew_cat_impuestos_tasas AS cit
+	LEFT JOIN ew_articulos_impuestos_tasas AS ait
+		ON ait.idarticulo = @idarticulo
+		AND ait.idtasa = cit.idtasa
+WHERE 
+	cit.idimpuesto = 1
+	AND cit.tipo = 1
+	AND cit.tasa = @idimpuesto1_valor
+	AND ait.idarticulo IS NULL
+
+INSERT INTO ew_cat_impuestos_tasas (
+	idtasa
+	,idimpuesto
+	,tasa
+	,descripcion
+	,tipo
+	,contabilidad1
+	,contabilidad2
+	,contabilidad3
+	,contabilidad4
+)
+SELECT
+	[idtasa] = ISNULL((SELECT MAX(cit1.idtasa) FROM ew_cat_impuestos_tasas AS cit1), 0) + 1
+	,ci.idimpuesto
+	,[tasa] = @idimpuesto2_valor
+	,[descripcion] = 'IEPS al ' + CONVERT(VARCHAR(20), @idimpuesto2_valor) + '%'
+	,[tipo] = 1
+	,[contabilidad1] = '2130001004'
+	,[contabilidad2] = '2130001003'
+	,[contabilidad3] = '1150007002'
+	,[contabilidad4] = '1150007001'
+FROM
+	ew_cat_impuestos AS ci
 WHERE
-	idarticulo = @idarticulo
+	ci.idimpuesto = 11
+
+UPDATE ew_articulos_impuestos_tasas SET
+	idtasa = ISNULL((
+		SELECT
+			cit.idtasa
+		FROM
+			ew_cat_impuestos_tasas AS cit
+		WHERE
+			cit.idimpuesto = 11
+			AND cit.tasa = @idimpuesto2_valor
+	), 0)
+WHERE
+	idtasa IN (SELECT cit.idtasa FROM ew_cat_impuestos_tasas AS cit WHERE cit.idimpuesto = 11)
+	AND idarticulo = @idarticulo
 
 IF @@ROWCOUNT = 0
 BEGIN
 	INSERT INTO ew_articulos_impuestos_tasas (
 		idarticulo
-		,idimpuesto
-		,tasa
+		,idtasa
 	)
-	VALUES (
-		@idarticulo
-		,11
-		,@idimpuesto2_valor
-	)
+	SELECT
+		[idarticulo] = @idarticulo
+		,cit.idtasa
+	FROM
+		ew_cat_impuestos_tasas AS cit
+	WHERE
+		cit.idimpuesto = 11
+		AND cit.tasa = @idimpuesto2_valor
 END
-
-INSERT INTO ew_cat_impuestos_tasas (
-	idimpuesto
-	,tasa
-	,descripcion
-)
-SELECT
-	ait.idimpuesto
-	,ait.tasa
-	,[descripcion] = (
-		'Producto IEPS '
-		+CONVERT(VARCHAR(20), ait.tasa * 100)
-		+'%'
-	)
-FROM 
-	ew_articulos_impuestos_tasas AS ait
-WHERE
-	ait.tasa NOT IN (
-		SELECT
-			cit.tasa
-		FROM
-			ew_cat_impuestos_tasas AS cit
-		WHERE
-			cit.idimpuesto = ait.idimpuesto
-	)
 
 UPDATE vlm SET
 	vlm.costo_base = @costo_base

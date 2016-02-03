@@ -1,13 +1,14 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20160123
 -- Description:	Obtener notas de venta para factura
 -- =============================================
-ALTER PROCEDURE _ven_prc_obtenerNotasParaFactura
+ALTER PROCEDURE [dbo].[_ven_prc_obtenerNotasParaFactura]
 	@codcliente AS VARCHAR(20)
-	,@fecha AS SMALLDATETIME
+	,@fecha1 AS SMALLDATETIME
+	,@fecha2 AS SMALLDATETIME
 	,@formas AS VARCHAR(MAX)
 AS
 
@@ -25,19 +26,34 @@ CREATE TABLE #_tmp_formas (
 	,idforma INT
 )
 
-INSERT INTO #_tmp_formas (
-	seleccionar
-	,nombre
-	,idforma
-)
-SELECT
-	[seleccionar] = REPLACE(dbo.fn_sys_campoDeCadena(valor, '|', 1), '-', '')
-	,[nombre] = dbo.fn_sys_campoDeCadena(valor, '|', 2)
-	,[idforma] = dbo.fn_sys_campoDeCadena(valor, '|', 3)
-FROM 
-	dbo._sys_fnc_separarMultilinea(@formas, '	')
-
---SELECT * FROM #_tmp_formas
+IF CHARINDEX('|', @formas) > 0
+BEGIN
+	INSERT INTO #_tmp_formas (
+		seleccionar
+		,nombre
+		,idforma
+	)
+	SELECT
+		[seleccionar] = REPLACE(dbo.fn_sys_campoDeCadena(valor, '|', 1), '-', '')
+		,[nombre] = dbo.fn_sys_campoDeCadena(valor, '|', 2)
+		,[idforma] = dbo.fn_sys_campoDeCadena(valor, '|', 3)
+	FROM 
+		dbo._sys_fnc_separarMultilinea(@formas, '	')
+END
+	ELSE
+BEGIN
+	INSERT INTO #_tmp_formas (
+		seleccionar
+		,nombre
+		,idforma
+	)
+	SELECT
+		[seleccionar] = REPLACE(dbo.fn_sys_campoDeCadena(valor, '	', 1), '-', '')
+		,[nombre] = dbo.fn_sys_campoDeCadena(valor, '	', 2)
+		,[idforma] = dbo.fn_sys_campoDeCadena(valor, '	', 3)
+	FROM 
+		dbo._sys_fnc_separarMultilinea(@formas, CHAR(13))
+END
 
 SELECT
 	[referencia] = vt.idtran
@@ -63,7 +79,7 @@ WHERE
 	AND vt.cancelado = 0
 	AND st.idestado IN (0, 50)
 	AND c.codigo = (CASE WHEN @codcliente = '' THEN c.codigo ELSE @codcliente END)
-	AND CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), vt.fecha, 3)) = @fecha
+	AND CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), vt.fecha, 3)) BETWEEN @fecha1 AND @fecha2
 	AND (
 		SELECT
 			vtp.idforma

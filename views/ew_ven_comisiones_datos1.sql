@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 ALTER VIEW [dbo].[ew_ven_comisiones_datos1]
 AS
@@ -29,6 +29,7 @@ SELECT
 	,[cantidad] = vtm.cantidad_facturada - vtm.cantidad_devuelta
 	,vtm.importe
 	,[importe_base] = (vtm.importe / vtm.cantidad_facturada) * (vtm.cantidad_facturada - vtm.cantidad_devuelta)
+	,a.comision_nivel
 	,[comision] = (
 		CASE a.comision_nivel
 			WHEN 1 THEN v.comision1
@@ -44,8 +45,11 @@ SELECT
 				ew_cxc_transacciones_mov AS ctm1
 				LEFT JOIN ew_cxc_transacciones AS ct1
 					ON ct1.idtran = ctm1.idtran
+				LEFT JOIN ew_ban_transacciones AS bt
+					ON bt.idtran = ct1.idtran
 			WHERE
-				ct1.tipo <> ct.tipo
+				bt.idr IS NOT NULL
+				AND ct1.tipo <> ct.tipo
 				AND ctm1.idtran2 = vt.idtran
 		), 0) 
 		/ vt.subtotal

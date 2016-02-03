@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -109,14 +109,14 @@ SELECT
 	,[abonos] = (
 		(
 			ct.total 
-			-ISNULL((SELECT ctm.importe FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
+			-ISNULL((SELECT SUM(ctm.importe) FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
 		)
 		*(CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)
 	)
 	,[importe] = (
 		(
 			ct.total 
-			-ISNULL((SELECT ctm.importe FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
+			-ISNULL((SELECT SUM(ctm.importe) FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
 		)
 		*(CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)
 	)
@@ -128,7 +128,14 @@ FROM
 	LEFT JOIN objetos AS o
 		ON o.codigo = ct.transaccion
 WHERE
-	ct.idtran = @idtran
+	(
+		(
+			ct.total 
+			-ISNULL((SELECT SUM(ctm.importe) FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran), 0)
+		)
+		*(CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)
+	) > 0
+	AND ct.idtran = @idtran
 
 UNION ALL
 
