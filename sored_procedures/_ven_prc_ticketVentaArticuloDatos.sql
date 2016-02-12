@@ -72,6 +72,7 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[descripcion] VARCHAR(500) NOT NULL DEFAULT ''
 	,[idalmacen] INT NOT NULL
 	,[idum] INT NOT NULL DEFAULT 0
+	,[promocion] TINYINT NOT NULL DEFAULT 0
 	,[cantidad_facturada] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[precio_venta] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[idimpuesto1] INT NOT NULL DEFAULT 1
@@ -229,6 +230,7 @@ BEGIN
 			,descripcion
 			,idalmacen
 			,idum
+			,promocion
 			,cantidad_facturada
 			,precio_venta
 			,idimpuesto1
@@ -243,6 +245,7 @@ BEGIN
 			,[descripcion] = a.nombre
 			,[idalmacen] = @idalmacen
 			,[idum] = a.idum_venta
+			,[promocion] = 1
 			,[cantidad_facturada] = vpa.cantidad
 			,[precio_venta] = vpa.precio_venta
 			--########################################################
@@ -332,6 +335,7 @@ SELECT
 	, [tad].[descripcion]
 	, [tad].[idalmacen]
 	, [tad].[idum]
+	, [tad].[promocion]
 	, [tad].[cantidad_facturada]
 	, [tad].[precio_venta]
 	, [tad].[idimpuesto1]

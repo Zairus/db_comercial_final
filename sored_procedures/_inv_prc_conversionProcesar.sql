@@ -5,7 +5,7 @@ GO
 -- Create date: 20160114
 -- Description:	Procesar conversion
 -- =============================================
-ALTER PROCEDURE _inv_prc_conversionProcesar
+ALTER PROCEDURE [dbo].[_inv_prc_conversionProcesar]
 	@idtran AS INT
 AS
 
@@ -223,12 +223,7 @@ SELECT
 	,[idum] = idm.idum
 	,[cantidad] = idm.cantidad
 	,[existencia] = ISNULL(aa.existencia, 0)
-	,[costo] = (
-		CASE
-			WHEN @costo_previo_entrada = 0 THEN @costo_salida *  ((idm.cantidad * idm.factor) / @cantidad_total_equivalente)
-			ELSE @costo_salida * (aa.costo_ultimo / @costo_previo_entrada)
-		END
-	)
+	,[costo] = (@costo_salida *  ((idm.cantidad * idm.factor) / @cantidad_total_equivalente))
 	,[afectainv] = 1
 	,[comentario] = idm.comentario
 FROM

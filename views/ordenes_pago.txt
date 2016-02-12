@@ -1,0 +1,82 @@
+USE [db_comercial_final]
+GO
+ALTER VIEW [dbo].[ordenes_pago]
+AS
+SELECT
+	[idtran2] = a.idtran
+	, a.idmov AS idmov2
+	, a.transaccion
+	, a.fecha
+	, a.idsucursal
+	, a.folio
+	, a.referencia
+	, a.idconcepto
+	, c.nombre AS concepto_nombre
+	, c.contabilidad AS concepto_cuenta
+	, a.referencia AS Expr1
+	, 3 AS idrelacion
+	, a.idproveedor AS identidad
+	, p.codigo AS entidad_codigo
+	, p.nombre AS entidad_nombre
+	, p.rfc AS entidad_registro
+	, p.contabilidad AS entidad_cuenta
+	, a.idmoneda, a.total AS importe
+	, [idimpuesto_monto] = a.impuesto1 + a.impuesto2 - a.impuesto1_ret - a.impuesto2_ret
+	, a.idimpuesto1 AS idimpuesto
+	, i.valor AS impuesto_tasa
+	, i.contabilidad AS impuesto_cuenta
+	, i.contabilidad2 AS impuesto_cuenta2
+FROM
+	dbo.ew_cxp_transacciones AS a
+	LEFT OUTER JOIN dbo.ew_proveedores AS p 
+		ON p.idproveedor = a.idproveedor 
+	LEFT OUTER JOIN dbo.conceptos AS c 
+		ON c.idconcepto = a.idconcepto 
+	LEFT OUTER JOIN dbo.ew_cat_impuestos AS i 
+		ON i.idimpuesto = a.idimpuesto1
+WHERE
+	a.tipo = 2
+	AND a.transaccion IN ('DDA3')
+
+UNION ALL
+
+SELECT
+	a.idtran AS idtran2
+	, a.idmov AS idmov2
+	, a.transaccion
+	, a.fecha
+	, a.idsucursal
+	, a.folio
+	, a.referencia
+	, a.idconcepto
+	, c.nombre AS concepto_nombre
+	, c.contabilidad AS concepto_cuenta
+	, a.referencia AS Expr1
+	, 4 AS idrelacion
+	, a.idcliente AS identidad
+	, p.codigo AS entidad_codigo
+	, p.nombre AS entidad_nombre
+	, pf.rfc AS entidad_registro
+	, pf.contabilidad AS entidad_cuenta
+	, a.idmoneda
+	, a.total AS importe
+	, a.impuesto1 AS idimpuesto_monto
+	, a.idimpuesto1 AS idimpuesto
+	, i.valor AS impuesto_tasa
+	, i.contabilidad AS impuesto_cuenta
+	, i.contabilidad2 AS impuesto_cuenta2
+FROM
+	dbo.ew_cxc_transacciones AS a 
+	LEFT OUTER JOIN dbo.ew_clientes p 
+		ON p.idcliente = a.idcliente 
+	LEFT OUTER JOIN dbo.ew_clientes_facturacion pf 
+		ON pf.idcliente = a.idcliente 
+		AND pf.idfacturacion = a.idfacturacion 
+	LEFT OUTER JOIN dbo.conceptos AS c 
+		ON c.idconcepto = a.idconcepto 
+	LEFT OUTER JOIN dbo.ew_cat_impuestos AS i 
+		ON i.idimpuesto = a.idimpuesto1
+WHERE
+	a.tipo = 1
+	AND a.transaccion IN ('FOR1')
+GO

@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -41,6 +41,16 @@ BEGIN
 				+CHAR(13)
 				+'tiene turno abierto con fecha '
 				+CONVERT(VARCHAR(8), st.fecha_inicio, 3)
+				+ISNULL((
+					', '
+					+CHAR(13)
+					+'en la caja: '
+					+bc.no_cuenta
+					+', '
+					+CHAR(13)
+					+'sucursal: '
+					+s.nombre
+				), '')
 				+'.'
 				+CHAR(13)
 				+'Es necesario primero cerrar ese turno.'
@@ -49,6 +59,10 @@ BEGIN
 			ew_sys_turnos AS st
 			LEFT JOIN evoluware_usuarios AS u
 				ON u.idu = st.idu
+			LEFT JOIN ew_ban_cuentas AS bc
+				ON bc.idcuenta = st.idcuenta
+			LEFT JOIN ew_sys_sucursales AS s
+				ON s.idsucursal = bc.idsucursal
 		WHERE
 			idturno = @idturno
 	END

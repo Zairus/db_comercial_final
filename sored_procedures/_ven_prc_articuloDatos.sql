@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -55,6 +55,7 @@ DECLARE
 	 @idpromocion AS INT
 	,@cantidad_minima AS DECIMAL(18,6)
 	,@precio_fijo AS DECIMAL(18,6) = 0
+	,@bajo_costo AS BIT = 0
 
 SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
 
@@ -142,6 +143,7 @@ EXEC [dbo].[_ven_prc_descuentosValores]
 	,@descuento3 OUTPUT
 	,@descuentos_codigos OUTPUT
 	,@precio_fijo OUTPUT
+	,@bajo_costo OUTPUT
 
 CREATE TABLE #_tmp_articuloDatos (
 	[id] INT IDENTITY
@@ -263,6 +265,19 @@ SELECT
 	)
 
 	,[precio_minimo] = (
+		(
+			sucar.costo_base
+			*(
+				1
+				+(
+					CASE 
+						WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
+						ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
+					END
+				)
+			)
+		)
+		/*
 		ROUND((
 			CASE
 				WHEN sucar.bajo_costo = 1 THEN 0.01
@@ -270,6 +285,7 @@ SELECT
 			END
 		) * @factor,@decimales)
 		* (CASE WHEN vlm.idmoneda = @idmoneda THEN 1 ELSE bm.tipoCambio / @tipocambio END)
+		*/
 	)
 	
 	,[existencia] = (
@@ -599,7 +615,12 @@ SELECT
 	,[cantidad_facturada] = tad.cantidad_facturada
 	,[precio_unitario_m] = tad.precio_unitario_m
 	,[precio_unitario_m2] = tad.precio_unitario_m2
-	,[precio_minimo] = tad.precio_minimo
+	,[precio_minimo] = (
+		CASE
+			WHEN @bajo_costo = 0 THEN tad.precio_minimo / (1 - (tad.descuento1 / 100)) / (1 - (tad.descuento2 / 100))
+			ELSE tad.precio_minimo
+		END
+	)
 	,[existencia] = tad.existencia
 	,[idimpuesto1] = tad.idimpuesto1
 	,[idimpuesto1_valor] = tad.idimpuesto1_valor

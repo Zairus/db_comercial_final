@@ -16,6 +16,7 @@ ALTER PROCEDURE [dbo].[_ven_prc_descuentosValores]
 	,@descuento3 AS DECIMAL(18,6) OUTPUT
 	,@codigos AS VARCHAR(200) OUTPUT
 	,@precio AS DECIMAL(18,6) = 0 OUTPUT
+	,@bajo_costo AS BIT = 0 OUTPUT
 AS
 
 SET NOCOUNT ON
@@ -158,6 +159,14 @@ FROM
 WHERE
 	vda.precio > 0
 	AND vda.iddescuento = @iddescuento
+	AND vda.codigo = @articulo_codigo
+
+SELECT
+	@bajo_costo = vda.bajo_costo
+FROM
+	ew_ven_descuentos_articulos AS vda
+WHERE
+	vda.iddescuento = @iddescuento
 	AND vda.codigo = @articulo_codigo
 
 SELECT
