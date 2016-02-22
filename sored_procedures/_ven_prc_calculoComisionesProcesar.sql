@@ -13,9 +13,11 @@ SET NOCOUNT ON
 
 DECLARE
 	@idvendedor AS INT
+	,@fecha AS SMALLDATETIME
 
 SELECT
 	@idvendedor = vd.idvendedor
+	,@fecha = vd.fecha
 FROM
 	ew_ven_documentos AS vd
 WHERE
@@ -44,9 +46,9 @@ SELECT
 	,[cantidad_surtida] = vd1.cantidad
 	,[precio_unitario] = vd1.precio_unitario
 	,[importe] = vd1.importe_base
-	,[importe_pagado] = (vd1.importe_base * (CASE WHEN vd1.pago_proporcion > 1.0 THEN 1.0 ELSE vd1.pago_proporcion END))
+	,[importe_pagado] = (vd1.importe_base * dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 0))
 	,[comision_porcentaje] = vd1.comision
-	,[comision_importe_prev] = ((vd1.importe_base * (CASE WHEN vd1.pago_proporcion > 1.0 THEN 1.0 ELSE vd1.pago_proporcion END)) * vd1.comision)
+	,[comision_importe_prev] = ((vd1.importe_base * dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 0)) * vd1.comision)
 	,[comision_pago_anterior] = ISNULL((
 		SELECT
 			SUM(vdm.comision_importe)
@@ -55,10 +57,22 @@ SELECT
 			LEFT JOIN ew_ven_documentos AS vd
 				ON vd.idtran = vdm.idtran
 		WHERE
-			vdm.idmov2 = vd1.idmov
+			vd.cancelado = 0
+			AND vdm.idmov2 = vd1.idmov
 	), 0)
 	,[comision_importe] = (
-		((vd1.importe_base * (CASE WHEN vd1.pago_proporcion > 1.0 THEN 1.0 ELSE vd1.pago_proporcion END)) * vd1.comision)
+		(
+			((vd1.importe_base * dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 0)) * vd1.comision)
+			*(
+				ISNULL((
+					SELECT vcl.porcentaje
+					FROM 
+						ew_ven_comisiones_limites AS vcl
+					WHERE
+						DATEDIFF(DAY, ct.fecha, vd1.fecha_ult_pago) BETWEEN vcl.limite_inferior AND vcl.limite_superior
+				), 0.0)
+			)
+		)
 		-ISNULL((
 			SELECT
 				SUM(vdm.comision_importe)
@@ -70,14 +84,6 @@ SELECT
 				vd.cancelado = 0
 				AND vdm.idmov2 = vd1.idmov
 		), 0)
-	)*(
-		ISNULL((
-			SELECT vcl.porcentaje
-			FROM 
-				ew_ven_comisiones_limites AS vcl
-			WHERE
-				DATEDIFF(DAY, ct.fecha, vd1.fecha_ult_pago) BETWEEN vcl.limite_inferior AND vcl.limite_superior
-		), 0.0)
 	)
 	,[fecha_referencia] = vd1.fecha_ult_pago
 	,[comentario] = ''
@@ -92,9 +98,20 @@ FROM
 	LEFT JOIN ew_articulos AS a
 		ON a.idarticulo = vd1.idarticulo
 WHERE
-	vd1.pago_proporcion >= 1.0
+	dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 1) >= 1.0
 	AND (
-		((vd1.importe_base * (CASE WHEN vd1.pago_proporcion > 1.0 THEN 1.0 ELSE vd1.pago_proporcion END)) * vd1.comision)
+		(
+			((vd1.importe_base * dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 0)) * vd1.comision)
+			*(
+				ISNULL((
+					SELECT vcl.porcentaje
+					FROM 
+						ew_ven_comisiones_limites AS vcl
+					WHERE
+						DATEDIFF(DAY, ct.fecha, vd1.fecha_ult_pago) BETWEEN vcl.limite_inferior AND vcl.limite_superior
+				), 0.0)
+			)
+		)
 		-ISNULL((
 			SELECT
 				SUM(vdm.comision_importe)
@@ -106,14 +123,6 @@ WHERE
 				vd.cancelado = 0
 				AND vdm.idmov2 = vd1.idmov
 		), 0)
-	)*(
-		ISNULL((
-			SELECT vcl.porcentaje
-			FROM 
-				ew_ven_comisiones_limites AS vcl
-			WHERE
-				DATEDIFF(DAY, ct.fecha, vd1.fecha_ult_pago) BETWEEN vcl.limite_inferior AND vcl.limite_superior
-		), 0.0)
 	) > 0.0
 	AND vd1.idvendedor = @idvendedor
 

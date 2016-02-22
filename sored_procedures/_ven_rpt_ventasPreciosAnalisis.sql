@@ -5,7 +5,7 @@ GO
 -- Create date: 20160211
 -- Description:	Consulta de ventas y su utilidad
 -- =============================================
-ALTER PROCEDURE _ven_rpt_ventasPreciosAnalisis
+ALTER PROCEDURE [dbo].[_ven_rpt_ventasPreciosAnalisis]
 	@codvendedor AS VARCHAR(20) = ''
 	,@fecha1 AS SMALLDATETIME = NULL
 	,@fecha2 AS SMALLDATETIME = NULL
@@ -37,19 +37,8 @@ SELECT
 	)
 	,[precio_venta] = (vtm.importe / vtm.cantidad_facturada)
 	,[precio_diferencial] = (
-		(vtm.importe / vtm.cantidad_facturada)
-		-(
-			s.costo_base 
-			*(
-				1
-				+(
-					CASE
-						WHEN s.margen_minimo > 0 THEN s.margen_minimo
-						ELSE (SELECT CONVERT(DECIMAL(18,6), sp.valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
-					END
-				)
-			)
-		)
+		vlm.precio1
+		-(vtm.importe / vtm.cantidad_facturada)
 	)
 	,[costo_unitario] = (vtm.costo / vtm.cantidad_facturada)
 	,[utilidad] = (

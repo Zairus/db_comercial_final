@@ -21,8 +21,8 @@ DECLARE
 	,@razon_social AS VARCHAR(250)
 
 DECLARE
-	@metodoDePago AS VARCHAR(100)
-	,@NumCtaPago AS VARCHAR(100)
+	@metodoDePago AS VARCHAR(50)
+	,@NumCtaPago AS VARCHAR(50)
 
 ------------------------------------------------------------------
 -- Insertar en EW_CFD_RFC
@@ -172,7 +172,7 @@ SELECT
 	,[idestado]=0
 	,[idfolio]=@cfd_idfolio
 	,[cfd_version]='3.2'
-	,[cfd_fecha]=GETDATE()
+	,[cfd_fecha]=v.fecha_hora
 	,[cfd_folio]=@cfd_folio
 	,[cfd_serie]=f.serie
 	,[cfd_noCertificado]=''

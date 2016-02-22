@@ -1,11 +1,11 @@
-USE db_comercial_datos
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20160202
 -- Description:	Reporte de calculo de comisiones
 -- =============================================
-CREATE PROCEDURE _ven_rpt_EPR1
+ALTER PROCEDURE [dbo].[_ven_rpt_EPR1]
 	@idtran AS INT
 AS
 
@@ -20,21 +20,10 @@ SELECT
 
 	,[fecha_ref] = vcd1.fecha
 	,[folio_ref] = vcd1.folio
+	,[movimiento] = o.nombre
 	,[cliente] = c.nombre
 
-	,vdm.consecutivo
-	,[codarticulo] = a.codigo
-	,[articulo] = a.nombre
-	,[canitdad] = vdm.cantidad_surtida
-	,vdm.precio_unitario
-	,vdm.importe
-	,vdm.importe_pagado
-
-	,vdm.comision_porcentaje
-	,vdm.comision_importe_prev
-
-	,vdm.comision_pago_anterior
-	,vdm.comision_importe
+	,[comision_importe] = SUM(vdm.comision_importe)
 FROM
 	ew_ven_documentos AS vd
 	LEFT JOIN ew_ven_vendedores AS v
@@ -52,6 +41,18 @@ FROM
 		ON ct.idtran = vcd1.idtran
 	LEFT JOIN ew_clientes AS c
 		ON c.idcliente = ct.idcliente
+	LEFT JOIN objetos AS o
+		ON o.codigo = ct.transaccion
 WHERE
 	vd.idtran = @idtran
+GROUP BY
+	vd.fecha
+	,vd.folio
+	,v.nombre
+	,u.nombre
+	,vd.total
+	,vcd1.fecha
+	,vcd1.folio
+	,o.nombre
+	,c.nombre
 GO
