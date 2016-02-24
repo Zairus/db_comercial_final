@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -146,15 +146,6 @@ SELECT
 	,ew_ven_transacciones_mov.descuento2
 	,ew_ven_transacciones_mov.descuento3
 	,ew_ven_transacciones_mov.importe
-	,ew_ven_transacciones_mov.idimpuesto1
-	,ew_ven_transacciones_mov.idimpuesto1_valor
-	,ew_ven_transacciones_mov.idimpuesto2
-	,ew_ven_transacciones_mov.idimpuesto2_valor
-	,ew_ven_transacciones_mov.idimpuesto1_ret
-	,ew_ven_transacciones_mov.idimpuesto1_ret_valor
-	,ew_ven_transacciones_mov.impuesto1
-	,ew_ven_transacciones_mov.impuesto2
-	,ew_ven_transacciones_mov.impuesto1_ret
 	,ew_ven_transacciones_mov.total
 	,ew_ven_transacciones_mov.comentario
 	,ew_ven_transacciones_mov.idmov
@@ -170,12 +161,221 @@ SELECT
 	,[DESCRIPCION] = A.NOMBRE
 	,[referencia] = ord.folio
 	,a.nombre_corto
+
+	,ew_ven_transacciones_mov.impuesto1
+	,ew_ven_transacciones_mov.impuesto2
+	,ew_ven_transacciones_mov.impuesto1_ret
+	--####################################################
+
+	,[idimpuesto1] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ci.idimpuesto)
+	,[idimpuesto1_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ci.valor)
+	,[idimpuesto1_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ci.contabilidad)
+
+	,[idimpuesto2] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto2)
+	,[idimpuesto2_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+	,[idimpuesto2_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+
+	,[idimpuesto1_ret] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto1_ret)
+	,[idimpuesto1_ret_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
+	,[idimpuesto1_ret_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
+	,[idimpuesto2_ret] = ISNULL((
+		SELECT
+			cit.idimpuesto
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'ISR'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), a.idimpuesto2_ret)
+	,[idimpuesto2_ret_valor] = ISNULL((
+		SELECT
+			cit.tasa
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'ISR'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
+	,[idimpuesto2_ret_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'ISR'
+			AND cit.tipo = 2
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
+
+	,[ingresos_cuenta] = ISNULL((
+		SELECT
+			CASE
+				WHEN cit.descripcion LIKE '%exen%' THEN '4100003000'
+				ELSE
+					CASE
+						WHEN cit.tasa = 0 THEN '4100002000'
+						ELSE '4100001000'
+					END
+			END
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), '4100001000')
 FROM 
 	ew_ven_transacciones_mov
-	LEFT JOIN ew_articulos a ON a.idarticulo = ew_ven_transacciones_mov.idarticulo
-	LEFT JOIN ew_ven_ordenes ord ON ord.idtran = ew_ven_transacciones_mov.idtran2 
-	LEFT JOIN ew_inv_capas ic ON ew_ven_transacciones_mov.idcapa = ic.idcapa AND ew_ven_transacciones_mov.idarticulo = ic.idarticulo
-	LEFT JOIN ew_cat_marcas m ON a.idmarca=m.idmarca
+	LEFT JOIN ew_articulos AS a 
+		ON a.idarticulo = ew_ven_transacciones_mov.idarticulo
+	LEFT JOIN ew_ven_ordenes AS ord 
+		ON ord.idtran = ew_ven_transacciones_mov.idtran2 
+	LEFT JOIN ew_inv_capas AS ic 
+		ON ew_ven_transacciones_mov.idcapa = ic.idcapa AND ew_ven_transacciones_mov.idarticulo = ic.idarticulo
+	LEFT JOIN ew_cat_marcas AS m 
+		ON a.idmarca=m.idmarca
+
+	LEFT JOIN ew_ven_transacciones AS vt
+		ON vt.idtran = ew_ven_transacciones_mov.idtran
+	LEFT JOIN ew_sys_sucursales AS s
+		ON s.idsucursal = vt.idsucursal
+	LEFT JOIN ew_cat_impuestos AS ci
+		ON ci.idimpuesto = (CASE WHEN a.idimpuesto1 = 0 THEN s.idimpuesto ELSE a.idimpuesto1 END)
 WHERE  
 	ew_ven_transacciones_mov.idtran=@idtran 
  

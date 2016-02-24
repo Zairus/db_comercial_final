@@ -77,8 +77,17 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[precio_venta] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[idimpuesto1] INT NOT NULL DEFAULT 1
 	,[idimpuesto1_valor] DECIMAL(15,2) NOT NULL DEFAULT 0
+	,[idimpuesto1_cuenta] VARCHAR(20) NOT NULL DEFAULT ''
 	,[idimpuesto2] INT NOT NULL DEFAULT 1
 	,[idimpuesto2_valor] DECIMAL(15,2) NOT NULL DEFAULT 0
+	,[idimpuesto2_cuenta] VARCHAR(20) NOT NULL DEFAULT ''
+	,[idimpuesto1_ret] INT NOT NULL DEFAULT 0
+	,[idimpuesto1_ret_valor] DECIMAL(18,6) NOT NULL DEFAULT 0
+	,[idimpuesto1_ret_cuenta] VARCHAR(20) NOT NULL DEFAULT ''
+	,[idimpuesto2_ret] INT NOT NULL DEFAULT 0
+	,[idimpuesto2_ret_valor] DECIMAL(18,6) NOT NULL DEFAULT 0
+	,[idimpuesto2_ret_cuenta] VARCHAR(20) NOT NULL DEFAULT ''
+	,[ingresos_cuenta] VARCHAR(20) NOT NULL DEFAULT ''
 	,[descuento1] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento2] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento3] DECIMAL(18,6) NOT NULL DEFAULT 0
@@ -97,8 +106,17 @@ INSERT INTO #_tmp_articuloDatos (
 	,precio_venta
 	,idimpuesto1
 	,idimpuesto1_valor
+	,idimpuesto1_cuenta
 	,idimpuesto2
 	,idimpuesto2_valor
+	,idimpuesto2_cuenta
+	,idimpuesto1_ret
+	,idimpuesto1_ret_valor
+	,idimpuesto1_ret_cuenta
+	,idimpuesto2_ret
+	,idimpuesto2_ret_valor
+	,idimpuesto2_ret_cuenta
+	,ingresos_cuenta
 	,descuento1
 	,descuento2
 	,descuento3
@@ -144,6 +162,20 @@ SELECT
 			AND cit.tipo = 1
 			AND ait.idarticulo = a.idarticulo
 	), ci.valor)
+	,[idimpuesto1_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ci.contabilidad)
 	,[idimpuesto2] = ISNULL((
 		SELECT
 			cit.idimpuesto
@@ -172,6 +204,47 @@ SELECT
 			AND cit.tipo = 1
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+	,[idimpuesto2_cuenta] = ISNULL((
+		SELECT
+			cit.contabilidad1
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IEPS'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+	,[idimpuesto1_ret] = 0
+	,[idimpuesto1_ret_valor] = 0
+	,[idimpuesto1_ret_cuenta] = ''
+	,[idimpuesto2_ret] = 0
+	,[idimpuesot2_ret_valor] = 0
+	,[idimpuesto2_ret_cuenta] = ''
+	,[ingresos_cuenta] = ISNULL((
+		SELECT
+			CASE
+				WHEN cit.descripcion LIKE '%exen%' THEN '4100003000'
+				ELSE
+					CASE
+						WHEN cit.tasa = 0 THEN '4100002000'
+						ELSE '4100001000'
+					END
+			END
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+			LEFT JOIN ew_cat_impuestos_tasas AS cit
+				ON cit.idtasa = ait.idtasa
+			LEFT JOIN ew_cat_impuestos AS ci
+				ON ci.idimpuesto = cit.idimpuesto
+		WHERE 
+			ci.grupo = 'IVA'
+			AND cit.tipo = 1
+			AND ait.idarticulo = a.idarticulo
+	), '4100001000')
 	--########################################################
 	,[descuento1] = @descuento1
 	,[descuento2] = @descuento2
@@ -340,8 +413,17 @@ SELECT
 	, [tad].[precio_venta]
 	, [tad].[idimpuesto1]
 	, [tad].[idimpuesto1_valor]
+	, [tad].[idimpuesto1_cuenta]
 	, [tad].[idimpuesto2]
 	, [tad].[idimpuesto2_valor]
+	, [tad].[idimpuesto2_cuenta]
+	, [tad].[idimpuesto1_ret]
+	, [tad].[idimpuesto1_ret_valor]
+	, [tad].[idimpuesto1_ret_cuenta]
+	, [tad].[idimpuesto2_ret]
+	, [tad].[idimpuesto2_ret_valor]
+	, [tad].[idimpuesto2_ret_cuenta]
+	, [tad].[ingresos_cuenta]
 	, [max_descuento1] = [tad].[descuento1]
 	, [max_descuento2] = [tad].[descuento2]
 	, [max_descuento3] = [tad].[descuento3]
