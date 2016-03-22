@@ -44,7 +44,16 @@ FROM ew_usuarios
 WHERE
 	idu = @idu
 
-IF @idmoneda <> 0
+IF EXISTS (
+	SELECT *
+	FROM
+		ew_com_transacciones_mov AS ctm
+		LEFT JOIN ew_com_transacciones AS ct
+			ON ct.idtran = ctm.idtran2
+	WHERE
+		ct.idmoneda <> 0
+		AND ctm.idtran = @idtran
+)
 BEGIN
 	IF EXISTS (
 		SELECT * 
@@ -101,7 +110,7 @@ SELECT
 			*(
 				CASE
 					WHEN ctm.idmoneda = 0 THEN 1 
-					ELSE dbo.fn_ban_obtenerTC(cfa.cfa_idmoneda, cfa.cfa_fecha)
+					ELSE dbo.fn_ban_obtenerTC(ISNULL(cfa.cfa_idmoneda, cor.idmoneda), ISNULL(cfa.cfa_fecha, cor.fecha))
 				END
 			)
 		)

@@ -135,7 +135,7 @@ SELECT
 	,[precio_venta] = (CASE WHEN @precio_fijo = 0 THEN ISNULL(vlm.precio1, 0) ELSE @precio_fijo END)
 	--########################################################
 	,[idimpuesto1] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -149,7 +149,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ci.idimpuesto)
 	,[idimpuesto1_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -163,7 +163,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ci.valor)
 	,[idimpuesto1_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -177,7 +177,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ci.contabilidad)
 	,[idimpuesto2] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -191,7 +191,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2)
 	,[idimpuesto2_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -205,7 +205,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 	,[idimpuesto2_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -217,7 +217,7 @@ SELECT
 			ci.grupo = 'IEPS'
 			AND cit.tipo = 1
 			AND ait.idarticulo = a.idarticulo
-	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
+	), ISNULL((SELECT TOP 1 ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 	,[idimpuesto1_ret] = 0
 	,[idimpuesto1_ret_valor] = 0
 	,[idimpuesto1_ret_cuenta] = ''
@@ -225,7 +225,7 @@ SELECT
 	,[idimpuesot2_ret_valor] = 0
 	,[idimpuesto2_ret_cuenta] = ''
 	,[ingresos_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			CASE
 				WHEN cit.descripcion LIKE '%exen%' THEN '4100003000'
 				ELSE

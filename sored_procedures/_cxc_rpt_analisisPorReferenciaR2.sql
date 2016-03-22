@@ -104,7 +104,7 @@ WHERE
 	AND p.tipo IN (1,2)
 	AND f.idsucursal = (CASE WHEN @idsucursal = 0 THEN f.idsucursal ELSE @idsucursal END)
 	AND c.codigo = (CASE WHEN @codcliente = '' THEN c.codigo ELSE @codcliente END)
-	AND p.idconcepto = (CASE WHEN @idconcepto = 0 THEN p.idconcepto ELSE @idconcepto END)
+	AND f.idconcepto = (CASE WHEN @idconcepto = 0 THEN p.idconcepto ELSE @idconcepto END)
 	AND f.fecha BETWEEN @fecha1 AND @fecha2
 	AND f.tipo = (CASE WHEN @tipo = 0 THEN f.tipo ELSE @tipo END)
 	AND f.idmoneda = (CASE WHEN @idmoneda = -1 THEN f.idmoneda ELSE @idmoneda END)

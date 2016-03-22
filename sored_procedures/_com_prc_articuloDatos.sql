@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -57,7 +57,7 @@ SELECT
 
 	--########################################################
 	,[idimpuesto1] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -71,7 +71,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), suc.idimpuesto)
 	,[idimpuesto1_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -85,7 +85,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = suc.idimpuesto), 0))
 	,[idimpuesto2] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -93,13 +93,13 @@ SELECT
 				ON cit.idtasa = ait.idtasa
 			LEFT JOIN ew_cat_impuestos AS ci
 				ON ci.idimpuesto = cit.idimpuesto
-		WHERE 
+		WHERE
 			ci.grupo = 'IEPS'
 			AND cit.tipo = 1
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2)
 	,[idimpuesto2_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -113,7 +113,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 	,[idimpuesto1_ret] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -127,7 +127,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto1_ret)
 	,[idimpuesto1_ret_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -141,7 +141,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
 	,[idimpuesto2_ret] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -155,7 +155,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2_ret)
 	,[idimpuesto2_ret_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
