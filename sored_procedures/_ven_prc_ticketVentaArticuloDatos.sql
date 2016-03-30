@@ -94,6 +94,7 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[descuentos_codigos] VARCHAR(100) NOT NULL DEFAULT ''
 	,[contabilidad] VARCHAR(20)
 	,[autorizable] BIT NOT NULL DEFAULT 0
+	,[inventariable] BIT NOT NULL DEFAULT 1
 )
 
 INSERT INTO #_tmp_articuloDatos (
@@ -123,6 +124,7 @@ INSERT INTO #_tmp_articuloDatos (
 	,descuentos_codigos
 	,contabilidad
 	,autorizable
+	,inventariable
 )
 
 SELECT
@@ -132,7 +134,20 @@ SELECT
 	,[idalmacen] = @idalmacen
 	,[idum] = a.idum_venta
 	,[cantidad_facturada] = @cantidad
-	,[precio_venta] = (CASE WHEN @precio_fijo = 0 THEN ISNULL(vlm.precio1, 0) ELSE @precio_fijo END)
+	,[precio_venta] = (
+		CASE 
+			WHEN @precio_fijo = 0 THEN ISNULL((
+				CASE vp.codprecio 
+					WHEN 1 THEN vlm.precio1 
+					WHEN 2 THEN vlm.precio2 
+					WHEN 3 THEN vlm.precio3 
+					WHEN 4 THEN vlm.precio4 
+					ELSE vlm.precio5 
+				END
+			), 0) 
+			ELSE @precio_fijo 
+		END
+	)
 	--########################################################
 	,[idimpuesto1] = ISNULL((
 		SELECT TOP 1
@@ -252,6 +267,7 @@ SELECT
 	,[descuentos_codigos] = @descuentos_codigos
 	,[contabilidad] = an.contabilidad
 	,[autorizable] = a.autorizable
+	,[inventariable] = a.inventariable
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_sys_sucursales AS s
@@ -266,6 +282,11 @@ FROM
 		AND ea.idalmacen = @idalmacen
 	LEFT JOIN ew_articulos_niveles AS an
 		ON an.codigo = a.nivel3
+
+	LEFT JOIN ew_clientes_terminos AS ctr
+		ON ctr.idcliente = @idcliente
+	LEFT JOIN ew_ven_politicas AS vp
+		ON vp.idpolitica = ctr.idpolitica
 WHERE
 	a.codigo = @codigo
 
@@ -433,6 +454,7 @@ SELECT
 	, [tad].[descuentos_codigos]
 	, [tad].[contabilidad]
 	, [tad].[autorizable]
+	, [tad].[inventariable]
 	, [llave] = @llave 
 FROM 
 	#_tmp_articuloDatos AS tad

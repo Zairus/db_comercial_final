@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -98,7 +98,19 @@ BEGIN
 END
 
 --Surtir
-EXEC [dbo].[_ven_prc_ticketVentaSurtir] @idtran
+IF EXISTS(
+	SELECT *
+	FROM
+		ew_ven_transacciones_mov AS vtm
+		LEFT JOIN ew_articulos AS a
+			ON a.idarticulo = vtm.idarticulo
+	WHERE
+		a.inventariable = 1
+		AND vtm.idtran = @idtran
+)
+BEGIN
+	EXEC [dbo].[_ven_prc_ticketVentaSurtir] @idtran
+END
 
 --Pagar
 IF (
