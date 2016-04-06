@@ -144,7 +144,7 @@ WHERE
 IF @cancelacion = 0
 BEGIN
 	UPDATE vtm SET
-		vtm.costo = itm.costo
+		vtm.costo = ISNULL(itm.costo, 0)
 	FROM
 		ew_ven_transacciones_mov As vtm
 		LEFT JOIN ew_inv_transacciones_mov As itm

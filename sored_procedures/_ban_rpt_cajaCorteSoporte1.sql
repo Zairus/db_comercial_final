@@ -5,7 +5,7 @@ GO
 -- Create date: 20151202
 -- Description:	Soporte para corte de caja
 -- =============================================
-CREATE PROCEDURE _ban_rpt_cajaCorteSoporte1
+ALTER PROCEDURE [dbo].[_ban_rpt_cajaCorteSoporte1]
 	@idsucursal AS INT
 	,@fecha AS SMALLDATETIME = NULL
 AS
@@ -28,7 +28,7 @@ FROM
 	LEFT JOIN ew_articulos AS a
 		ON a.idarticulo = vtm.idarticulo
 	LEFT JOIN ew_articulos_niveles AS an
-		ON an.codigo = a.nivel1
+		ON an.codigo = a.nivel0
 WHERE
 	vt.cancelado = 0
 	AND vt.transaccion LIKE 'EFA%'

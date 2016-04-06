@@ -14,30 +14,35 @@ SET NOCOUNT ON
 
 SELECT
 	vt.folio
-	,[emisor] = (SELECT nombre FROM ew_clientes WHERE idcliente=0)
-	,vt.fecha_hora
-	,[cliente]=c.codigo + ' - ' + c.nombre
-	,[cajero]=v.nombre
-	,[cantidad]=vtm.cantidad_facturada
-	,[descripcion]=a.nombre
-	,[importe]=vtm.total
-	,[precio_unitario]=(CASE WHEN vtm.cantidad_facturada >0 THEN vtm.total/vtm.cantidad_facturada ELSE 0 END)
+	,[emisor] = (SELECT nombre FROM ew_clientes WHERE idcliente = 0)
+	,[fecha_hora] = vt.fecha_hora
+	,[cliente] = (c.codigo + ' - ' + c.nombre)
+	,[cajero] = v.nombre
+	,[cantidad] = vtm.cantidad_facturada
+	,[descripcion] = a.nombre
+	,[importe] = vtm.total
+	,[precio_unitario] = (CASE WHEN vtm.cantidad_facturada > 0 THEN vtm.total / vtm.cantidad_facturada ELSE 0 END)
 	,[total] = vt.total
-	,[pago_total]=vtp.total+vtp.total2
-	,[pago_cambio]=(vtp.total+vtp.total2)-vt.total
-	,[pendiente]=(CASE WHEN ((vtp.total+vtp.total2)-vt.total) < 0 THEN ((vtp.total+vtp.total2)-vt.total)*-1 ELSE 0 END)
+	,[pago_total] = (vtp.total + vtp.total2)
+	,[pago_cambio] = ((vtp.total + vtp.total2) - vt.total)
+	,[pendiente] = (CASE WHEN ((vtp.total + vtp.total2) - vt.total) < 0 THEN ((vtp.total + vtp.total2) - vt.total) * -1 ELSE 0 END)
 	,[folio_ticket] = (
 		dbo._sys_fnc_rellenar(vt.idsucursal, 3, '0')
 		+vt.folio
 		+RIGHT(LTRIM(RTRIM(STR(vt.idr * vt.idtran))), 2)
 	)
 FROM
-	ew_ven_transacciones vt
-	LEFT JOIN ew_ven_transacciones_mov vtm ON vtm.idtran=vt.idtran
-	LEFT JOIN ew_clientes c ON c.idcliente=vt.idcliente
-	LEFT JOIN ew_ven_vendedores v ON v.idvendedor=vt.idvendedor
-	LEFT JOIN ew_articulos a ON a.idarticulo=vtm.idarticulo
-	LEFT JOIN ew_ven_transacciones_pagos vtp ON vtp.idtran=vt.idtran
+	ew_ven_transacciones AS vt
+	LEFT JOIN ew_ven_transacciones_mov AS vtm 
+		ON vtm.idtran = vt.idtran
+	LEFT JOIN ew_clientes AS c 
+		ON c.idcliente = vt.idcliente
+	LEFT JOIN ew_ven_vendedores AS v 
+		ON v.idvendedor = vt.idvendedor
+	LEFT JOIN ew_articulos AS a 
+		ON a.idarticulo = vtm.idarticulo
+	LEFT JOIN ew_ven_transacciones_pagos AS vtp 
+		ON vtp.idtran = vt.idtran
 WHERE
-	vt.idtran=@idtran
+	vt.idtran = @idtran
 GO
