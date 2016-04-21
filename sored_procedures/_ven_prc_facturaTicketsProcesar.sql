@@ -44,6 +44,8 @@ INSERT INTO ew_ven_transacciones_mov (
 	,descuento_pp2
 	,descuento_pp3
 	,importe
+	,idimpuesto1
+	,idimpuesto2
 	,impuesto1
 	,impuesto2
 	,impuesto3
@@ -74,6 +76,8 @@ SELECT
 	,vtm.descuento_pp2
 	,vtm.descuento_pp3
 	,vtm.importe
+	,vtm.idimpuesto1
+	,vtm.idimpuesto2
 	,vtm.impuesto1
 	,vtm.impuesto2
 	,vtm.impuesto3
@@ -118,4 +122,6 @@ FROM
 	ew_cxc_transacciones_rel
 WHERE
 	idtran = @idtran
+
+EXEC _cxc_prc_ticketSaldoTrasladarFactura @idtran
 GO

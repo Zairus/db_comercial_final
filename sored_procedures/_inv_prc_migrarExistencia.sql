@@ -59,7 +59,8 @@ WHERE
 		SELECT a.codigo 
 		FROM ew_articulos AS a
 	)
-
+	AND eac.idalmacen = (SELECT TOP 1 eac1.idalmacen FROM ew_articulos_existencia_carga AS eac1 ORDER BY eac1.idalmacen)
+	
 UPDATE a SET
 	a.nombre = aec.nombre
 FROM 
@@ -98,16 +99,14 @@ WHERE
 		WHERE
 			cit.idr IS NOT NULL
 	)
-
+	
 INSERT INTO ew_articulos_impuestos_tasas (
 	idarticulo
-	,idimpuesto
-	,tasa
+	,idtasa
 )
 SELECT DISTINCT
 	a.idarticulo
-	,cit.idimpuesto
-	,cit.tasa
+	,cit.idtasa
 FROM 
 	ew_articulos_existencia_carga AS aec
 	LEFT JOIN ew_articulos AS a
@@ -118,6 +117,7 @@ FROM
 		AND cit.tasa = aec.idimpuesto2_valor
 WHERE
 	cit.idr IS NOT NULL
+	AND a.idarticulo IS NOT NULL
 
 DECLARE cur_almacenCarga CURSOR FOR
 	SELECT DISTINCT idalmacen 

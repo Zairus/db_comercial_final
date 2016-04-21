@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -10,6 +10,7 @@ ALTER PROCEDURE [dbo].[_ven_prc_obtenerNotasParaFactura]
 	,@fecha1 AS SMALLDATETIME
 	,@fecha2 AS SMALLDATETIME
 	,@formas AS VARCHAR(MAX)
+	,@idsucursal AS SMALLINT = 0
 AS
 
 SET NOCOUNT ON
@@ -78,6 +79,7 @@ WHERE
 	vt.transaccion = 'EFA3'
 	AND vt.cancelado = 0
 	AND st.idestado IN (0, 50)
+	AND vt.idsucursal = (CASE WHEN @idsucursal = 0 THEN vt.idsucursal ELSE @idsucursal END)
 	AND c.codigo = (CASE WHEN @codcliente = '' THEN c.codigo ELSE @codcliente END)
 	AND CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), vt.fecha, 3)) BETWEEN @fecha1 AND @fecha2
 	AND (

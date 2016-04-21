@@ -18,6 +18,7 @@ ALTER PROCEDURE [dbo].[_ven_prc_articuloImportar]
 	,@precio5 AS DECIMAL(18,6)
 	,@idimpuesto1_valor AS DECIMAL(18,6)
 	,@idimpuesto2_valor AS DECIMAL(18,6)
+	,@confirmar AS BIT = 1
 AS
 
 SET NOCOUNT ON
@@ -114,6 +115,7 @@ FROM
 	ew_cat_impuestos AS ci
 WHERE
 	ci.idimpuesto = 11
+	AND (SELECT COUNT(*) FROM ew_cat_impuestos_tasas AS cit WHERE cit.idimpuesto = ci.idimpuesto AND cit.tasa = @idimpuesto2_valor) = 0
 
 UPDATE ew_articulos_impuestos_tasas SET
 	idtasa = ISNULL((
@@ -173,32 +175,35 @@ WHERE
 	s.idsucursal = @idsucursal
 	AND a.codigo = @codigo
 
-SELECT
-	a.codigo
-	,a.idarticulo
-	,[importado] = 'Si'
-	,a.nombre
-	,a.nombre_corto
+IF @confirmar = 1
+BEGIN
+	SELECT
+		a.codigo
+		,a.idarticulo
+		,[importado] = 'Si'
+		,a.nombre
+		,a.nombre_corto
 
-	,[costo_base] = vlm.costo_base
-	,[precio_neto1] = vlm.precio_neto
-	,[precio_neto2] = vlm.precio_neto2
-	,[precio_neto3] = vlm.precio_neto3
-	,[precio_neto4] = vlm.precio_neto4
-	,[precio_neto5] = vlm.precio_neto5
-	,[idimpuesto1_valor] = ISNULL(ci.valor, 0)
-	,[idimpuesto2_valor] = 0
-FROM
-	ew_articulos AS a
-	LEFT JOIN ew_ven_listaprecios_mov AS vlm
-		ON vlm.idarticulo = a.idarticulo
-	LEFT JOIN ew_sys_sucursales AS s
-		ON s.idlista = vlm.idlista
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = a.idimpuesto1
-WHERE
-	a.codigo = @codigo
-	AND s.idsucursal = @idsucursal
+		,[costo_base] = vlm.costo_base
+		,[precio_neto1] = vlm.precio_neto
+		,[precio_neto2] = vlm.precio_neto2
+		,[precio_neto3] = vlm.precio_neto3
+		,[precio_neto4] = vlm.precio_neto4
+		,[precio_neto5] = vlm.precio_neto5
+		,[idimpuesto1_valor] = ISNULL(ci.valor, 0)
+		,[idimpuesto2_valor] = 0
+	FROM
+		ew_articulos AS a
+		LEFT JOIN ew_ven_listaprecios_mov AS vlm
+			ON vlm.idarticulo = a.idarticulo
+		LEFT JOIN ew_sys_sucursales AS s
+			ON s.idlista = vlm.idlista
+		LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = a.idimpuesto1
+	WHERE
+		a.codigo = @codigo
+		AND s.idsucursal = @idsucursal
+END
 
 DELETE FROM ew_ven_listaprecios_carga WHERE codigo = @codigo AND idsucursal = @idsucursal
 GO

@@ -16,7 +16,7 @@ SELECT @fecha = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha, GETDAT
 
 SELECT
 	[grupo] = 'Ventas'
-	,[concepto] = an.nombre
+	,[concepto] = ISNULL(an.nombre, '-Sin Asignar-')
 	,[contado] = SUM(CASE WHEN ct.credito = 0 THEN vtm.total ELSE 0 END)
 	,[credito] = SUM(CASE WHEN ct.credito = 1 THEN vtm.total ELSE 0 END)
 FROM
@@ -31,7 +31,10 @@ FROM
 		ON an.codigo = a.nivel0
 WHERE
 	vt.cancelado = 0
-	AND vt.transaccion LIKE 'EFA%'
+	AND (
+		vt.transaccion LIKE 'EFA%'
+		AND vt.transaccion NOT IN ('EFA4')
+	)
 	AND vt.idsucursal = @idsucursal
 	AND (CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), vt.fecha, 3) + ' 00:00')) = @fecha
 GROUP BY

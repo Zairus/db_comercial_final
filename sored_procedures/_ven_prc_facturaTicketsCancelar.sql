@@ -5,7 +5,7 @@ GO
 -- Create date: 20150915
 -- Description:	Cancelar factura de tickets
 -- =============================================
-ALTER PROCEDURE _ven_prc_facturaTicketsCancelar
+ALTER PROCEDURE [dbo].[_ven_prc_facturaTicketsCancelar]
 	@idtran AS INT
 	,@fecha AS SMALLDATETIME
 	,@idu AS INT
@@ -24,4 +24,18 @@ UPDATE ew_ven_transacciones SET
 	,cancelado_fecha = @fecha
 WHERE
 	idtran = @idtran
+
+INSERT INTO ew_sys_transacciones2 (
+	 idtran
+	,idestado
+)
+SELECT
+	 [idtran] = ctr.idtran2
+	,[idestado] = (CASE WHEN ct.saldo = 0 THEN 50 ELSE 0 END)
+FROM
+	ew_cxc_transacciones_rel AS ctr
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = ctr.idtran2
+WHERE
+	ctr.idtran = @idtran
 GO

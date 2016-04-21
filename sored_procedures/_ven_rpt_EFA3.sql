@@ -4,7 +4,7 @@ GO
 -- Author:		Vladimir Barreras P.
 -- Create date: Marzo 3, 2016
 -- Description:	Reporte WEB para el ticket de venta.
--- Ejemplo : EXEC _ven_rpt_EFA3 102826
+-- Ejemplo : EXEC _ven_rpt_EFA3 100517
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_rpt_EFA3]
 	@idtran AS INT
@@ -31,6 +31,8 @@ SELECT
 		+vt.folio
 		+RIGHT(LTRIM(RTRIM(STR(vt.idr * vt.idtran))), 2)
 	)
+	,[descuento]=(cantidad_facturada * precio_venta) - importe
+	,[sucursal_datos] = (s.nombre + char(10) + char(13) + s.direccion + char(10) + char(13) + 'C.P. ' + s.codpostal + char(10) + char(13) + sc.ciudad + ', ' + sc.estado + char(10) + char(13) + 'R.F.C. ' + s.rfc)
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_ven_transacciones_mov AS vtm 
@@ -43,6 +45,10 @@ FROM
 		ON a.idarticulo = vtm.idarticulo
 	LEFT JOIN ew_ven_transacciones_pagos AS vtp 
 		ON vtp.idtran = vt.idtran
+	LEFT JOIN ew_sys_sucursales s
+		ON s.idsucursal = vt.idsucursal
+	LEFT JOIN ew_sys_ciudades sc
+		ON sc.idciudad = s.idciudad
 WHERE
 	vt.idtran = @idtran
 GO

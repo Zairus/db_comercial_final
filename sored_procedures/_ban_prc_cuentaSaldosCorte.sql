@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -21,35 +21,35 @@ SELECT
 	,[tipocambio] = 1
 	,[cargos] = ISNULL((
 		SELECT 
-			SUM(bt.importe) 
+			SUM(bt.total) 
 		FROM 
 			ew_ban_transacciones AS bt 
 		WHERE 
 			bt.cancelado = 0 
-			AND bt.idcuenta = 3 
+			AND bt.idcuenta = bc.idcuenta
 			AND bt.tipo = 1
 			AND CONVERT(VARCHAR(8), bt.fecha, 3) = @fecha
 	), 0)
 	,[abonos] = ISNULL((
 		SELECT 
-			SUM(bt.importe) 
+			SUM(bt.total) 
 		FROM 
 			ew_ban_transacciones AS bt 
 		WHERE 
 			bt.cancelado = 0 
-			AND bt.idcuenta = 3 
+			AND bt.idcuenta = bc.idcuenta
 			AND bt.tipo = 2
 			AND CONVERT(VARCHAR(8), bt.fecha, 3) = @fecha
 	), 0)
 	,[saldo_inicial] = [dbo].[fn_ban_saldoDia](bc.idcuenta, DATEADD(DAY, -1, @fecha))
 	,[saldo_dia] = ISNULL((
 		SELECT 
-			SUM(CASE WHEN bt.tipo = 1 THEN bt.importe ELSE bt.importe * -1 END) 
+			SUM(CASE WHEN bt.tipo = 1 THEN bt.total ELSE bt.total * -1 END) 
 		FROM 
 			ew_ban_transacciones AS bt 
 		WHERE 
 			bt.cancelado = 0 
-			AND bt.idcuenta = 3 
+			AND bt.idcuenta = bc.idcuenta
 			AND bt.tipo IN (1,2) 
 			AND CONVERT(VARCHAR(8), bt.fecha, 3) = @fecha
 	), 0)
