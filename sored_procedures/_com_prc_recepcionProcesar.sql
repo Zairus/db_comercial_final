@@ -86,7 +86,6 @@ SELECT
 FROM ew_com_transacciones
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran) + '
-
 INSERT INTO ew_inv_transacciones_mov
 	(idtran, idtran2, idmov2, consecutivo, tipo, idalmacen,
 	idarticulo, series, lote, fecha_caducidad, idum,
@@ -124,7 +123,6 @@ FROM
 	LEFT JOIN ew_ban_monedas AS bm ON bm.idmoneda = ctm.idmoneda
 	LEFT JOIN ew_articulos a ON a.idarticulo = ctm.idarticulo
 	LEFT JOIN ew_cat_unidadesmedida um ON a.idum_compra = um.idum
-
 	LEFT JOIN ew_com_ordenes AS cor ON cor.idtran = ctm.idtran2
 	OUTER APPLY (
 		SELECT TOP 1
@@ -200,7 +198,7 @@ SELECT DISTINCT
 		CASE 
 			WHEN (com.cantidad_ordenada - com.cantidad_surtida) > 0 THEN
 				dbo.fn_sys_estadoID('SUR~')
-			WHEN (com.cantidad_ordenada - com.cantidad_surtida) = 0 THEN
+			WHEN (com.cantidad_ordenada - com.cantidad_surtida) <= 0 THEN
 				dbo.fn_sys_estadoID('RCBO')
 		END
 	)
@@ -216,11 +214,11 @@ WHERE
 	(
 		(
 			(com.cantidad_ordenada - com.cantidad_surtida) > 0
-			AND st.idestado < dbo.fn_sys_estadoID('SUR~')
+			AND st.idestado <> dbo.fn_sys_estadoID('SUR~')
 		)
 		OR (
-			(com.cantidad_ordenada - com.cantidad_surtida) = 0
-			AND st.idestado < dbo.fn_sys_estadoID('RCBO')
+			(com.cantidad_ordenada - com.cantidad_surtida) <= 0
+			AND st.idestado <> dbo.fn_sys_estadoID('RCBO')
 		)
 	)
 	AND rd.idtran = @idtran

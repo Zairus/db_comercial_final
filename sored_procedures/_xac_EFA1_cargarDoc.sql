@@ -168,7 +168,7 @@ SELECT
 	--####################################################
 
 	,[idimpuesto1] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -182,7 +182,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ci.idimpuesto)
 	,[idimpuesto1_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -196,7 +196,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ci.valor)
 	,[idimpuesto1_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -211,7 +211,7 @@ SELECT
 	), ci.contabilidad)
 
 	,[idimpuesto2] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -225,7 +225,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2)
 	,[idimpuesto2_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -239,7 +239,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 	,[idimpuesto2_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -254,7 +254,7 @@ SELECT
 	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 
 	,[idimpuesto1_ret] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -268,7 +268,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto1_ret)
 	,[idimpuesto1_ret_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -282,7 +282,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
 	,[idimpuesto1_ret_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -296,7 +296,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
 	,[idimpuesto2_ret] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.idimpuesto
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -310,7 +310,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2_ret)
 	,[idimpuesto2_ret_valor] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.tasa
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -324,7 +324,7 @@ SELECT
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
 	,[idimpuesto2_ret_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			cit.contabilidad1
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
@@ -339,7 +339,7 @@ SELECT
 	), ISNULL((SELECT ci1.contabilidad FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
 
 	,[ingresos_cuenta] = ISNULL((
-		SELECT
+		SELECT TOP 1
 			CASE
 				WHEN cit.descripcion LIKE '%exen%' THEN '4100003000'
 				ELSE
@@ -359,6 +359,8 @@ SELECT
 			AND cit.tipo = 1
 			AND ait.idarticulo = a.idarticulo
 	), '4100001000')
+
+	,ew_ven_transacciones_mov.agrupar
 FROM 
 	ew_ven_transacciones_mov
 	LEFT JOIN ew_articulos AS a 

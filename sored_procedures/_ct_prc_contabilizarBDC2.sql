@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -43,13 +43,13 @@ CREATE TABLE #_tmp_poliza_mov (
 )
 
 SELECT
-	@fecha = bt.fecha
-	,@idu = bt.idu
-	,@referencia = bt.transaccion + ' - ' + bt.folio
+	@fecha = ct.fecha
+	,@idu = ct.idu
+	,@referencia = ct.transaccion + ' - ' + ct.folio
 FROM
-	ew_ban_transacciones AS bt
+	ew_cxc_transacciones AS ct
 WHERE
-	bt.idtran = @idtran
+	ct.idtran = @idtran
 
 EXEC _ct_prc_polizaCrear @idtran, @fecha, @idtipo, @idu, @poliza_idtran OUTPUT, @referencia
 
@@ -75,25 +75,30 @@ SELECT
 	,[idtran2] = @idtran
 	,[estatus] = 0
 	,[consecutivo] = 1
-	,[idsucursal] = bt.idsucursal
-	,[cuenta] = bc.contabilidad1
+	,[idsucursal] = ct.idsucursal
+	,[cuenta] = ISNULL(bc.contabilidad1, oc.contabilidad)
 	,[tipomov] = 0
-	,[referencia] = (bt.transaccion + ' - ' + bt.folio)
-	,[cargos] = (bt.importe * (CASE bt.idmoneda WHEN 0 THEN 1 ELSE bt.tipocambio END))
+	,[referencia] = (ct.transaccion + ' - ' + ct.folio)
+	,[cargos] = (ct.total * (CASE ct.idmoneda WHEN 0 THEN 1 ELSE ct.tipocambio END))
 	,[abonos] = 0
-	,[importe] = (bt.importe * (CASE bt.idmoneda WHEN 0 THEN 1 ELSE bt.tipocambio END))
+	,[importe] = (ct.total * (CASE ct.idmoneda WHEN 0 THEN 1 ELSE ct.tipocambio END))
 	,[moneda] = 0
 	,[tipocambio] = 1
-	,[concepto] = (o.nombre + ' - ' + bt.folio)
+	,[concepto] = (o.nombre + ' - ' + ct.folio)
 FROM
-	ew_ban_transacciones AS bt
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_ban_transacciones AS bt
+		ON bt.idtran = ct.idtran
 	LEFT JOIN ew_ban_cuentas AS bc
 		ON bc.idcuenta = bt.idcuenta
 	LEFT JOIN objetos AS o
-		ON o.codigo = bt.transaccion
+		ON o.codigo = ct.transaccion
+	LEFT JOIN db_comercial.dbo.evoluware_objetos_conceptos AS oc
+		ON oc.objeto = o.objeto
+		AND oc.idconcepto = ct.idconcepto
 WHERE
-	bt.idtran = @idtran
-
+	ct.idtran = @idtran
+	
 UNION ALL
 
 SELECT
