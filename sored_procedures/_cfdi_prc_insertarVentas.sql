@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -109,7 +109,7 @@ SELECT
 FROM
 	(
 		SELECT 
-			UPPER(ISNULL(bf.nombre, '')) + ',' AS '*'
+			UPPER(ISNULL(bf.codigo, '')) + ',' AS '*'
 		FROM
 			dbo.ew_ven_transacciones_pagos AS pg
 			LEFT JOIN dbo.ew_ban_formas AS bf
@@ -123,11 +123,11 @@ FROM
 IF @metodoDePago IS NULL OR @metodoDePago = ''
 BEGIN
 	SELECT
-		@metodoDePago = ISNULL(c.cfd_metodoDePago,'') 
+		@metodoDePago = ISNULL(bf.codigo, '') 
 	FROM 
-		ew_ven_transacciones AS v 
-		LEFT JOIN ew_clientes AS c 
-			ON c.idcliente = v.idcliente 
+		ew_cxc_transacciones AS v
+		LEFT JOIN ew_ban_formas AS bf
+			ON bf.idforma = v.idforma 
 	WHERE v.idtran = @idtran
 END
 	ELSE
@@ -454,13 +454,14 @@ SELECT
 	,[cantidad_facturada]=(CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
 	,[unidad]=um.nombre
 	,[noIdentificacion]= (CASE WHEN a.series = 1 AND m.cantidad_facturada = 1 THEN m.series ELSE '' END)
-	,a.nombre
+	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
 	,[valorUnitario] = ROUND(m.importe / m.cantidad_facturada, 4)
 	,m.importe
 FROM	
 	dbo.ew_ven_transacciones_mov AS m
 	LEFT JOIN dbo.ew_cat_unidadesMedida um ON um.idum = m.idum
 	LEFT JOIN dbo.ew_articulos a ON a.idarticulo = m.idarticulo
+
 	LEFT JOIN ew_ven_transacciones vt ON vt.idtran = m.idtran
 WHERE
 	m.importe <> 0
@@ -468,8 +469,8 @@ WHERE
 ORDER BY 
 	m.consecutivo
 	
-INSERT INTO dbo.ew_cfd_comprobantes_mov 
-	(idtran
+INSERT INTO dbo.ew_cfd_comprobantes_mov (
+	idtran
 	,consecutivo_padre
 	,consecutivo
 	,idarticulo
@@ -488,7 +489,7 @@ SELECT
 	,[cantidad] = 1
 	,um.nombre
 	,[noIdentificacion] = s.valor
-	,a.nombre
+	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
 	,[valorUnitario] = ROUND(m.importe / m.cantidad_facturada, 4)
 	,[importe] = ROUND(m.importe / m.cantidad_facturada, 4)
 FROM	
@@ -503,7 +504,6 @@ WHERE
 	AND m.importe <> 0
 ORDER BY 
 	m.consecutivo
-
 
 -----------------------------------------------------------------------
 -- Sellamos el comprobante

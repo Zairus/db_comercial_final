@@ -79,7 +79,8 @@ SELECT
 	,p.dias_pp1
 	,p.dias_pp2
 	,p.dias_pp3
-	,[metodoDePago]=RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
+	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
+	,c.idforma
 FROM 
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_terminos AS ct 

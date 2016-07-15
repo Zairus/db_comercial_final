@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -113,12 +113,14 @@ SELECT
 	,[concepto_cuenta]=c.contabilidad
 	,ew_cxc_transacciones.vencimiento
 	,[tipocambio_dof] = dbo.fn_ban_obtenerTC(ew_cxc_transacciones.idmoneda, ew_cxc_transacciones.fecha)
-FROM ew_cxc_transacciones
-LEFT JOIN ew_cxc_saldos_actual csa ON csa.idcliente = ew_cxc_transacciones.idcliente AND csa.idmoneda = ew_cxc_transacciones.idmoneda
-LEFT JOIN conceptos c ON c.idconcepto=ew_cxc_transacciones.idconcepto
-	
-
- 
+	,ew_cxc_transacciones.idforma
+FROM 
+	ew_cxc_transacciones
+	LEFT JOIN ew_cxc_saldos_actual csa 
+		ON csa.idcliente = ew_cxc_transacciones.idcliente 
+		AND csa.idmoneda = ew_cxc_transacciones.idmoneda
+	LEFT JOIN conceptos c 
+		ON c.idconcepto=ew_cxc_transacciones.idconcepto
 WHERE  
 	ew_cxc_transacciones.idtran=@idtran 
  
