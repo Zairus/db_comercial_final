@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -34,7 +34,7 @@ DECLARE
 	,@descuento_linea AS DECIMAL(15,2)
 	,@descuento_pol AS DECIMAL(15,2)
 	,@lista AS SMALLINT
-	,@idarticulo AS SMALLINT
+	,@idarticulo INT
 	,@idimpuesto1 AS SMALLINT
 	,@tc AS DECIMAL (15,8)
 	,@idmoneda2 AS SMALLINT
@@ -73,11 +73,11 @@ SELECT
 FROM 
 	ew_articulos a 
 WHERE 
-	a.codigo = @codarticulo
+	a.codigo = @codarticulo AND a.activo=1
 
 IF @@ROWCOUNT=0 
 BEGIN
-	RAISERROR('Error: Articulo inexistente...', 16, 1)
+	RAISERROR('Error: Articulo inexistente o inactivo...', 16, 1)
 	RETURN
 END
 
@@ -157,6 +157,8 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[unidad] VARCHAR(10) NOT NULL DEFAULT ''
 	,[idmoneda_m] SMALLINT NOT NULL DEFAULT 0
 	,[tipocambio_m] DECIMAL(18,6) NOT NULL DEFAULT 1
+	,[kit] BIT NOT NULL DEFAULT 0
+	,[inventariable] BIT NOT NULL DEFAULT 0
 	,[cantidad_facturada] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[precio_unitario_m] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[precio_unitario_m2] DECIMAL(18,6) NOT NULL DEFAULT 0
@@ -184,6 +186,7 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[descuento1] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento2] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento3] DECIMAL(18,6) NOT NULL DEFAULT 0
+	,[objlevel] INT NOT NULL DEFAULT 0
 )
 
 INSERT INTO #_tmp_articuloDatos (
@@ -200,6 +203,7 @@ INSERT INTO #_tmp_articuloDatos (
 	,[unidad]
 	,[idmoneda_m]
 	,[tipocambio_m]
+	,[inventariable]
 	,[cantidad_facturada]
 	,[precio_unitario_m]
 	,[precio_unitario_m2]
@@ -227,6 +231,7 @@ INSERT INTO #_tmp_articuloDatos (
 	,[descuento1]
 	,[descuento2]
 	,[descuento3]
+	,[objlevel]
 )
 
 SELECT
@@ -244,6 +249,7 @@ SELECT
 	,[idmoneda_m] = ISNULL(vlm.idmoneda, 0)
 	,[tipocambio_m] = ISNULL(bm.tipocambio, 1)
 	
+	,[inventariable] = a.inventariable
 	,[cantidad_facturada] = @cantidad
 	,[precio_unitario_m] = (
 		ISNULL(ROUND((
@@ -500,6 +506,7 @@ SELECT
 	,[descuento1] = @descuento1
 	,[descuento2] = @descuento2
 	,[descuento3] = @descuento3
+	,[objlevel] = (CASE WHEN a.kit = 1 THEN 1 ELSE 0 END)
 FROM 
 	ew_articulos AS a
 	LEFT JOIN ew_ven_listaprecios_mov AS vlm 
@@ -585,6 +592,7 @@ BEGIN
 			,[unidad]
 			,[idmoneda_m]
 			,[tipocambio_m]
+			,[inventariable]
 			,[cantidad_facturada]
 			,[precio_unitario_m]
 			,[precio_unitario_m2]
@@ -615,6 +623,7 @@ BEGIN
 			,unidad = um.codigo
 			,[idmoneda_m] = ISNULL(vlm.idmoneda, 0)
 			,[tipocambio_m] = ISNULL(bm.tipocambio, 1)
+			,[inventariable] = a.inventariable
 			,[cantidad_facturada] = vpa.cantidad
 			,[precio_unitario_m] = vpa.precio_venta
 			,[precio_unitario_m2] = vpa.precio_venta
@@ -682,6 +691,65 @@ BEGIN
 	DEALLOCATE cur_promociones
 END
 
+INSERT INTO #_tmp_articuloDatos (
+	[codarticulo]
+	,[idlista]
+	,[idarticulo]
+	,[descripcion]
+	,[nombre_corto]
+	,[marca]
+	,[idum]
+	,[maneja_lote]
+	,[autorizable]
+	,[factor]
+	,[unidad]
+	,[idmoneda_m]
+	,[tipocambio_m]
+	,[kit]
+	,[inventariable]
+	,[cantidad_facturada]
+	,[precio_unitario_m]
+	,[precio_unitario_m2]
+	,[precio_minimo]
+	,[existencia]
+	,[objlevel]
+)
+SELECT
+	[codarticulo] = a.codigo
+	,[idlista] = @idlista
+	,[idarticulo] = ai.idarticulo
+	,[descripcion] = a.nombre
+	,[nombre_corto] = a.nombre_corto
+	,[marca] = ISNULL(m.nombre, '')
+	,[idum] = a.idum_venta
+	,[maneja_lote] = 0
+	,[autorizable] = a.autorizable
+	,[factor] = um.factor
+	,[unidad] = um.codigo
+	,[idmoneda_m] = 0
+	,[tipocambio_m] = 1
+	,[kit] = 1
+	,[inventariable] = a.inventariable
+	,[cantidad_facturada] = ai.cantidad * @cantidad
+	,[precio_unitario_m] = 0
+	,[precio_unitario_m2] = 0
+	,[precio_minimo] = 0
+	,[existencia] = ISNULL(aa.existencia, 0)
+	,[objlevel] = 2
+FROM
+	ew_articulos_insumos AS ai
+	LEFT JOIN ew_articulos AS a
+		ON a.idarticulo = ai.idarticulo
+	LEFT JOIN ew_cat_marcas AS m 
+		ON a.idmarca = m.idmarca
+	LEFT JOIN ew_cat_unidadesMedida AS um 
+		ON um.idum = a.idum_venta
+	LEFT JOIN ew_articulos_almacenes AS aa 
+		ON aa.idarticulo = a.idarticulo
+		AND aa.idalmacen = @idalmacen
+WHERE
+	ai.idarticulo_superior = @idarticulo
+
 SELECT
 	[codarticulo] = tad.codarticulo
 	,[idlista] = tad.idlista
@@ -696,6 +764,9 @@ SELECT
 	,[unidad] = tad.unidad
 	,[idmoneda_m] = tad.idmoneda_m
 	,[tipocambio_m] = tad.tipocambio_m
+	,[kit] = tad.kit
+	,[inventariable] = tad.inventariable
+	,[cantidad_ordenada] = tad.cantidad_facturada
 	,[cantidad_facturada] = tad.cantidad_facturada
 	,[precio_unitario_m] = tad.precio_unitario_m
 	,[precio_unitario_m2] = tad.precio_unitario_m2
@@ -705,7 +776,7 @@ SELECT
 			ELSE tad.precio_minimo
 		END
 	)
-	,[existencia] = tad.existencia
+	,[existencia] = (CASE WHEN tad.inventariable = 0 THEN 0 ELSE tad.existencia END)
 	,[idimpuesto1] = tad.idimpuesto1
 	,[idimpuesto1_valor] = tad.idimpuesto1_valor
 	,[idimpuesto1_cuenta] = tad.idimpuesto1_cuenta
@@ -728,6 +799,7 @@ SELECT
 	,[descuento1] = 0
 	,[descuento2] = tad.descuento2
 	,[descuento3] = tad.descuento3
+	,[objlevel] = tad.objlevel
 FROM 
 	#_tmp_articuloDatos AS tad
 

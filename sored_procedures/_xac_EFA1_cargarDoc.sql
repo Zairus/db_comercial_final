@@ -363,6 +363,7 @@ SELECT
 	), '4100001000')
 
 	,ew_ven_transacciones_mov.agrupar
+	,ew_ven_transacciones_mov.objlevel
 FROM 
 	ew_ven_transacciones_mov
 	LEFT JOIN ew_articulos AS a 

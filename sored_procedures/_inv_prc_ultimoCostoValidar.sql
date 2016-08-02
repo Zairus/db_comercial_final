@@ -39,17 +39,20 @@ WHERE
 	grupo = 'GLOBAL' 
 	AND codigo = 'PORC_VARIACION_COSTO'
 
-IF (@diferencia / @costo_ultimo) > @variacion
+IF (@costo_ultimo > 0)
 BEGIN
-	SELECT @error_mensaje = (
-		'Error: La diferencia en costos es mayor a '
-		+ CONVERT(VARCHAR(20), CONVERT(DECIMAL(12,2), @variacion * 100)) + ' porc.'
-		+' Ultimo costo: ' + CONVERT(VARCHAR(20), @costo_ultimo) + '.'
-		+' Costo ingresado: ' + CONVERT(VARCHAR(20), @costo) + '.'
-		+' Variacion: ' + CONVERT(VARCHAR(20), CONVERT(DECIMAL(12,2), (@diferencia / @costo_ultimo) * 100)) + ' porc.'
-	)
+	IF (@diferencia / @costo_ultimo) > @variacion
+	BEGIN
+		SELECT @error_mensaje = (
+			'Error: La diferencia en costos es mayor a '
+			+ CONVERT(VARCHAR(20), CONVERT(DECIMAL(12,2), @variacion * 100)) + ' porc.'
+			+' Ultimo costo: ' + CONVERT(VARCHAR(20), @costo_ultimo) + '.'
+			+' Costo ingresado: ' + CONVERT(VARCHAR(20), @costo) + '.'
+			+' Variacion: ' + CONVERT(VARCHAR(20), CONVERT(DECIMAL(12,2), (@diferencia / @costo_ultimo) * 100)) + ' porc.'
+		)
 
-	RAISERROR(@error_mensaje, 16, 1)
-	RETURN
+		RAISERROR(@error_mensaje, 16, 1)
+		RETURN
+	END
 END
 GO
