@@ -1,6 +1,6 @@
-USE db_comercial_final
+USE [db_cortez_datos]
 GO
-CREATE VIEW [dbo].[ew_inv_transacciones_mov_acumulado]
+ALTER VIEW [dbo].[ew_inv_transacciones_mov_acumulado]
 AS
 SELECT
 	[id] = ROW_NUMBER() OVER (ORDER BY itm.idalmacen, itm.idarticulo, itm.idr)
