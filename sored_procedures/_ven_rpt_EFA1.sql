@@ -67,7 +67,7 @@ SELECT
 	,m.orden
 	,[cantidad] = (
 		m.cantidad
-		+ISNULL((
+		/*+ISNULL((
 			SELECT SUM(vtm1.cantidad_facturada)
 			FROM
 				ew_ven_transacciones_mov AS vtm1
@@ -76,7 +76,7 @@ SELECT
 				AND vtm1.consecutivo > vm.consecutivo
 				AND vtm1.agrupar = 1
 				AND vtm1.consecutivo < ISNULL((
-					SELECT vtm2.consecutivo
+					SELECT TOP 1 vtm2.consecutivo
 					FROM
 						ew_ven_transacciones_mov AS vtm2
 					WHERE
@@ -84,7 +84,7 @@ SELECT
 						AND vtm2.consecutivo > vm.consecutivo
 						AND vtm2.agrupar = 0
 				), 999)
-		), 0)
+		), 0)*/
 	)
 	,m.unidad
 	,a.codigo
@@ -102,7 +102,7 @@ SELECT
 					AND vtm1.consecutivo > vm.consecutivo
 					AND vtm1.agrupar = 1
 					AND vtm1.consecutivo < ISNULL((
-						SELECT vtm2.consecutivo
+						SELECT TOP 1 vtm2.consecutivo
 						FROM
 							ew_ven_transacciones_mov AS vtm2
 						WHERE
@@ -114,7 +114,7 @@ SELECT
 		)
 		/(
 			m.cantidad
-			+ISNULL((
+			/*+ISNULL((
 				SELECT SUM(vtm1.cantidad_facturada)
 				FROM
 					ew_ven_transacciones_mov AS vtm1
@@ -123,7 +123,7 @@ SELECT
 					AND vtm1.consecutivo > vm.consecutivo
 					AND vtm1.agrupar = 1
 					AND vtm1.consecutivo < ISNULL((
-						SELECT vtm2.consecutivo
+						SELECT TOP 1 vtm2.consecutivo
 						FROM
 							ew_ven_transacciones_mov AS vtm2
 						WHERE
@@ -131,7 +131,7 @@ SELECT
 							AND vtm2.consecutivo > vm.consecutivo
 							AND vtm2.agrupar = 0
 					), 999)
-			), 0)
+			), 0)*/
 		)
 	) --vm.precio_unitario
 	,[importe] = (
@@ -145,7 +145,7 @@ SELECT
 				AND vtm1.consecutivo > vm.consecutivo
 				AND vtm1.agrupar = 1
 				AND vtm1.consecutivo < ISNULL((
-					SELECT vtm2.consecutivo
+					SELECT TOP 1 vtm2.consecutivo
 					FROM
 						ew_ven_transacciones_mov AS vtm2
 					WHERE
@@ -156,14 +156,14 @@ SELECT
 		), 0)
 	)
 	,d.subtotal
-	,d.ivaTrasladoTasa
+	,[ivaTrasladoTasa]=d.ivaTrasladoTasa*100
 	,d.ivaTrasladoImporte
 	,d.IvaRetenidoImporte
 	,d.total
 	,[total_letra] = d.cantidad_letra
 	,[comentario_doc] = doc.comentario
 	,d.sello
-
+	,vm.series
 ------------------------------------
 -- Inicia Cambios para CFDI	
 ------------------------------------
@@ -186,12 +186,12 @@ SELECT
 ------------------------------------
 -- Inicia Cambios CFDI v3.2
 ------------------------------------
-	,[idforma] = (
+	,[metodoDePago] = (
 		CASE 
-			WHEN ccc.cfd_metodoDePago = '' THEN 'No Identificado' 
-			ELSE ISNULL(ccc.cfd_metodoDePago + ' ' + ccc.cfd_NumCtaPago, 'No Identificado') 
+			WHEN ccc.cfd_metodoDePago = '' THEN 'NO IDENTIFICADO' ELSE ISNULL(ccc.cfd_metodoDePago + ' ' + ccc.cfd_NumCtaPago, 'NO IDENTIFICADO') 
 		END
 	)
+
 	,[RegimenFiscal] = (
 		SELECT TOP 1 regimenfiscal 
 		FROM ew_cfd_parametros

@@ -338,7 +338,7 @@ BEGIN
 			END
 			SELECT @cont = 0
 			SELECT @cont = COUNT(*) FROM dbo._sys_fnc_series(@series)
-			IF @cont < @cantidad
+			IF @cont != @cantidad
 			BEGIN
 				SELECT @msg = 'Error. no se especificaron todos los no. de serie (inv_transacciones_mov.series) para el articulo: ' + @codarticulo
 				BREAK
