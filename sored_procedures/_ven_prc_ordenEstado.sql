@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -28,13 +28,15 @@ BEGIN
 END
 
 SELECT 
-	 @cantidad = ISNULL(SUM(om.cantidad_autorizada),0)
-	,@surtir = ISNULL(SUM(om.cantidad_porSurtir),0)
-	,@facturar = ISNULL(SUM(om.cantidad_porFacturar),0)
+	 @cantidad = ISNULL(SUM(om.cantidad_autorizada), 0)
+	,@surtir = ISNULL(SUM(om.cantidad_porSurtir * a.inventariable), 0)
+	,@facturar = ISNULL(SUM(om.cantidad_porFacturar), 0)
 FROM 
-	ew_ven_ordenes_mov om 
-	LEFT JOIN ew_ven_ordenes AS o 
+	ew_ven_ordenes_mov AS om
+	LEFT JOIN ew_ven_ordenes AS o
 		ON o.idtran=om.idtran 
+	LEFT JOIN ew_articulos AS a
+		ON a.idarticulo = om.idarticulo
 WHERE
 	o.idtran = @idtran
 	AND om.cantidad_autorizada != 0

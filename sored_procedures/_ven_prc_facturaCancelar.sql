@@ -173,7 +173,7 @@ FETCH NEXT FROM cur_detalle1 INTO @idtran2
 
 WHILE @@fetch_status = 0
 BEGIN
-	EXEC _ven_prc_ordenEstado @idtran2
+	EXEC _ven_prc_ordenEstado @idtran2, @idu
 
 	FETCH NEXT FROM cur_detalle1 INTO @idtran2
 END
