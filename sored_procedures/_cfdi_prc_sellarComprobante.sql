@@ -70,6 +70,10 @@ DECLARE
 DECLARE
 	@bin_xml AS VARBINARY(MAX)
 
+DECLARE
+	@pac_usr AS VARCHAR(50)
+	,@pac_pwd AS VARCHAR(50)
+
 IF NOT EXISTS(SELECT idtran FROM ew_cfd_comprobantes WHERE idtran = @idtran)
 IF @@ROWCOUNT = 0
 BEGIN
@@ -103,6 +107,8 @@ BEGIN
 		,@ruta = directorio
 		,@tmp = RTRIM(rfc_emisor) + '_' + RTRIM(cfd_serie) + '-' + dbo.fnRellenar(RTRIM(CONVERT(VARCHAR(10),cfd_folio)),5,'0') + '.xml'
 		,@idpac = fc.idpac
+		,@pac_usr = fc.pac_usr
+		,@pac_pwd = fc.pac_pwd
 	FROM	
 		ew_cfd_comprobantes c 
 		LEFT JOIN ew_cfd_folios f
@@ -189,25 +195,25 @@ BEGIN
 		WHERE
 			idpac = @idpac
 
+		IF @rfc_emisor IS NULL OR LTRIM(RTRIM(@rfc_emisor))=''
+		BEGIN
+			RAISERROR('Error: RFC de emisor nulo.', 16, 1)
+			RETURN
+		END
+				
+		IF @rfc_receptor IS NULL OR LTRIM(RTRIM(@rfc_receptor))=''
+		BEGIN
+			RAISERROR('Error: RFC de Receptor nulo.', 16, 1)
+			RETURN
+		END
+
 		IF @idpac = 0
 		BEGIN
 			EXEC _cfdi_prc_timbrarSolucionFactible @idtran, @OutXML OUTPUT
 		END
-			
+		
 		IF @idpac = 1
 		BEGIN
-			IF @rfc_emisor IS NULL OR @rfc_emisor=''
-			BEGIN
-				RAISERROR('Error: RFC de emisor nulo.', 16, 1)
-				RETURN
-			END
-				
-			IF @rfc_receptor IS NULL OR @rfc_receptor=''
-			BEGIN
-				RAISERROR('Error: RFC de Receptor nulo.', 16, 1)
-				RETURN
-			END
-			
 			WHILE @pac_i < 5
 			BEGIN
 				IF @pac_prueba = 1
@@ -277,7 +283,7 @@ BEGIN
 				END
 			END
 			
-			IF @UUID IS NULL OR @UUID=''
+			IF @UUID IS NULL OR LTRIM(RTRIM(@UUID))=''
 			BEGIN
 				IF @respuestaOk = 'false'
 				BEGIN
@@ -285,7 +291,7 @@ BEGIN
 				END
 					ELSE
 				BEGIN
-					SELECT @msg = 'Error, no se obtuvo UUID'
+					SELECT @msg = 'Error, no se obtuvo UUID. ' + @mensaje
 				END
 
 				RAISERROR(@msg, 16, 1)
@@ -324,6 +330,7 @@ BEGIN
 					,cfdi_respuesta_codigo = @codigo
 					,cfdi_respuesta_mensaje = @mensaje
 					,QRCode = @QR_code
+					,cfdi_prueba = @pac_prueba
 				WHERE
 					idtran = @idtran
 			END
@@ -339,6 +346,7 @@ BEGIN
 					,cfdi_cadenaOriginal
 					,cfdi_respuesta_mensaje
 					,QRCode
+					,cfdi_prueba
 				)
 				VALUES (
 					@idtran
@@ -350,11 +358,93 @@ BEGIN
 					,@cadena_original_timbrado
 					,@mensaje
 					,@QR_code
+					,@pac_prueba
 				)
 			END
 		END
 
-		IF @idpac NOT IN (0,1)
+		IF @idpac = 2
+		BEGIN
+			IF @pac_prueba = 1
+			BEGIN
+				EXEC [dbEVOLUWARE].[dbo].[SWTimbradoPruebaEX]
+					@OutXML
+					, @OutXML OUTPUT
+					, @mensaje OUTPUT
+					, @UUID OUTPUT
+					, @fechaTimbrado OUTPUT
+					, @selloCFD OUTPUT
+					, @noCertificadoSAT OUTPUT
+					, @selloSAT OUTPUT
+					, @xmlBase64 OUTPUT
+			END
+				ELSE
+			BEGIN
+				EXEC [dbEVOLUWARE].[dbo].[SWTimbradoEX]
+					@OutXML
+					, @pac_usr
+					, @pac_pwd
+					, @OutXML OUTPUT
+					, @mensaje OUTPUT
+					, @UUID OUTPUT
+					, @fechaTimbrado OUTPUT
+					, @selloCFD OUTPUT
+					, @noCertificadoSAT OUTPUT
+					, @selloSAT OUTPUT
+					, @xmlBase64 OUTPUT
+			END
+
+			IF @UUID IS NULL OR @UUID = ''
+			BEGIN
+				RAISERROR(@mensaje, 16, 1)
+				RETURN
+			END
+
+			SELECT
+				@QR_cadena = (
+					'?re=' + @rfc_emisor + 
+					'&rr=' + @rfc_receptor + 
+					'&tt=' + dbo.fnRellenar(CONVERT(DECIMAL(17,6), @cfd_total), 17, '0') + 
+					'&id=' + @UUID
+				)
+			
+			SELECT @QR_code = dbEVOLUWARE.dbo.QR_Codificar(@QR_cadena)
+			SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@QR_code, REPLACE(@archivoXML, '.xml', '.png'))
+
+			SELECT
+				@cadena_original_timbrado = (
+					'||1.0|'
+					+ @UUID + '|'
+					+ @FechaTimbrado + '|'
+					+ @selloSAT + '|'
+					+ @noCertificadoSAT + '||'
+				)
+
+			INSERT INTO ew_cfd_comprobantes_timbre (
+				idtran
+				,cfdi_FechaTimbrado
+				,cfdi_versionTFD
+				,cfdi_UUID
+				,cfdi_noCertificadoSAT
+				,cfdi_selloDigital
+				,cfdi_cadenaOriginal
+				,cfdi_respuesta_mensaje
+				,QRCode
+			)
+			VALUES (
+				@idtran
+				,@FechaTimbrado
+				,'1.0'
+				,@UUID
+				,@noCertificadoSAT
+				,@selloSAT
+				,@cadena_original_timbrado
+				,@mensaje
+				,@QR_code
+			)
+		END
+
+		IF @idpac NOT IN (0,1,2)
 		BEGIN
 			RAISERROR('Error: PAC Incorrecto.', 16, 1)
 		END

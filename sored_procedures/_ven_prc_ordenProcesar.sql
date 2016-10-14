@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -8,11 +8,12 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_ordenProcesar]
 	@idtran AS INT
+	,@idu AS INT
 AS
 
 SET NOCOUNT ON
 
 EXEC _ven_prc_existenciaComprometer
 
-EXEC _ven_prc_ordenValidar @idtran
+EXEC _ven_prc_ordenValidar @idtran, @idu
 GO

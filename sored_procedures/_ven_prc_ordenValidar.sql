@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -8,6 +8,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_ordenValidar]
 	@idtran AS INT
+	,@idu AS INT
 AS
 
 SET NOCOUNT ON
@@ -15,20 +16,6 @@ SET NOCOUNT ON
 DECLARE
 	@registros AS INT
 	,@campo VARCHAR(50)
-
-SELECT
-	@registros = COUNT(idr)
-FROM 
-	ew_ven_ordenes_mov
-WHERE
-	idtran = @idtran
-	AND importe = 0
-
-IF @registros > 0
-BEGIN
-	RAISERROR('Erro: No es posible guardar registros con costo cero.', 16, 1)
-	RETURN
-END
 
 SELECT @campo = 'cantidad_ordenada'
 
@@ -39,7 +26,7 @@ IF EXISTS (
 		LEFT JOIN ew_ven_ordenes_mov doc
 			ON doc.idmov2 = ref.idmov
 	WHERE 
-		doc.idtran=@idtran
+		doc.idtran = @idtran
 	)
 BEGIN
 	SELECT @campo = 'cantidad_surtida'
@@ -64,10 +51,12 @@ WHERE
 INSERT INTO ew_sys_transacciones2 (
 	idtran
 	,idestado
+	,idu
 )
 SELECT 
 	[idtrab] = idtran2
 	,[idestado] = 251 
+	,[idu] = @idu
 FROM 
 	ew_ven_ordenes
 WHERE

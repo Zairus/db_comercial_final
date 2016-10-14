@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
@@ -20,6 +20,9 @@ DECLARE
 	,@comentario2 AS VARCHAR(250)
 	,@codalm AS SMALLINT
 	,@surtir AS SMALLINT
+
+	,@total AS DECIMAL(18,6)
+	,@saldo AS DECIMAL(18,6)
 	
 SELECT 
 	@usuario = usuario 
@@ -35,6 +38,20 @@ FROM
 	ew_ven_transacciones 
 WHERE 
 	idtran = @idtran
+
+SELECT
+	@total = total
+	,@saldo = saldo
+FROM
+	ew_cxc_transacciones
+WHERE
+	idtran = @idtran
+
+IF ABS(@total - @saldo) > 0.01
+BEGIN
+	RAISERROR('Error: No se pueden cancelar facturas con aplicaciones de saldo.', 16, 1)
+	RETURN
+END
 
 -- cancelamos el cargo en CXC
 EXEC _cxc_prc_cancelarTransaccion @idtran, @fecha, @idu

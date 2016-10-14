@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -278,7 +278,7 @@ GROUP BY
 	,(o.nombre + ' - ' + ct.folio)
 	,ct.impuesto1
 HAVING
-	(ct.impuesto1 - SUM(ctm.importe - ctm.impuesto2 - ((ctm.importe - ctm.impuesto2) / (1 + (ct.impuesto1 / ct.subtotal))))) * (CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END) <> 0
+	ABS(ct.impuesto1 - SUM(ctm.importe - ctm.impuesto2 - ((ctm.importe - ctm.impuesto2) / (1 + (ct.impuesto1 / ct.subtotal))))) * (CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END) > 0.01
 
 UNION ALL
 
@@ -324,6 +324,44 @@ SELECT
 	[idtran] = @poliza_idtran
 	,[idtran2] = @bancos_idtran
 	,[estatus] = 0
+	,[consecutivo] = 6
+	,[idsucursal] = ct.idsucursal
+	,[cuenta] = ci.contabilidad4
+	,[tipomov] = 0
+	,[referencia] = (ct.transaccion + ' - ' + ct.folio)
+	,[cargos] = SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))
+	,[abonos] = 0
+	,[importe] = SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))
+	,[moneda] = 0
+	,[tipocambio] = 1
+	,[concepto] = (o.nombre + ' - ' + ct.folio)
+FROM
+	ew_cxp_transacciones_mov AS ctm
+	LEFT JOIN ew_cxp_transacciones AS ct
+		ON ct.idtran = ctm.idtran
+	LEFT JOIN ew_cxp_transacciones AS f
+		ON f.idtran = ctm.idtran2
+	LEFT JOIN objetos AS o
+		ON o.codigo = ct.transaccion
+	LEFT JOIN ew_cat_impuestos AS ci
+		ON ci.idimpuesto = f.idimpuesto1
+WHERE
+	ctm.idtran = @idtran
+	AND (SELECT COUNT(*) FROM ew_ct_poliza_mov AS pm WHERE pm.idtran2 = f.idtran) = 0
+GROUP BY
+	ct.idsucursal
+	,ci.contabilidad4
+	,(ct.transaccion + ' - ' + ct.folio)
+	,(o.nombre + ' - ' + ct.folio)
+HAVING
+	ABS(SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))) > 0.01
+
+UNION ALL
+
+SELECT
+	[idtran] = @poliza_idtran
+	,[idtran2] = @bancos_idtran
+	,[estatus] = 0
 	,[consecutivo] = 7
 	,[idsucursal] = ct.idsucursal
 	,[cuenta] = ci.contabilidad3
@@ -356,7 +394,7 @@ GROUP BY
 	,(o.nombre + ' - ' + ct.folio)
 	,ct.impuesto1
 HAVING
-	(ct.impuesto1 - SUM(ctm.importe - ctm.impuesto2 - ((ctm.importe - ctm.impuesto2) / (1 + (ct.impuesto1 / ct.subtotal))))) * (CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END) <> 0
+	ABS(ct.impuesto1 - SUM(ctm.importe - ctm.impuesto2 - ((ctm.importe - ctm.impuesto2) / (1 + (ct.impuesto1 / ct.subtotal))))) * (CASE WHEN ct.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END) > 0.01
 
 UNION ALL
 
@@ -395,6 +433,44 @@ GROUP BY
 	,(o.nombre + ' - ' + ct.folio)
 HAVING
 	SUM((pm.cargos * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE dbo.fn_ban_obtenerTC(ct.idmoneda, ct.fecha) END)) * (ctm.importe / f.total)) <> 0
+
+UNION ALL
+
+SELECT
+	[idtran] = @poliza_idtran
+	,[idtran2] = @bancos_idtran
+	,[estatus] = 0
+	,[consecutivo] = 8
+	,[idsucursal] = ct.idsucursal
+	,[cuenta] = ci.contabilidad3
+	,[tipomov] = 1
+	,[referencia] = (ct.transaccion + ' - ' + ct.folio)
+	,[cargos] = 0
+	,[abonos] = SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))
+	,[importe] = SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))
+	,[moneda] = 0
+	,[tipocambio] = 1
+	,[concepto] = (o.nombre + ' - ' + ct.folio)
+FROM
+	ew_cxp_transacciones_mov AS ctm
+	LEFT JOIN ew_cxp_transacciones AS ct
+		ON ct.idtran = ctm.idtran
+	LEFT JOIN ew_cxp_transacciones AS f
+		ON f.idtran = ctm.idtran2
+	LEFT JOIN objetos AS o
+		ON o.codigo = ct.transaccion
+	LEFT JOIN ew_cat_impuestos AS ci
+		ON ci.idimpuesto = f.idimpuesto1
+WHERE
+	ctm.idtran = @idtran
+	AND (SELECT COUNT(*) FROM ew_ct_poliza_mov AS pm WHERE pm.idtran2 = f.idtran) = 0
+GROUP BY
+	ct.idsucursal
+	,ci.contabilidad3
+	,(ct.transaccion + ' - ' + ct.folio)
+	,(o.nombre + ' - ' + ct.folio)
+HAVING
+	ABS(SUM(ctm.impuesto1 * (CASE WHEN f.idmoneda = 0 THEN 1 ELSE f.tipocambio END))) > 0.01
 
 SELECT @diferencia_cambiaria = SUM(cargos - abonos)
 FROM
