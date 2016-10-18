@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- SP: Timbra un comprobante 2do paso
 -- 		Elaborado por Laurence Saavedra
@@ -6,6 +6,7 @@ GO
 --		
 ALTER PROCEDURE [dbo].[_cfd_prc_timbrarComprobante]
 	 @idtran AS INT
+	 ,@idu AS INT
 AS
 
 SET NOCOUNT ON
@@ -17,14 +18,13 @@ DECLARE
 	,@idcomando AS TINYINT
 	,@cfd_idfolio AS SMALLINT
 	,@cfd_folio AS INT
- 
 	,@serie		VARCHAR(10)
 	,@transaccion VARCHAR(5)
 	,@idsucursal SMALLINT
 	,@fecha DATE
 
 /*
-	validamos que exista la transaccion en la tabla EW_CFD_TRANSACCIONES
+Validamos que exista la transaccion en la tabla EW_CFD_TRANSACCIONES
 */
 IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_transacciones WHERE idtran = @idtran)
 BEGIN
@@ -128,7 +128,7 @@ BEGIN
 END
 
 /*
-	validamos que la transaccion no se encuentre timbrada
+Validamos que la transaccion no se encuentre timbrada
 */
 IF EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran=@idtran)
 BEGIN
@@ -137,7 +137,7 @@ BEGIN
 	RETURN
 END
 /*
-	validamos que la transaccion se encuentre en estado APLICADO
+Validamos que la transaccion se encuentre en estado APLICADO
 */
 --IF EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran=@idtran)
 IF NOT EXISTS(SELECT idtran FROM dbo.ew_sys_transacciones2 WHERE idtran=@idtran AND (idestado=5 OR idestado=50))
@@ -147,7 +147,7 @@ BEGIN
 	RETURN
 END
 /*
-	obtenemos el comando que utilizaremos para timbrar
+Obtenemos el comando que utilizaremos para timbrar
 */
 SELECT TOP 1
 	@tipo = i.tipo
@@ -181,9 +181,11 @@ EXEC(@comando)
 INSERT INTO dbo.ew_sys_transacciones2 (
 	idtran
 	,idestado
+	,idu
 )
 VALUES(
 	@idtran
 	,23
+	,@idu
 )
 GO

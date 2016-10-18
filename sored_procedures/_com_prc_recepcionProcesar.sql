@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -77,19 +77,51 @@ END
 -- CREAR ENTRADA A ALMACEN #####################################################
 
 SELECT
-	@sql = 'INSERT INTO ew_inv_transacciones
-	(idtran, idtran2, idsucursal, idalmacen, fecha, folio, transaccion,
-	referencia,idconcepto, comentario)
+	@sql = 'INSERT INTO ew_inv_transacciones (
+	idtran
+	, idtran2
+	, idsucursal
+	, idalmacen
+	, fecha
+	, folio
+	, transaccion
+	, referencia
+	, idconcepto
+	, comentario
+)
 SELECT
-	{idtran}, idtran, idsucursal, idalmacen, fecha, ''{folio}'', ''GDC1'',
-	''CRE1 - '' + folio, 16, comentario
-FROM ew_com_transacciones
+	{idtran}
+	, idtran
+	, idsucursal
+	, idalmacen
+	, fecha
+	, ''{folio}''
+	, ''GDC1'',
+	''CRE1 - '' + folio
+	, 16
+	, comentario
+FROM 
+	ew_com_transacciones
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran) + '
-INSERT INTO ew_inv_transacciones_mov
-	(idtran, idtran2, idmov2, consecutivo, tipo, idalmacen,
-	idarticulo, series, lote, fecha_caducidad, idum,
-	cantidad, costo, afectainv, comentario)
+
+INSERT INTO ew_inv_transacciones_mov (
+	idtran
+	, idtran2
+	, idmov2
+	, consecutivo
+	, tipo
+	, idalmacen
+	, idarticulo
+	, series
+	, lote
+	, fecha_caducidad
+	, idum
+	, cantidad
+	, costo
+	, afectainv
+	, comentario
+)
 SELECT
 	[idtran] = {idtran}
 	,[idtran2] = ctm.idtran
@@ -164,11 +196,15 @@ END
 --------------------------------------------------------------------------------
 -- ACTUALIZAR CANTIDADES RECIBIDAS DE OC #######################################
 
-INSERT INTO ew_sys_movimientos_acumula 
-	(idmov1,idmov2,campo,valor)
-SELECT 
-	idmov
+INSERT INTO ew_sys_movimientos_acumula (
+	idmov1
 	,idmov2
+	,campo
+	,valor
+)
+SELECT 
+	[idmov1] = idmov
+	,[idmov2] = idmov2
 	,[campo] = 'cantidad_surtida'
 	,[valor] = cantidad_recibida
 FROM 
@@ -191,9 +227,10 @@ WHERE
 INSERT INTO ew_sys_transacciones2 (
 	idtran
 	,idestado
+	,idu
 )
 SELECT DISTINCT
-	co.idtran
+	[idtran] = co.idtran
 	,[idestado] = (
 		CASE 
 			WHEN (com.cantidad_ordenada - com.cantidad_surtida) > 0 THEN
@@ -202,8 +239,11 @@ SELECT DISTINCT
 				dbo.fn_sys_estadoID('RCBO')
 		END
 	)
+	,[idu] = r.idu
 FROM 
 	ew_com_transacciones_mov AS rd
+	LEFT JOIN ew_com_transacciones AS r
+		ON r.idtran = rd.idtran
 	LEFT JOIN ew_com_ordenes_mov AS com
 		ON com.idmov = rd.idmov2
 	LEFT JOIN ew_com_ordenes AS co
