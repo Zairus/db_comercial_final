@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -243,7 +243,7 @@ EXEC _ct_prc_contabilizarBPR2 @idtran
 EXEC _sys_prc_finalizarTurno @idu, @fecha
 
 INSERT INTO ew_sys_transacciones2
-	(idtran, idestado)
+	(idtran, idestado, idu)
 VALUES
-	(@idtran, 251)
+	(@idtran, 251, @idu)
 GO

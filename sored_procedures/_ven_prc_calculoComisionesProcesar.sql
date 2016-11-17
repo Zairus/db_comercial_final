@@ -100,6 +100,16 @@ FROM
 WHERE
 	dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 1) >= 1.0
 	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_ven_documentos_mov AS vdm1 
+			LEFT JOIN ew_ven_documentos AS vd_a
+				ON vd_a.idtran = vdm1.idtran
+		WHERE 
+			vd_a.cancelado = 0
+			AND vdm1.idmov2 = vd1.idmov
+	) = 0
+	AND (
 		(
 			((vd1.importe_base * dbo._cxc_prc_facturaPagoProporcion(vd1.idtran, @fecha, 0)) * vd1.comision)
 			*(
