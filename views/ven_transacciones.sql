@@ -2,29 +2,64 @@ USE db_comercial_final
 GO
 ALTER VIEW [dbo].[ven_transacciones]
 AS
-SELECT     idtran, idsucursal, idalmacen, transaccion, idconcepto, fecha, folio, idcliente, idvendedor, idmoneda, subtotal, impuesto1, total, cancelado, comentario
+SELECT
+	vd.idtran
+	, vd.idsucursal
+	, vd.idalmacen
+	, vd.transaccion
+	, vd.idconcepto
+	, vd.fecha
+	, vd.folio
+	, vd.idcliente
+	, vd.idvendedor
+	, vd.idmoneda
+	, vd.subtotal
+	, vd.impuesto1
+	, vd.total
+	, vd.cancelado
+	, vd.comentario
 FROM
-	ew_ven_documentos
+	ew_ven_documentos AS vd
 
 UNION ALL
 
 SELECT
-	idtran, idsucursal, idalmacen, transaccion, idconcepto, fecha, folio, idcliente, idvendedor, idmoneda, subtotal, impuesto1, total, cancelado, comentario
+	vo.idtran
+	, vo.idsucursal
+	, vo.idalmacen
+	, vo.transaccion
+	, vo.idconcepto
+	, vo.fecha
+	, vo.folio
+	, vo.idcliente
+	, vo.idvendedor
+	, vo.idmoneda
+	, vo.subtotal
+	, vo.impuesto1
+	, vo.total
+	, vo.cancelado
+	, vo.comentario
 FROM
-	ew_ven_ordenes
+	ew_ven_ordenes AS vo
 
 UNION ALL
 
-SELECT     idtran, idsucursal, idalmacen, transaccion, idconcepto, fecha, folio, idcliente, idvendedor, idmoneda, subtotal, impuesto1, total, cancelado, comentario
+SELECT
+	vt.idtran
+	, vt.idsucursal
+	, vt.idalmacen
+	, vt.transaccion
+	, vt.idconcepto
+	, vt.fecha
+	, vt.folio
+	, vt.idcliente
+	, vt.idvendedor
+	, vt.idmoneda
+	, vt.subtotal
+	, vt.impuesto1
+	, vt.total
+	, vt.cancelado
+	, vt.comentario
 FROM
-	ew_ven_transacciones
-
-UNION ALL
-
-SELECT     idtran, idsucursal, idalmacen, transaccion, idconcepto, fecha, folio, cl.idcliente, idvendedor = 0, idmoneda, subtotal = 0, impuesto = 0, total, cancelado, ew_inv_transacciones.comentario
-FROM
-	ew_inv_transacciones
-	LEFT JOIN ew_clientes cl 
-		ON cl.idcliente = dbo.FN_VEN_SURTIRIDCLIENTE(ew_inv_transacciones.idtran)
---WHERE     transaccion IN ('ERE1', 'EDE2')
+	ew_ven_transacciones AS vt
 GO

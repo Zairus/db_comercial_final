@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -123,7 +123,7 @@ FROM
 IF @metodoDePago IS NULL OR @metodoDePago = ''
 BEGIN
 	SELECT
-		@metodoDePago = ISNULL(bf.codigo, '') 
+		@metodoDePago = ISNULL(bf.codigo, '99') 
 	FROM 
 		ew_cxc_transacciones AS v
 		LEFT JOIN ew_ban_formas AS bf
@@ -149,7 +149,7 @@ FROM
 		FOR XML PATH('')
 	) AS node(text)
 
-IF @NumCtaPago IS NULL OR @NumCtaPago=''
+IF @NumCtaPago IS NULL OR @NumCtaPago='' OR @NumCtaPago=','
 BEGIN
 	SELECT @NumCtaPago = ISNULL(c.cfd_numctapago,'') 
 	FROM
@@ -317,7 +317,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = cit.tasa
+	,[cfd_tasa] = (cit.tasa * 100)
 	,[cfd_importe] = SUM(vtm.impuesto1)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -329,7 +329,7 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = cit.idimpuesto
 WHERE
-	vtm.impuesto1 > 0
+	vtm.impuesto1 <> 0
 	AND vtm.idtran = @idtran
 GROUP BY
 	vtm.idtran
@@ -348,7 +348,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = cit.tasa
+	,[cfd_tasa] = (cit.tasa * 100)
 	,[cfd_importe] = SUM(vtm.impuesto1_ret)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -360,7 +360,7 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = cit.idimpuesto
 WHERE
-	vtm.impuesto1_ret > 0
+	vtm.impuesto1_ret <> 0
 	AND vtm.idtran = @idtran
 GROUP BY
 	vtm.idtran
@@ -379,7 +379,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = cit.tasa
+	,[cfd_tasa] = (cit.tasa * 100)
 	,[cfd_importe] = SUM(vtm.impuesto2_ret)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -391,7 +391,7 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = cit.idimpuesto
 WHERE
-	vtm.impuesto2_ret > 0
+	vtm.impuesto2_ret <> 0
 	AND vtm.idtran = @idtran
 GROUP BY
 	vtm.idtran
@@ -410,7 +410,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = cit.tasa
+	,[cfd_tasa] = (cit.tasa * 100)
 	,[cfd_importe] = SUM(vtm.impuesto2)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -422,14 +422,14 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = cit.idimpuesto
 WHERE
-	vtm.impuesto2 > 0
+	vtm.impuesto2 <> 0
 	AND vtm.idtran = @idtran
 GROUP BY
 	vtm.idtran
 	,cit.tipo
 	,ci.grupo
 	,cit.tasa
-
+	
 -----------------------------------------------------------------------
 -- Insertando los conceptos en EW_CFD_COMPROBANTES_MOV
 -----------------------------------------------------------------------	
