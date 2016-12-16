@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -107,6 +107,7 @@ BEGIN
 		,tipo
 		,idcliente
 		,idfacturacion
+		,idforma
 		,idmoneda
 		,tipocambio
 		,idimpuesto1
@@ -128,6 +129,7 @@ BEGIN
 		,[tipo] = 2
 		,[idcliente] = ct.idcliente
 		,[idfacturacion] = ct.idfacturacion
+		,[idforma] = vtp.idforma
 		,[idmoneda] = ct.idmoneda
 		,[tipocambio] = ct.tipocambio
 		,[idimpuesto1] = ct.idimpuesto1
@@ -144,7 +146,7 @@ BEGIN
 		vtp.total <> 0
 		AND vtp.idforma <> 0
 		AND vtp.idtran = @idtran
-
+		
 	INSERT INTO ew_cxc_transacciones_mov (
 		idtran
 		,consecutivo
@@ -281,6 +283,7 @@ BEGIN
 		,tipo
 		,idcliente
 		,idfacturacion
+		,idforma
 		,idmoneda
 		,tipocambio
 		,idimpuesto1
@@ -302,6 +305,7 @@ BEGIN
 		,[tipo] = 2
 		,[idcliente] = ct.idcliente
 		,[idfacturacion] = ct.idfacturacion
+		,[idforma] = vtp.idforma
 		,[idmoneda] = ct.idmoneda
 		,[tipocambio] = ct.tipocambio
 		,[idimpuesto1] = ct.idimpuesto1

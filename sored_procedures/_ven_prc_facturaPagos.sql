@@ -11,41 +11,39 @@ ALTER PROCEDURE [dbo].[_ven_prc_facturaPagos]
 AS
 
 SET NOCOUNT ON
-SET DATEFORMAT DMY
 
 --------------------------------------------------------------------------------
 -- DECLARACION DE VARIABLES ####################################################
 
 DECLARE
-	@idmov			MONEY
-	,@idtran2		INT
-	,@idforma		SMALLINT
-	,@subtotal		DECIMAL(15,2)
-	,@impuesto1		DECIMAL(15,2)
-	,@total			DECIMAL(15,2)
-	,@comentario		VARCHAR(MAX)
-	,@error				BIT
-	,@error_mensaje		VARCHAR(500)
-	,@fecha				SMALLDATETIME
-	,@idsucursal		SMALLINT
-	,@idcliente			INT
-	,@idmoneda			SMALLINT
-	,@tipocambio		DECIMAL(15,2)
-	,@idimpuesto1		SMALLINT
-	,@idimpuesto1_valor	DECIMAL(15,2)
-	,@saldo_referencia	DECIMAL(15,2)
-	,@saldo_aplicacion	DECIMAL(15,2)
-	,@idu				SMALLINT
-	,@idcuenta			SMALLINT
-	,@consecutivo		SMALLINT
-	,@referencia		VARCHAR(20)
-	,@sql				VARCHAR(MAX)
-	,@usuario			VARCHAR(20)
-	,@password			VARCHAR(20)
-	,@pago_idtran		INT
-	,@pago_referencia	VARCHAR(200)
-	,@idr				INT
-
+	@idmov AS MONEY
+	,@idtran2 AS INT
+	,@idforma AS SMALLINT
+	,@subtotal AS DECIMAL(15,2)
+	,@impuesto1 AS DECIMAL(15,2)
+	,@total AS DECIMAL(15,2)
+	,@comentario AS VARCHAR(MAX)
+	,@error AS BIT
+	,@error_mensaje AS VARCHAR(500)
+	,@fecha AS SMALLDATETIME
+	,@idsucursal AS SMALLINT
+	,@idcliente AS INT
+	,@idmoneda AS SMALLINT
+	,@tipocambio AS DECIMAL(15,2)
+	,@idimpuesto1 AS SMALLINT
+	,@idimpuesto1_valor AS DECIMAL(15,2)
+	,@saldo_referencia AS DECIMAL(15,2)
+	,@saldo_aplicacion AS DECIMAL(15,2)
+	,@idu AS SMALLINT
+	,@idcuenta AS SMALLINT
+	,@consecutivo AS SMALLINT
+	,@referencia AS VARCHAR(20)
+	,@sql AS VARCHAR(MAX)
+	,@usuario AS VARCHAR(20)
+	,@password AS VARCHAR(20)
+	,@pago_idtran AS INT
+	,@pago_referencia AS VARCHAR(200)
+	,@idr AS INT
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
@@ -62,7 +60,6 @@ SELECT
 	,@idmoneda=ct.idmoneda
 	,@tipocambio= ct.tipocambio
 	,@referencia = vt.transaccion +'-'+ vt.folio
-
 FROM 
 	ew_ven_transacciones vt
 	LEFT JOIN ew_cxc_transacciones ct 
@@ -139,8 +136,28 @@ BEGIN
 		
 		SELECT @consecutivo = (ISNULL(@consecutivo, 0) + 1)
 		
-		INSERT INTO ew_cxc_transacciones_mov (idtran, consecutivo, idtran2, fecha, importe, importe2, impuesto1, idu, comentario)
-		VALUES (@idtran2, @consecutivo, @idtran, @fecha, @total, @total, @impuesto1, @idu, @comentario)
+		INSERT INTO ew_cxc_transacciones_mov (
+			idtran
+			, consecutivo
+			, idtran2
+			, fecha
+			, importe
+			, importe2
+			, impuesto1
+			, idu
+			, comentario
+		)
+		VALUES (
+			@idtran2
+			, @consecutivo
+			, @idtran
+			, @fecha
+			, @total
+			, @total
+			, @impuesto1
+			, @idu
+			, @comentario
+		)
 		
 		EXEC _cxc_prc_aplicarTransaccion @idtran2, @fecha, @idu
 		
@@ -183,6 +200,7 @@ BEGIN
 			,comentario
 			,idconcepto
 			,vencimiento
+			,idforma
 			,idmoneda
 			,tipocambio
 			,idimpuesto1
@@ -206,6 +224,7 @@ BEGIN
 			,''' + @comentario + '''
 			,10
 			,''' + CONVERT(VARCHAR(8), @fecha, 3) + '''
+			,' + CONVERT(VARCHAR(20), @idforma) + '
 			,' + CONVERT(VARCHAR(2), @idmoneda) + '
 			,' + CONVERT(VARCHAR(8), @tipocambio) + '
 			,' + CONVERT(VARCHAR(2), @idimpuesto1) + '
