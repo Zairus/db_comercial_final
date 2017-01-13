@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -67,7 +67,7 @@ SELECT
 	,fecha
 	,[folio] = ''{folio}''
 	,[transaccion] = ''GDC1''
-	,[idconcepto] = 11
+	,[idconcepto] = 16
 	,[referencia] = ''CRE1 - '' + folio
 	,comentario
 FROM 
@@ -167,5 +167,5 @@ WHERE
 --------------------------------------------------------------------------------
 -- CONTABILIZAR ################################################################
 
---EXEC _com_prc_facturaContabilizar @idtran, 0
+EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
 GO

@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -125,7 +125,7 @@ INSERT INTO ew_inv_transacciones_mov (
 SELECT
 	[idtran] = {idtran}
 	,[idtran2] = ctm.idtran
-	,ctm.idmov
+	,[idmov2] = ctm.idmov
 	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY ctm.idr)
 	,[tipo] = 1
 	,[idlamacen] = ctm.idalmacen
@@ -262,4 +262,6 @@ WHERE
 		)
 	)
 	AND rd.idtran = @idtran
+
+EXEC [dbo].[_com_prc_recepcionProcesarConsignacion] @idtran
 GO
