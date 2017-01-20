@@ -21,12 +21,14 @@ DECLARE
 	,@mensaje AS VARCHAR(500) = ''
 	,@idestado AS INT
 	,@transaccion AS VARCHAR(4)
+	,@autorizacion AS BIT
 
 SELECT
 	@credito = credito
 	,@credito_plazo = credito_plazo
 	,@credito_limite = credito_limite
 	,@saldo = csa.saldo
+	,@autorizacion = ctr.autorizacion
 FROM
 	ew_clientes_terminos AS ctr
 	LEFT JOIN ew_cxc_saldos_actual AS csa
@@ -71,12 +73,12 @@ WHERE
 	AND DATEDIFF(DAY, ct.fecha, GETDATE()) > @credito_plazo
 	AND ct.idcliente = @idcliente
 
-IF @documentos_vencidos > 0
+IF @documentos_vencidos > 0 AND @autorizacion = 0
 BEGIN
 	SELECT @mensaje = @mensaje + 'El cliente tiene ' + LTRIM(RTRIM(STR(@documentos_vencidos))) + ' documentos vencidos.' + CHAR(13)
 END
 
-IF @saldo > @credito_limite
+IF @saldo > @credito_limite AND @autorizacion = 0
 BEGIN
 	SELECT @mensaje = @mensaje + 'Cliente excede límite de crédito: Saldo=' + CONVERT(VARCHAR(20), @saldo) + ', Límite=' + CONVERT(VARCHAR(20), @credito_limite) + CHAR(13)
 END
@@ -85,4 +87,9 @@ IF LEN(@mensaje) > 0
 BEGIN
 	RAISERROR (@mensaje, 16, 1)
 END
+
+UPDATE ew_clientes_terminos SET
+	autorizacion = 0
+WHERE
+	idcliente = @idcliente
 GO

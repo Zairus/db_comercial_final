@@ -13,6 +13,24 @@ AS
 
 SET NOCOUNT ON
 
+DECLARE
+	@tipo_cxc AS INT
+	,@tipo_ban AS INT
+
+SELECT
+	@tipo_cxc = tipo
+FROM
+	ew_cxc_transacciones
+WHERE
+	idtran = @idtran
+
+SELECT
+	@tipo_ban = tipo
+FROM
+	ew_ban_transacciones
+WHERE
+	idtran = @idtran
+
 INSERT INTO ew_sys_transacciones2 (
 	idtran
 	,idestado
@@ -27,9 +45,11 @@ FROM
 WHERE
 	ct.idtran = @idtran
 
-EXEC dbo._cxc_prc_cancelarTransaccion @idtran, @cancelado_fecha, @idu
+IF @tipo_cxc > 0
+	EXEC [dbo].[_cxc_prc_cancelarTransaccion] @idtran, @cancelado_fecha, @idu
 
-EXEC dbo._ban_prc_cancelarTransaccion @idtran, @cancelado_fecha, @idu
+IF @tipo_ban > 0
+	EXEC [dbo].[_ban_prc_cancelarTransaccion] @idtran, @cancelado_fecha, @idu
 
 UPDATE ew_ven_transacciones_pagos SET
 	idforma = 0
@@ -47,7 +67,7 @@ UPDATE ew_ven_transacciones_pagos SET
 WHERE
 	idtran_pago2 = @idtran
 
-UPDATE dbo.ew_cxc_transacciones SET
+UPDATE ew_cxc_transacciones SET
 	cancelado = 1
 	,cancelado_fecha = @cancelado_fecha
 WHERE

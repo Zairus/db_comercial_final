@@ -28,14 +28,18 @@ WHERE
 INSERT INTO ew_sys_transacciones2 (
 	 idtran
 	,idestado
+	,idu
 )
 SELECT
 	 [idtran] = ctr.idtran2
 	,[idestado] = (CASE WHEN ct.saldo = 0 THEN 50 ELSE 0 END)
+	,[idu] = ft.idu
 FROM
 	ew_cxc_transacciones_rel AS ctr
 	LEFT JOIN ew_cxc_transacciones AS ct
 		ON ct.idtran = ctr.idtran2
+	LEFT JOIN ew_cxc_transacciones AS ft
+		ON ft.idtran = ctr.idtran
 WHERE
 	ctr.idtran = @idtran
 GO

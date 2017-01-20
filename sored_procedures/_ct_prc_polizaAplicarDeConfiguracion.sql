@@ -8,6 +8,8 @@ GO
 ALTER PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
 	@idtran AS INT
 	,@objeto_codigo AS VARCHAR(10) = NULL
+	,@idtran2 AS INT = NULL
+	,@poliza_idtran AS INT = NULL OUTPUT
 AS
 
 SET NOCOUNT ON
@@ -21,7 +23,12 @@ DECLARE
 	@fecha AS DATETIME
 	,@idtipo AS SMALLINT
 	,@idu AS INT
-	,@poliza_idtran AS INT
+
+DECLARE
+	@cuadrar AS BIT
+	,@cuenta_cuadre_cargos AS VARCHAR(100)
+	,@cuenta_cuadre_abonos AS VARCHAR(100)
+	,@diferencia AS DECIMAL(18,6)
 
 SELECT
 	@idsucursal = st.idsucursal
@@ -33,7 +40,9 @@ SELECT
 	,@idu = (
 		SELECT TOP 1 st2.idu 
 		FROM ew_sys_transacciones2 AS st2 
-		WHERE st2.idtran = st.idtran 
+		WHERE 
+			st2.idu > 0
+			AND st2.idtran = st.idtran 
 		ORDER BY st2.id
 	)
 FROM
@@ -45,6 +54,9 @@ WHERE
 	
 SELECT
 	@idtipo = pc.idtipo
+	,@cuadrar = pc.cuadrar
+	,@cuenta_cuadre_cargos = pc.cuenta_cuadre_cargos
+	,@cuenta_cuadre_abonos = pc.cuenta_cuadre_abonos
 FROM
 	ew_ct_polizas_configuracion AS pc
 WHERE
@@ -81,13 +93,32 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	SELECT @line_sql = N'SELECT
 		[orden] = ' + LTRIM(RTRIM(STR(pcm.orden))) + '
-		,[cuenta] = ''' + pcm.cuenta + '''
+		,[cuenta] = ' + pcm.cuenta + '
 		,[tipomov] = ' + LTRIM(RTRIM(STR(pcm.tipomov))) + '
 		,[importe] = ' + pcm.importe + '
 	FROM
 		' + pcm.tabla + '
 	WHERE
-		' + pcm.campo_llave + ' = ' + LTRIM(RTRIM(STR(@idtran)))
+		' + pcm.campo_llave + ' = ' + LTRIM(RTRIM(STR(@idtran))) + '
+	'
+	+ (
+		CASE
+			WHEN LEN(pcm.agrupacion) > 0 THEN
+				'GROUP BY
+				' + pcm.agrupacion + '
+				'
+			ELSE ''
+		END
+	)
+	+ (
+		CASE
+			WHEN LEN(pcm.condicion_agrupacion) > 0 THEN
+				'HAVING
+				' + pcm.condicion_agrupacion  + '
+				'
+			ELSE ''
+		END
+	)
 	FROM
 		ew_ct_polizas_configuracion_mov AS pcm
 	WHERE
@@ -108,6 +139,29 @@ BEGIN
 	RETURN
 END
 
+IF @cuadrar = 1
+BEGIN
+	SELECT @diferencia = SUM(CASE WHEN tipomov = 0 THEN importe ELSE importe * -1 END)
+	FROM
+		#_tmp_prepoliza
+
+	SELECT @diferencia = ISNULL(@diferencia, 0)
+
+	INSERT INTO #_tmp_prepoliza (
+		orden
+		, cuenta
+		, tipomov
+		, importe
+	)
+	SELECT
+		[orden] = 99
+		, [cuenta] = (CASE WHEN @diferencia < 0 THEN @cuenta_cuadre_cargos ELSE @cuenta_cuadre_abonos END)
+		, [tipomov] = (CASE WHEN @diferencia < 0 THEN 0 ELSE 1 END)
+		, [importe] = ABS(@diferencia)
+	WHERE
+		ABS(@diferencia) > 0.01
+END
+
 EXEC _ct_prc_polizaCrear
 	@idtran
 	,@fecha
@@ -115,6 +169,12 @@ EXEC _ct_prc_polizaCrear
 	,@idu
 	,@poliza_idtran OUTPUT
 	,@referencia
+
+IF @poliza_idtran IS NULL OR @poliza_idtran = 0
+BEGIN
+	RAISERROR('Error: No fue posible crear poliza contable.', 16, 1)
+	RETURN
+END
 
 INSERT INTO ew_ct_poliza_mov (
 	idtran
@@ -131,8 +191,8 @@ INSERT INTO ew_ct_poliza_mov (
 )
 SELECT
 	[idtran] = @poliza_idtran
-	,[idtran2] = @idtran
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY tpp.orden)
+	,[idtran2] = ISNULL(@idtran2, @idtran)
+	,[consecutivo] = tpp.orden -- ROW_NUMBER() OVER (ORDER BY tpp.orden)
 	,[idsucursal] = @idsucursal
 	,[cuenta] = tpp.cuenta
 	,[tipomov] = tpp.tipomov
