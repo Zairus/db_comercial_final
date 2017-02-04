@@ -21,6 +21,7 @@ DECLARE
 	,@password AS VARCHAR(20)
 	,@idsucursal AS SMALLINT
 	,@idproveedor AS INT
+	,@identidad AS INT
 
 DECLARE
 	@idarticulo AS INT
@@ -39,14 +40,20 @@ FROM
 	ew_usuarios
 WHERE
 	idu = @idu
-
+	
 SELECT
-	 @idsucursal = idsucursal
-	,@idproveedor = idproveedor
+	 @idsucursal = ct.idsucursal
+	,@idproveedor = ct.idproveedor
+	,@identidad = ISNULL(e.identidad, 0)
 FROM 
-	ew_cxp_transacciones
+	ew_cxp_transacciones AS ct
+	LEFT JOIN ew_proveedores AS p
+		ON p.idproveedor = ct.idproveedor
+	LEFT JOIN vew_entidades AS e
+		ON e.idrelacion = 3
+		AND e.codigo = p.codigo
 WHERE
-	idtran = @idtran
+	ct.idtran = @idtran
 
 SELECT 
 	@idarticulo = idarticulo
@@ -102,6 +109,10 @@ INSERT INTO ew_ban_transacciones (
 	,fecha
 	,idu
 	,tipo
+	,identidad
+	,idrelacion
+	,idforma
+	,forma_referencia
 	,idmoneda
 	,tipocambio
 	,importe
@@ -119,6 +130,10 @@ SELECT
 	,[fecha] = ct.fecha
 	,[idu] = @idu
 	,[tipo] = 2
+	,[identidad] = @identidad
+	,[idrelacion] = 3
+	,[idforma] = ct.idforma
+	,[forma_referencia] = ct.folio
 	,[idmoneda] = ct.idmoneda
 	,[tipocambio] = ct.tipocambio
 	,[importe] = (CASE WHEN ct.idmoneda = bc.idmoneda THEN ct.total ELSE ((ct.total * ct.tipocambio) / bm.tipocambio) END)
@@ -136,6 +151,7 @@ WHERE
 	
 INSERT INTO ew_ban_transacciones_mov (
 	 idtran
+	,idtran2
 	,idmov2
 	,consecutivo
 	,idconcepto
@@ -143,6 +159,7 @@ INSERT INTO ew_ban_transacciones_mov (
 )
 SELECT
 	[idtran] = @egreso_idtran
+	,[idtran2] = ct.idtran
 	,[idmov2] = ct.idmov
 	,[consecutivo] = 1
 	,[idconcepto] = @idarticulo
@@ -158,10 +175,7 @@ WHERE
 
 --------------------------------------------------------------------------------
 -- AUTORIZAR PAGO ##############################################################
-INSERT INTO ew_sys_transacciones2
-	(idtran, idestado, idu)
-VALUES
-	(@idtran, 3, @idu)
+EXEC _sys_prc_trnAplicarEstado @idtran, 'AUT', @idu, 1
 
 --------------------------------------------------------------------------------
 -- PROCESAR EGRESO DE PAGO #####################################################

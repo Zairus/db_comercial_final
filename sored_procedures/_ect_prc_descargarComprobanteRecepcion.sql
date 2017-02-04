@@ -5,7 +5,7 @@ GO
 -- Create date: 20160616
 -- Description:	Generar documento PDF de comprobante recibido
 -- =============================================
-ALTER PROCEDURE _ect_prc_descargarComprobanteRecepcion
+ALTER PROCEDURE [dbo].[_ect_prc_descargarComprobanteRecepcion]
 	@uuid AS VARCHAR(50)
 AS
 
@@ -20,7 +20,7 @@ DECLARE
 
 SELECT
 	@rs_command = (
-		'http://68.233.240.102:8008/ReportServer_R2/Pages/ReportViewer.aspx?'
+		'http://evoluware.zairus.com:8008/ReportServer_R2/Pages/ReportViewer.aspx?'
 		+'/Modelo/Compras/ComprobanteCFDi'
 		+'&rs:Command=Render'
 		+'&uuid=' + @uuid
@@ -28,7 +28,7 @@ SELECT
 		+'&rc:parameters=false'
 		+'&dsu:Conexion_servidor=ewadmin'
 		+'&dsp:Conexion_servidor=pwevoluware2008'
-		+'&ServidorSQL=Data Source=68.233.240.102,1093;Initial Catalog=db_comercial_final'
+		+'&ServidorSQL=Data Source=evoluware.zairus.com,1093;Initial Catalog=db_comercial_final'
 		+'&rs:format=PDF'
 	)
 

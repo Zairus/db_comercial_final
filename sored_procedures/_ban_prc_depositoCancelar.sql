@@ -39,7 +39,9 @@ FETCH NEXT FROM cur_depositoPagosC INTO
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-	EXEC [dbo].[_cxc_prc_pagoCancelar] @idtran2, @cancelado_fecha, @idu
+	EXEC [dbo].[_cxc_prc_pagoCancelar] @idtran2, @cancelado_fecha, @idu, 1
+
+	EXEC [dbo].[_sys_prc_trnAplicarEstado] @idtran2, 'CANC', @idu, 1
 
 	INSERT INTO ew_sys_transacciones2
 		(idtran, idestado, idu)
@@ -56,5 +58,7 @@ CLOSE cur_depositoPagosC
 DEALLOCATE cur_depositoPagosC
 
 IF @cancelado = 0
+BEGIN
 	EXEC [dbo].[_ban_prc_cancelarTransaccion] @idtran, @cancelado_fecha, @idu
+END
 GO

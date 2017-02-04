@@ -78,7 +78,7 @@ SELECT
 	,fecha
 	,[folio] = ''{folio}''
 	,[transaccion] = ''GDA1''
-	,[idconcepto] = 1011
+	,[idconcepto] = 16 + 1000
 	,[referencia] = ''CCRE1 - '' + folio
 	,comentario
 FROM 
@@ -191,6 +191,4 @@ UPDATE ew_cxp_transacciones SET
 	,cancelado_fecha = @fecha
 WHERE
 	idtran = @idtran
-
---EXEC _com_prc_facturaContabilizarCancelacion @idtran, @fecha, @idu
 GO

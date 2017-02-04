@@ -9,6 +9,7 @@ ALTER PROCEDURE [dbo].[_cxc_prc_pagoCancelar]
 	@idtran AS INT
 	,@cancelado_fecha AS SMALLDATETIME
 	,@idu AS SMALLINT
+	,@forzar AS BIT = 0
 AS
 
 SET NOCOUNT ON
@@ -16,13 +17,17 @@ SET NOCOUNT ON
 DECLARE
 	@tipo_cxc AS INT
 	,@tipo_ban AS INT
+	,@codigo_referencia AS VARCHAR(10)
 
 SELECT
-	@tipo_cxc = tipo
+	@tipo_cxc = ct.tipo
+	,@codigo_referencia = ISNULL(st.transaccion, '')
 FROM
-	ew_cxc_transacciones
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_sys_transacciones AS st
+		ON st.idtran = ct.idtran2
 WHERE
-	idtran = @idtran
+	ct.idtran = @idtran
 
 SELECT
 	@tipo_ban = tipo
@@ -30,6 +35,12 @@ FROM
 	ew_ban_transacciones
 WHERE
 	idtran = @idtran
+
+IF @codigo_referencia = 'BDC3' AND @forzar = 0
+BEGIN
+	RAISERROR('Error: No se puede cancelar pago que se incluye en ficha de deposito.', 16, 1)
+	RETURN
+END
 
 INSERT INTO ew_sys_transacciones2 (
 	idtran

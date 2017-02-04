@@ -25,9 +25,11 @@ BEGIN
 		SELECT
 			i.idtran
 		FROM 
-			inserted i
-			LEFT JOIN deleted d ON d.idr=i.idr
-			LEFT JOIN ew_sys_transacciones t ON t.idtran=i.idtran
+			inserted AS i
+			LEFT JOIN deleted AS d 
+				ON d.idr = i.idr
+			LEFT JOIN ew_sys_transacciones AS t 
+				ON t.idtran = i.idtran
 		WHERE
 			i.tipo IN (1,2)
 			AND i.cancelado = 0
@@ -58,11 +60,8 @@ BEGIN
 		SELECT @idu = ISNULL(@idu, dbo._sys_fnc_usuario())
 
 		-- Cerrando la transaccion
-		INSERT INTO ew_sys_transacciones2	
-			(idtran, idestado, idu)
-		VALUES
-			(@idtran, dbo.fn_sys_estadoID('CERR'), @idu)
-		
+		EXEC _sys_prc_trnAplicarEstado @idtran, 'CERR', @idu, 1
+
 		FETCH NEXT FROM cur_tg_cxp_transacciones_u INTO
 			@idtran
 	END
@@ -77,7 +76,7 @@ BEGIN
 		SELECT
 			i.idtran
 		FROM 
-			inserted i
+			inserted AS i
 			LEFT JOIN deleted AS d 
 				ON d.idr = i.idr
 			LEFT JOIN ew_sys_transacciones AS t 
@@ -111,11 +110,8 @@ BEGIN
 		SELECT @idu = ISNULL(@idu, dbo._sys_fnc_usuario())
 
 		-- Abriendo la transaccion
-		INSERT INTO ew_sys_transacciones2	
-			(idtran, idestado, idu)
-		VALUES
-			(@idtran, dbo.fn_sys_estadoID('CER~'), @idu)
-		
+		EXEC _sys_prc_trnAplicarEstado @idtran, 'CER~', @idu, 1
+
 		FETCH NEXT FROM cur_tg_cxp_transacciones_u INTO
 			@idtran
 	END
