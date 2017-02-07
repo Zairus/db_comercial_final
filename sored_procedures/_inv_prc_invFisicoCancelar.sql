@@ -303,6 +303,8 @@ BEGIN
 		it.idtran = @entrada_idtran
 END
 
+EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad] @idtran, 3, @cancelado_fecha, @idu
+
 UPDATE ew_inv_documentos SET
 	cancelado = 1
 	,cancelado_fecha = @cancelado_fecha

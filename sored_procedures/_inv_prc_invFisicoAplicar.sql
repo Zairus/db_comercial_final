@@ -299,4 +299,6 @@ WHERE
 	it.idtran = @salida_idtran
 
 EXEC [dbo].[_sys_prc_trnAplicarEstado] @idtran, 'APL', @idu, 0
+
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran
 GO

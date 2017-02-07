@@ -5,7 +5,7 @@ GO
 -- Create date: 20170131
 -- Description:	Cargar toma de inventario
 -- =============================================
-ALTER PROCEDURE _xac_GDT2_cargardoc
+ALTER PROCEDURE [dbo].[_xac_GDT2_cargardoc]
 	@idtran AS INT
 AS
 
@@ -17,6 +17,7 @@ SELECT
 	,id.idalmacen
 	,id.folio
 	,id.fecha
+	,id.idconcepto
 	,id.tipo
 	,id.filtrar
 	,id.parametro
@@ -71,6 +72,25 @@ FROM
 		ON a.idarticulo = idm.idarticulo
 WHERE
 	idm.idtran = @idtran
+
+SELECT 
+	idr
+	,objidtran
+	,idtran2
+	,consecutivo
+	,fecha
+	,tipo_nombre
+	,folio
+	,referencia
+	,cuenta
+	,cuenta_nombre
+	,cargos
+	,abonos
+	,concepto
+FROM
+	contabilidad 
+WHERE  
+	idtran2 = @idtran 
 
 SELECT
 	b.fechahora
