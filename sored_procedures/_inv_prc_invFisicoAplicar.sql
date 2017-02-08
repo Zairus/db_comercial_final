@@ -153,7 +153,7 @@ SELECT
 	,[idum] = idm.idum
 	,[cantidad] = ABS(idm.cantidad - idm.solicitado)
 	,[existencia] = ISNULL(aa.existencia, 0)
-	,[costo] = ISNULL(aa.costo_ultimo, 0)
+	,[costo] = ISNULL(aa.costo_ultimo, 0) * ABS(idm.cantidad - idm.solicitado)
 	,[afectainv] = 1
 	,[comentario] = idm.comentario
 FROM
