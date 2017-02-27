@@ -120,10 +120,10 @@ FROM
 	LEFT OUTER JOIN dbo.ew_cfd_rfc AS cr ON cr.cfd_rfc = c.rfc_receptor 
 	LEFT OUTER JOIN dbo.ew_cfd_comprobantes_ubicacion AS crd 
 		ON crd.idtran = c.idtran AND crd.idtipo = 2 AND crd.ubicacion = 'domicilio' 
-	LEFT OUTER JOIN dbo.vew_clientes AS cfe 
-		ON cfe.rfc = c.rfc_emisor 
 	LEFT OUTER JOIN dbo.ew_cxc_transacciones AS vt 
 		ON vt.idtran = c.idtran 
+	LEFT OUTER JOIN dbo.vew_clientes AS cfe 
+		ON cfe.idcliente = vt.idcliente
 	LEFT OUTER JOIN dbo.vew_clientes AS cfr 
 		ON cfr.idcliente = vt.idcliente
 GO

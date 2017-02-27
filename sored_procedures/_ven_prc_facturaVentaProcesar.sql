@@ -58,7 +58,7 @@ SELECT
 	,@inventario_partes = c.inventario_partes
 	,@inventario_partes_actualizar = c.inventario_partes_actualizar
 	,@mayoreo = c.mayoreo
-	,@idfacturacion = c.idfacturacion
+	,@idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = c.idcliente)
 	,@total_documento = vt.total
 
 	,@credito = ct.credito
@@ -204,14 +204,40 @@ FROM
 		ON [as].idarticulo = vtm.idarticulo
 		AND [as].idsucursal = vt.idsucursal
 WHERE
-	vtm.importe <= (vtm.costo * (1.0 + [as].utilidad1))
+	vtm.importe <= (vtm.costo * (1.0 + [as].margen_minimo))
 	AND [as].bajo_costo = 0
 	AND a.inventariable = 1
 	AND vtm.idtran = @idtran
-
+	
 IF @registros > 0 AND @mayoreo = 0
 BEGIN
-	RAISERROR('Error: No se pueden vender artículos bajo el margen establecido.', 16, 1)
+	SELECT TOP 1
+		@error_mensaje = (
+			'Error: '
+			+' El artículo ['
+			+a.codigo
+			+'], no se puede vender a un precio de '
+			+CONVERT(VARCHAR(20), CONVERT(DECIMAL(18,2), vtm.importe / vtm.cantidad_facturada))
+			+', ya que queda por debajo del costo: '
+			+CONVERT(VARCHAR(20), CONVERT(DECIMAL(18,2), (vtm.costo * (1.0 + [as].margen_minimo)) / vtm.cantidad_facturada))
+			+'; segun capas de almacén.'
+		)
+	FROM
+		ew_ven_transacciones_mov AS vtm
+		LEFT JOIN ew_ven_transacciones AS vt
+			ON vt.idtran = vtm.idtran
+		LEFT JOIN ew_articulos AS a
+			ON a.idarticulo = vtm.idarticulo
+		LEFT JOIN ew_articulos_sucursales AS [as]
+			ON [as].idarticulo = vtm.idarticulo
+			AND [as].idsucursal = vt.idsucursal
+	WHERE
+		vtm.importe <= (vtm.costo * (1.0 + [as].margen_minimo))
+		AND [as].bajo_costo = 0
+		AND a.inventariable = 1
+		AND vtm.idtran = @idtran
+
+	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
 
@@ -235,7 +261,13 @@ WHERE
 IF @registros > 0
 BEGIN
 	SELECT TOP 1
-		@error_mensaje = 'Error: No se puede vemder el artículo ' + a.codigo + ', en ' + CONVERT(VARCHAR(20), vtm.importe) + ', por debajo del costo: ' + CONVERT(VARCHAR(20), vtm.costo)
+		@error_mensaje = (
+			'Error: No se puede vemder el artículo ' 
+			+ a.codigo 
+			+ ', en ' + CONVERT(VARCHAR(20), vtm.importe / vtm.cantidad_facturada) 
+			+ ', por debajo del costo: ' 
+			+ CONVERT(VARCHAR(20), vtm.costo / vtm.cantidad_facturada)
+		)
 	FROM
 		ew_ven_transacciones_mov AS vtm
 		LEFT JOIN ew_ven_transacciones AS vt

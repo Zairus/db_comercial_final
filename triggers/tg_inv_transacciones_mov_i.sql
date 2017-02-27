@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -790,25 +790,6 @@ BEGIN
 				, @idalmacen
 				, @costo_u
 
-			/*
-			UPDATE ew_articulos_almacenes SET
-				costo_ultimo = (@costo / @cantidad)
-				,costo_promedio = (
-					SELECT
-						CONVERT(DECIMAL(18,6), SUM(ice.costo) / SUM(ice.existencia))
-					FROM 
-						ew_inv_capas_existencia AS ice
-						LEFT JOIN ew_inv_capas AS ic 
-							ON ic.idcapa = ice.idcapa
-					WHERE
-						ice.existencia > 0
-						AND ic.idarticulo = @idarticulo
-				)
-			WHERE
-				idarticulo = @idarticulo
-				AND idalmacen = @idalmacen
-			*/
-
 			UPDATE aa SET
 				aa.costo_ultimo = (itm.costo / itm.cantidad)
 				,aa.costo_promedio = (
@@ -830,7 +811,7 @@ BEGIN
 			WHERE
 				itm.cantidad > 0
 				AND itm.idr = @idr
-
+				
 			UPDATE ew_articulos_sucursales SET 
 				costo_ultimo = (@costo / @cantidad)
 				,costo_promedio = (
@@ -853,17 +834,23 @@ BEGIN
 				)
 			
 			-- Inicia Cambios Julio 2012
-			IF @idconcepto=16
+			IF @idconcepto = 16
 			BEGIN 
 				IF @costo2 = 0 
 					SELECT @costo2 = @costo
 
-				UPDATE ew_articulos_sucursales SET
-					costo_base = ROUND(@costo2 / @cantidad,2)
-				WHERE 
-					idarticulo = @idarticulo
-					AND idsucursal = (SELECt idsucursal FROM ew_inv_almacenes WHERE idalmacen = @idalmacen)
-					AND costeo IN (1,2)
+				UPDATE [as] SET
+					[as].costo_base = ROUND(itm.costo / itm.cantidad, 2)
+				FROM
+					inserted AS itm
+					LEFT JOIN ew_inv_almacenes AS alm
+						ON alm.idalmacen = itm.idalmacen
+					LEFT JOIN ew_articulos_sucursales AS [as]
+						ON [as].idarticulo = itm.idarticulo
+						AND [as].idsucursal = alm.idsucursal
+				WHERE
+					[as].costeo IN (1,2)
+					AND itm.idr = @idr
 			END
 		END
 

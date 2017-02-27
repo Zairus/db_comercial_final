@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -47,14 +47,14 @@ FROM
 WHERE
 	idu = @idu
 	AND [password] = @password
-
+/*
 IF @registros = 0
 BEGIN
 	SELECT @error_mensaje = 'Error: La contraseña es incorrecta.'
 	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
-
+*/
 --------------------------------------------------------------------------------
 -- VALIDAR REGISTROS ###########################################################
 
@@ -124,8 +124,8 @@ SELECT
 	,fecha
 	,[folio] = ''{folio}''
 	,[transaccion] = ''GDA1''
-	,[idconcepto] = 15
-	,referencia
+	,[idconcepto] = 34
+	,[referencia] = transaccion + '' - '' + folio
 	,comentario
 FROM 
 	ew_inv_documentos
@@ -272,8 +272,8 @@ SELECT
 	,fecha
 	,[folio] = ''{folio}''
 	,[transaccion] = ''GDC1''
-	,[idconcepto] = 15
-	,referencia
+	,[idconcepto] = 34
+	,[referencia] = transaccion + '' - '' + folio
 	,total
 	,comentario
 FROM 

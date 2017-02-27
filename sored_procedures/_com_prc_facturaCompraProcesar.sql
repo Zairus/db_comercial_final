@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -148,21 +148,6 @@ BEGIN
 	RAISERROR('No se pudo crear entrada a almacén.', 16, 1)
 	RETURN
 END
-
---------------------------------------------------------------------------------
--- ACTUALIZAR COSTO BASE #######################################################
-
-UPDATE [as] SET
-	[as].costo_base = ctm.costo_unitario
-FROM
-	ew_com_transacciones_mov AS ctm
-	LEFT JOIN ew_com_transacciones AS ct
-		ON ct.idtran = ctm.idtran
-	LEFT JOIN ew_articulos_sucursales AS [as]
-		ON [as].idarticulo = ctm.idarticulo
-		AND [as].idsucursal = ct.idsucursal
-WHERE
-	ctm.idtran = @idtran
 
 --------------------------------------------------------------------------------
 -- CONTABILIZAR ################################################################
