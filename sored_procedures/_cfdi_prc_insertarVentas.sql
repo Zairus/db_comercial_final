@@ -313,123 +313,48 @@ INSERT INTO ew_cfd_comprobantes_impuesto (
 	,cfd_tasa
 	,cfd_importe
 )
-SELECT
-	[idtran] = vtm.idtran
-	,[idtipo] = cit.tipo
-	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto1)
-FROM
-	dbo.ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idimpuesto = 1
-		AND cit.tipo = 1
-		AND cit.tasa > 0
-		AND cit.tasa = (CASE WHEN vtm.idimpuesto1_valor = 0 THEN 0.16 ELSE vtm.idimpuesto1_valor END)
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	vtm.impuesto1 <> 0
-	AND vtm.idtran = @idtran
-GROUP BY
-	vtm.idtran
-	,cit.tipo
-	,ci.grupo
-	,cit.tasa
 
-INSERT INTO ew_cfd_comprobantes_impuesto (
-	idtran
-	,idtipo
-	,cfd_impuesto
-	,cfd_tasa
-	,cfd_importe
-)
 SELECT
-	[idtran] = vtm.idtran
-	,[idtipo] = cit.tipo
-	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto1_ret)
+	[idtran] = @idtran
+	,[idtipo] = vtmi.idtipo
+	,[cfd_impuesto] = vtmi.cfd_impuesto
+	,[cfd_tasa] = vtmi.cfd_tasa
+	,[cfd_importe] = vtmi.cfd_importe
 FROM
-	dbo.ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idimpuesto = 1
-		AND cit.tipo = 2
-		AND cit.tasa > 0
-		AND cit.tasa = vtm.idimpuesto1_ret_valor
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
+	ew_ven_transacciones_mov_impuestos AS vtmi
+	LEFT JOIN ew_ven_transacciones AS vt
+		ON vt.idtran = vtmi.idtran
 WHERE
-	vtm.impuesto1_ret <> 0
-	AND vtm.idtran = @idtran
-GROUP BY
-	vtm.idtran
-	,cit.tipo
-	,ci.grupo
-	,cit.tasa
-
-INSERT INTO ew_cfd_comprobantes_impuesto (
-	idtran
-	,idtipo
-	,cfd_impuesto
-	,cfd_tasa
-	,cfd_importe
-)
-SELECT
-	[idtran] = vtm.idtran
-	,[idtipo] = cit.tipo
-	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto2_ret)
-FROM
-	dbo.ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idimpuesto = 6
-		AND cit.tipo = 2
-		AND cit.tasa > 0
-		AND cit.tasa = vtm.idimpuesto2_ret_valor
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	vtm.impuesto2_ret <> 0
-	AND vtm.idtran = @idtran
-GROUP BY
-	vtm.idtran
-	,cit.tipo
-	,ci.grupo
-	,cit.tasa
-
-INSERT INTO ew_cfd_comprobantes_impuesto (
-	idtran
-	,idtipo
-	,cfd_impuesto
-	,cfd_tasa
-	,cfd_importe
-)
-SELECT
-	[idtran] = vtm.idtran
-	,[idtipo] = cit.tipo
-	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto2)
-FROM
-	dbo.ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idimpuesto = 11
-		AND cit.tipo = 1
-		AND cit.tasa > 0
-		AND cit.tasa = vtm.idimpuesto2_valor
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	vtm.impuesto2 <> 0
-	AND vtm.idtran = @idtran
-GROUP BY
-	vtm.idtran
-	,cit.tipo
-	,ci.grupo
-	,cit.tasa
+	vt.transaccion <> 'EFA4'
+	AND vtmi.idtran = @idtran
 	
+INSERT INTO ew_cfd_comprobantes_impuesto (
+	idtran
+	,idtipo
+	,cfd_impuesto
+	,cfd_tasa
+	,cfd_importe
+)
+
+SELECT
+	[idtran] = @idtran
+	,[idtipo] = vtmi.idtipo
+	,[cfd_impuesto] = vtmi.cfd_impuesto
+	,[cfd_tasa] = MIN(vtmi.cfd_tasa)
+	,[cfd_importe] = SUM(vtmi.cfd_importe)
+FROM
+	ew_cxc_transacciones_rel AS ctr
+	LEFT JOIN ew_ven_transacciones_mov_impuestos AS vtmi
+		ON vtmi.idtran = ctr.idtran2
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = ctr.idtran
+WHERE
+	ct.transaccion = 'EFA4'
+	AND ctr.idtran = @idtran
+GROUP BY
+	vtmi.idtipo
+	,vtmi.cfd_impuesto
+
 -----------------------------------------------------------------------
 -- Insertando los conceptos en EW_CFD_COMPROBANTES_MOV
 -----------------------------------------------------------------------	
@@ -450,21 +375,23 @@ SELECT
 	,[consecutivo_padre] = 0
 	,m.consecutivo
 	,m.idarticulo
---	,m.cantidad_facturada
 	,[cantidad_facturada]=(CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
 	,[unidad]=um.nombre
 	,[noIdentificacion]= (CASE WHEN a.series = 1 AND m.cantidad_facturada = 1 THEN m.series ELSE '' END)
 	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
-	,[valorUnitario] = ROUND(m.importe / m.cantidad_facturada, 4)
+	,[valorUnitario]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
 	,m.importe
 FROM	
 	dbo.ew_ven_transacciones_mov AS m
-	LEFT JOIN dbo.ew_cat_unidadesMedida um ON um.idum = m.idum
-	LEFT JOIN dbo.ew_articulos a ON a.idarticulo = m.idarticulo
-
-	LEFT JOIN ew_ven_transacciones vt ON vt.idtran = m.idtran
+	LEFT JOIN dbo.ew_cat_unidadesMedida AS um 
+		ON um.idum = m.idum
+	LEFT JOIN dbo.ew_articulos AS a 
+		ON a.idarticulo = m.idarticulo
+	LEFT JOIN ew_ven_transacciones AS vt 
+		ON vt.idtran = m.idtran
 WHERE
 	m.importe <> 0
+	AND vt.transaccion <> 'EFA4'
 	AND m.idtran = @idtran
 ORDER BY 
 	m.consecutivo
@@ -490,20 +417,58 @@ SELECT
 	,um.nombre
 	,[noIdentificacion] = s.valor
 	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
-	,[valorUnitario] = ROUND(m.importe / m.cantidad_facturada, 4)
-	,[importe] = ROUND(m.importe / m.cantidad_facturada, 4)
+	,[valorUnitario]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
+	,[importe]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
 FROM	
-	dbo.ew_ven_transacciones_mov m 
-	CROSS APPLY dbo.fn_sys_split(m.series,CHAR(9)) s 
-	LEFT JOIN dbo.ew_cat_unidadesMedida um ON um.idum = m.idum
-	LEFT JOIN dbo.ew_articulos a ON a.idarticulo = m.idarticulo
+	dbo.ew_ven_transacciones_mov AS m 
+	CROSS APPLY dbo.fn_sys_split(m.series,CHAR(9)) AS s 
+	LEFT JOIN dbo.ew_cat_unidadesMedida AS um 
+		ON um.idum = m.idum
+	LEFT JOIN dbo.ew_articulos AS a 
+		ON a.idarticulo = m.idarticulo
+	LEFT JOIN dbo.ew_ven_transacciones AS vt 
+		ON vt.idtran=m.idtran
 WHERE
-	m.idtran = @idtran
-	AND a.series = 1
+	a.series = 1
 	AND m.cantidad_facturada > 1
 	AND m.importe <> 0
+	AND vt.transaccion <> 'EFA4'
+	AND m.idtran = @idtran
 ORDER BY 
 	m.consecutivo
+
+INSERT INTO dbo.ew_cfd_comprobantes_mov (
+	idtran
+	,consecutivo_padre
+	,consecutivo
+	,idarticulo
+	,cfd_cantidad
+	,cfd_unidad
+	,cfd_noIdentificacion
+	,cfd_descripcion
+	,cfd_valorUnitario
+	,cfd_importe
+)
+SELECT
+	[idtran] = @idtran
+	,[consecutivo_padre] = 0
+	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY ctr.idr)
+	,[idarticulo] = 0
+	,[cfd_cantidad] = 1
+	,[cfd_unidad] = 'NA'
+	,[cfd_noIdentificacion] = 'NOTAV'
+	,[cfd_descripcion] = 'Nota de venta folio: ' + f.folio
+	,[cfd_valorUnitario] = f.subtotal
+	,[cfd_importe] = f.subtotal
+FROM 
+	ew_cxc_transacciones_rel AS ctr
+	LEFT JOIN ew_cxc_transacciones AS f
+		ON f.idtran = ctr.idtran2
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = ctr.idtran
+WHERE 
+	ct.transaccion = 'EFA4'
+	AND ctr.idtran = @idtran
 
 -----------------------------------------------------------------------
 -- Sellamos el comprobante

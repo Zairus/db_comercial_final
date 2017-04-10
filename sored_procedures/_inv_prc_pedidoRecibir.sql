@@ -33,6 +33,9 @@ DECLARE
 	,@salida_costo AS DECIMAL(18,6)
 	,@gastos AS DECIMAL(18,6)
 
+	,@total_surtido AS DECIMAL(18,6)
+	,@total_cantidad AS DECIMAL(18,6)
+
 DECLARE
 	 @registros AS INT
 	,@error_mensaje AS VARCHAR(100)
@@ -59,6 +62,14 @@ END
 -- VALIDAR REGISTROS ###########################################################
 
 SELECT
+	@total_surtido = SUM(surtido)
+	,@total_cantidad = SUM(cantidad)
+FROM
+	ew_inv_documentos_mov AS idm
+WHERE
+	idm.idtran = @idtran
+
+SELECT
 	@registros = COUNT(*)
 FROM
 	ew_inv_documentos_mov
@@ -70,6 +81,12 @@ IF @registros > 0
 BEGIN
 	SELECT @error_mensaje = 'Error: No se esta recibiendo el total del pedido.'
 	RAISERROR(@error_mensaje, 16, 1)
+	RETURN
+END
+
+IF ABS(@total_surtido - @total_cantidad) > 0.01
+BEGIN
+	RAISERROR('Errir: Lo recibido no es igual a lo enviado.', 16, 1)
 	RETURN
 END
 

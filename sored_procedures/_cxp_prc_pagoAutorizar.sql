@@ -22,6 +22,7 @@ DECLARE
 	,@idsucursal AS SMALLINT
 	,@idproveedor AS INT
 	,@identidad AS INT
+	,@fecha AS SMALLDATETIME
 
 DECLARE
 	@idarticulo AS INT
@@ -45,6 +46,7 @@ SELECT
 	 @idsucursal = ct.idsucursal
 	,@idproveedor = ct.idproveedor
 	,@identidad = ISNULL(e.identidad, 0)
+	,@fecha = ct.fecha
 FROM 
 	ew_cxp_transacciones AS ct
 	LEFT JOIN ew_proveedores AS p
@@ -84,7 +86,7 @@ EXEC _sys_prc_insertarTransaccion
 	,6 --Longitod del folio
 	,@egreso_idtran OUTPUT
 	,'' --Afolio
-	,'' --Afecha
+	,@fecha --Afecha
 
 SELECT
 	@folio = folio

@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE db_refriequipos_datos
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -834,24 +834,21 @@ BEGIN
 				)
 			
 			-- Inicia Cambios Julio 2012
-			IF @idconcepto = 16
-			BEGIN 
-				IF @costo2 = 0 
-					SELECT @costo2 = @costo
+			IF @costo2 = 0 
+				SELECT @costo2 = @costo
 
-				UPDATE [as] SET
-					[as].costo_base = ROUND(itm.costo / itm.cantidad, 2)
-				FROM
-					inserted AS itm
-					LEFT JOIN ew_inv_almacenes AS alm
-						ON alm.idalmacen = itm.idalmacen
-					LEFT JOIN ew_articulos_sucursales AS [as]
-						ON [as].idarticulo = itm.idarticulo
-						AND [as].idsucursal = alm.idsucursal
-				WHERE
-					[as].costeo IN (1,2)
-					AND itm.idr = @idr
-			END
+			UPDATE [as] SET
+				[as].costo_base = ROUND(itm.costo / itm.cantidad, 2)
+			FROM
+				inserted AS itm
+				LEFT JOIN ew_inv_almacenes AS alm
+					ON alm.idalmacen = itm.idalmacen
+				LEFT JOIN ew_articulos_sucursales AS [as]
+					ON [as].idarticulo = itm.idarticulo
+					AND [as].idsucursal = alm.idsucursal
+			WHERE
+				[as].costeo IN (1,2)
+				AND itm.idr = @idr
 		END
 
 		-----------------------------------------------------------------------------------------

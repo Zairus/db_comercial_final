@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -106,6 +106,7 @@ WHERE
 
 UPDATE id SET
 	id.gasto = (id.gasto + ctr.importe)
+	,id.gastos = (id.gastos + ctr.importe)
 FROM
 	ew_cxp_transacciones_rel AS ctr
 	LEFT JOIN ew_inv_documentos AS id
@@ -116,10 +117,12 @@ WHERE
 INSERT INTO ew_sys_transacciones2 (
 	 idtran
 	,idestado
+	,idu
 )
 SELECT
 	 [idtran] = ctr.idtran2
 	,[idestado] = 38
+	,[idu] = id.idu
 FROM
 	ew_cxp_transacciones_rel AS ctr
 	LEFT JOIN ew_inv_documentos AS id
