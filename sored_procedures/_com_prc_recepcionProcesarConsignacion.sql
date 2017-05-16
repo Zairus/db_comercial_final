@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -22,6 +22,23 @@ DECLARE
 	,@password AS VARCHAR(20)
 	,@transaccion AS VARCHAR(4)
 	,@folio AS VARCHAR(15)
+
+	,@registros AS INT
+
+SELECT
+	@registros = COUNT(*)
+FROM
+	ew_com_transacciones_mov AS ctm
+	LEFT JOIN ew_com_ordenes_mov AS com
+		ON com.idmov = ctm.idmov2
+WHERE
+	com.consignacion = 1
+	AND ctm.idtran = @idtran
+
+IF @registros = 0
+BEGIN
+	RETURN
+END
 
 SELECT
 	@idsucursal = ct.idsucursal

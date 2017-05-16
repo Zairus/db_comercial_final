@@ -160,7 +160,6 @@ FROM
 WHERE 
 	idtran = @idtran
 
-
 --------------------------------------------------------------------------------
 -- CANCELAR DOCUMENTO ##########################################################
 
@@ -199,5 +198,7 @@ BEGIN
 		ew_com_transacciones_mov AS ctm
 	WHERE 
 		ctm.idtran = @idtran
+
+	EXEC _ct_prc_transaccionCancelarContabilidad @idtran, 3, @cancelado_fecha, @idu
 END
 GO

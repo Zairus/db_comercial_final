@@ -164,6 +164,11 @@ SELECT
 	,[costo] = aa.costo_ultimo
 	,[costo_ultimo] = aa.costo_ultimo
 	,[cambiar_precio] = [as].cambiar_precio
+
+	,[idimpuesto1] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IVA', 1, a.idarticulo), 0)
+	,[idimpuesto1_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IVA', 1, a.idarticulo), 0)
+	,[idimpuesto2] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IEPS', 1, a.idarticulo), 0)
+	,[idimpuesto2_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IEPS', 1, a.idarticulo), 0)
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_articulos_almacenes AS aa
