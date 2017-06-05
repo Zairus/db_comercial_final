@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- SP: 	Envia por correo un Comprobante Fiscal Digital
 -- 		Elaborado por Laurence Saavedra
@@ -16,7 +16,7 @@ AS
 SET NOCOUNT ON
 
 DECLARE
-	 @archivoXML AS VARCHAR(500)
+	@archivoXML AS VARCHAR(500)
 	,@cadena AS VARCHAR(MAX)
 	,@msg AS VARCHAR(200)
 
@@ -29,12 +29,12 @@ DECLARE
 	,@transaccion AS VARCHAR(5) = ''
 
 --Validamos que la transaccion no se encuentre timbrada
-IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran=@idtran)
+IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
 BEGIN
-	IF @urgente=1
+	IF @urgente = 1
 	BEGIN
-		SELECT @msg='[2001] La transaccion no se encuentra timbrada'
-		RAISERROR(@msg,16,1)
+		SELECT @msg = '[2001] La transaccion no se encuentra timbrada'
+		RAISERROR(@msg, 16, 1)
 	END
 
 	RETURN
@@ -56,20 +56,33 @@ SELECT TOP 1
 	@XML_email = p.XML_email
 	,@PDF_guardar = p.PDF_guardar
 	,@PDF_email = p.PDF_email
-	,@PDF_rs = (CASE WHEN @transaccion = 'EFA4' THEN REPLACE(p.PDF_RS, 'EFA1', 'EFA4') ELSE p.PDF_RS END)
+	,@PDF_rs = (
+				CASE WHEN @transaccion = 'EFA1' THEN p.PDF_RS ELSE
+					CASE WHEN @transaccion = 'EDE1' THEN p.PDF_RS1 ELSE
+						CASE WHEN @transaccion = 'FDA2' THEN p.PDF_RS2 ELSE
+							CASE WHEN @transaccion = 'EFA4' THEN p.PDF_RS3 ELSE
+								CASE WHEN @transaccion = 'EFA6' THEN p.PDF_RS ELSE ''
+								END
+							END
+						END
+					END
+				END
+	)
 FROM
 	ew_cfd_parametros AS p
 
 SELECT 
-	@archivoXML = ISNULL(archivoXML,'')
+	@archivoXML = ISNULL(archivoXML, '')
 FROM
-	ew_cfd_comprobantes_sello s
+	ew_cfd_comprobantes_sello AS s
 WHERE
 	idtran = @idtran
 
 IF @archivoXML = ''
 BEGIN
-	SELECT @archivoXML = cer.directorio + c.rfc_emisor + '_' + c.cfd_serie + '-' + CONVERT(VARCHAR(10),c.cfd_folio) + '.xml', @XML_email = 0
+	SELECT
+		@archivoXML = cer.directorio + c.rfc_emisor + '_' + c.cfd_serie + '-' + CONVERT(VARCHAR(10),c.cfd_folio) + '.xml'
+		, @XML_email = 0
 	FROM
 		ew_cfd_comprobantes AS c
 		LEFT JOIN ew_cfd_folios AS f 
@@ -94,7 +107,7 @@ BEGIN
 	
 	SELECT @cadena = 'C:\EVOLUWARE\Temp\' + RIGHT(@archivoXML,PATINDEX('%\%',REVERSE(@archivoXML))-1) + '.pdf'
 	
-	SELECT @success = db_comercial.dbo.WEB_download(@PDF_rs,@cadena,'','')
+	SELECT @success = db_comercial.dbo.WEB_download(@PDF_rs,@cadena, '', '')
 
 	IF @success != 1
 	BEGIN
@@ -155,7 +168,7 @@ BEGIN
 		, @message_cc
 	)
 
-	IF @urgente=1
+	IF @urgente = 1
 	BEGIN
 		DECLARE @id INT
 

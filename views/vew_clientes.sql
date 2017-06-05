@@ -42,6 +42,7 @@ SELECT
 	, c.mayoreo
 	, c.inventario_partes
 	, c.inventario_partes_actualizar
+	, c.modificar
 FROM
 	dbo.ew_clientes AS c
 	LEFT JOIN dbo.ew_clientes_facturacion AS cf

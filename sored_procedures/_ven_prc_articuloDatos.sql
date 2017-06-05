@@ -257,15 +257,15 @@ BEGIN
 	SELECT
 		[codarticulo] = a.codigo
 		,[idlista] = @lista
-		,a.idarticulo
+		,[idarticulo] = a.idarticulo
 		,[descripcion] = a.nombre
-		,a.nombre_corto
+		,[nombre_corto] = a.nombre_corto
 		,[marca] = ISNULL(m.nombre, '')
 		,[idum] = um.idum
 		,[maneja_lote] = a.lotes
-		,a.autorizable
-		,um.factor
-		,unidad = um.codigo
+		,[autorizable] = a.autorizable
+		,[factor] = um.factor
+		,[unidad] = um.codigo
 		,[idmoneda_m] = ISNULL(vlm.idmoneda, 0)
 		,[tipocambio_m] = ISNULL(bm.tipocambio, 1)
 	
@@ -509,8 +509,8 @@ BEGIN
 		--##########################################
 		,[precio_congelado] = CONVERT(BIT, (CASE WHEN sucar.cambiar_precio = 1 THEN 0 ELSE 1 END))
 		,[cantidad_mayoreo] = sucar.mayoreo
-		,[max_descuento1] = @descuento_pol
-		,[max_descuento2] = @descuento_linea
+		,[max_descuento1] = ISNULL(@descuento_pol, 0)
+		,[max_descuento2] = ISNULL(@descuento_linea, 0)
 		,[objerrmsg] = ISNULL(sucar.comentario_ventas, '')
 		,cuenta_sublinea=ISNULL(subl.contabilidad,'')
 

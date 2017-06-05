@@ -11,7 +11,7 @@ ALTER PROCEDURE [dbo].[_cfdi_prc_insertarVentas]
 	 @idtran AS INT 
 	,@tipo AS TINYINT
 	,@cfd_idfolio AS SMALLINT
-	,@cfd_folio AS SMALLINT
+	,@cfd_folio AS INT
 AS
 
 SET NOCOUNT ON
@@ -79,7 +79,7 @@ SELECT @rfc = REPLACE(REPLACE(@rfc,' ', ''), '-', '')
 IF NOT EXISTS(
 	SELECT cfd_nombre 
 	FROM dbo.ew_cfd_rfc 
-	WHERE cfd_rfc=@rfc
+	WHERE cfd_rfc = @rfc
 )
 BEGIN
 	INSERT INTO dbo.ew_cfd_rfc (
@@ -369,19 +369,73 @@ INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	,cfd_descripcion
 	,cfd_valorUnitario
 	,cfd_importe
-	)
+)
 SELECT
-	 [idtran]=@idtran
+	 [idtran] = @idtran
 	,[consecutivo_padre] = 0
-	,m.consecutivo
-	,m.idarticulo
-	,[cantidad_facturada]=(CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
-	,[unidad]=um.nombre
-	,[noIdentificacion]= (CASE WHEN a.series = 1 AND m.cantidad_facturada = 1 THEN m.series ELSE '' END)
+	,[consecutivo] = m.consecutivo
+	,[idarticulo] = m.idarticulo
+	,[cfd_cantidad] = (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
+	,[cfd_unidad] = um.nombre
+	,[cfd_noIdentificacion] = (CASE WHEN a.series = 1 AND m.cantidad_facturada = 1 THEN m.series ELSE '' END)
 	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
-	,[valorUnitario]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
-	,m.importe
-FROM	
+	,[cfd_valorUnitario] = ROUND(
+		(
+			m.importe
+			+ISNULL((
+				SELECT SUM(vtm.importe) 
+				FROM 
+					ew_ven_transacciones_mov AS vtm 
+				WHERE 
+					vtm.no_imprimir = 1
+					AND vtm.idtran = m.idtran 
+					AND vtm.idr > m.idr
+					AND vtm.idr < ISNULL((
+						SELECT TOP 1
+							vtm1.idr
+						FROM
+							ew_ven_transacciones_mov AS vtm1
+						WHERE
+							vtm1.no_imprimir = 0
+							AND vtm1.idtran = m.idtran
+							AND vtm1.idr > m.idr
+						ORDER BY
+							vtm1.idr
+					), 999999999)
+			), 0)
+		)
+		/ (
+			CASE 
+				WHEN vt.transaccion = 'EDE1' THEN m.cantidad 
+				ELSE m.cantidad_facturada 
+			END
+		)
+	, 4)
+	,[cfd_importe] = (
+		m.importe
+		+ISNULL((
+			SELECT SUM(vtm.importe) 
+			FROM 
+				ew_ven_transacciones_mov AS vtm 
+			WHERE 
+				vtm.no_imprimir = 1
+				AND vtm.idtran = m.idtran 
+				AND vtm.idr > m.idr
+				AND vtm.idr < ISNULL((
+					SELECT TOP 1
+						vtm1.idr
+					FROM
+						ew_ven_transacciones_mov AS vtm1
+					WHERE
+						vtm1.no_imprimir = 0
+						AND vtm1.idtran = m.idtran
+						AND vtm1.idr > m.idr
+					ORDER BY
+						vtm1.idr
+				), 999999999)
+		), 0)
+	)
+FROM
 	dbo.ew_ven_transacciones_mov AS m
 	LEFT JOIN dbo.ew_cat_unidadesMedida AS um 
 		ON um.idum = m.idum
@@ -391,10 +445,12 @@ FROM
 		ON vt.idtran = m.idtran
 WHERE
 	m.importe <> 0
+	AND m.no_imprimir = 0
+	AND a.series = 0
 	AND vt.transaccion <> 'EFA4'
 	AND m.idtran = @idtran
 ORDER BY 
-	m.consecutivo
+	m.idr
 	
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	idtran

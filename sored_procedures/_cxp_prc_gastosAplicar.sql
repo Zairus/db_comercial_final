@@ -130,21 +130,4 @@ FROM
 WHERE
 	id.transaccion = 'GDT3'
 	AND ctr.idtran = @idtran
-
---------------------------------------------------------------------------------
--- APLICAR GASTOS A ORDEN DE PRODUCCION ########################################
-/*
-UPDATE po SET
-	po.gastos = (po.gastos + ctr.importe)
-FROM
-	ew_cxp_transacciones_rel AS ctr
-	LEFT JOIN ew_prd_ordenes AS po
-		ON po.idtran = ctr.idtran2
-WHERE
-	ctr.idtran = @idtran
-*/
---------------------------------------------------------------------------------
--- CONTABILIZAR APLICACION DE GASTOS ###########################################
-
---EXEC _cxp_prc_gastosContabilizar @idtran
 GO

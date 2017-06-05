@@ -15,13 +15,34 @@ AS
 
 SET NOCOUNT ON
 
-RETURN
+DECLARE
+	@modificar AS BIT
 
+SELECT
+	@modificar = modificar
+FROM
+	ew_clientes
+WHERE
+	idcliente = @idcliente
+
+IF @idcliente = 0 OR @modificar = 0
+BEGIN
+	RETURN
+END
+
+DECLARE
+	@idciudad AS INT
+	
 IF @dato = 'nombre'
 BEGIN
 	UPDATE ew_clientes SET 
 		nombre = @valor 
 	WHERE 
+		idcliente = @idcliente
+
+	UPDATE ew_clientes_facturacion SET
+		razon_social = @valor
+	WHERE
 		idcliente = @idcliente
 END
 
@@ -29,6 +50,7 @@ IF @dato = 'direccion'
 BEGIN
 	UPDATE ew_clientes_facturacion SET 
 		direccion1 = @valor 
+		,calle = @valor
 	WHERE 
 		idcliente = @idcliente
 		AND idfacturacion = @idfacturacion
@@ -52,21 +74,41 @@ BEGIN
 		AND idfacturacion = @idfacturacion
 END
 
-/*
 IF @dato = 'ciudad'
 BEGIN
+	SELECT 
+		@idciudad = idciudad 
+	FROM 
+		ew_sys_ciudades AS cd 
+	WHERE 
+		cd.codciudad = @valor
+	
+	IF @idciudad IS NULL
+	BEGIN
+		RAISERROR('Error: No se ha indicado codigo de ciudad correctamente.', 16, 1)
+		RETURN
+	END
+
 	UPDATE ew_clientes_facturacion SET 
-		codciudad = @valor
+		idciudad = @idciudad
 	WHERE 
 		idcliente = @idcliente
 		AND idfacturacion = @idfacturacion
 END
-*/
 
 IF @dato = 'codigo_postal'
 BEGIN
 	UPDATE ew_clientes_facturacion SET 
 		codpostal = @valor
+	WHERE 
+		idcliente = @idcliente
+		AND idfacturacion = @idfacturacion
+END
+
+IF @dato = 'email'
+BEGIN
+	UPDATE ew_clientes_facturacion SET 
+		email = @valor
 	WHERE 
 		idcliente = @idcliente
 		AND idfacturacion = @idfacturacion
