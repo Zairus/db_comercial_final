@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -11,6 +11,12 @@ ALTER TRIGGER [dbo].[tg_sys_transacciones_i]
 AS 
 
 SET NOCOUNT ON
+
+IF NOT EXISTS(SELECT * FROM objetos WHERE codigo IN (SELECT transaccion FROM inserted))
+BEGIN
+	RAISERROR('Error: Transaccion inexistente.', 16, 1)
+	RETURN
+END
 
 INSERT INTO ew_sys_transacciones2 (
 	idtran

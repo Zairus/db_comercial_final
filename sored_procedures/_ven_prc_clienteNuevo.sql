@@ -37,6 +37,9 @@ SELECT
 FROM
 	ew_clientes
 
+SELECT @rfc = REPLACE(@rfc, '-', '')
+SELECT @rfc = REPLACE(@rfc, ' ', '')
+
 IF NOT EXISTS(
 	SELECT * 
 	FROM ew_clientes 

@@ -451,6 +451,45 @@ WHERE
 	AND m.idtran = @idtran
 ORDER BY 
 	m.idr
+
+INSERT INTO dbo.ew_cfd_comprobantes_mov (
+	idtran
+	,consecutivo_padre
+	,consecutivo
+	,idarticulo
+	,cfd_cantidad
+	,cfd_unidad
+	,cfd_noIdentificacion
+	,cfd_descripcion
+	,cfd_valorUnitario
+	,cfd_importe
+	)
+SELECT
+	 [idtran] = @idtran
+	,[consecutivo_padre] = 0
+	,[consecutivo] = m.consecutivo
+	,[idarticulo] = m.idarticulo
+	,[cfd_cantidad] = (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
+	,[cfd_unidad] = um.nombre
+	,[cfd_noIdentificacion] = a.codigo
+	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
+	,[cfd_valorUnitario] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
+	,[cfd_importe] = CONVERT(DECIMAL(15,2), m.importe)
+FROM	
+	dbo.ew_ven_transacciones_mov AS m 
+	LEFT JOIN dbo.ew_cat_unidadesMedida AS um 
+		ON um.idum = m.idum
+	LEFT JOIN dbo.ew_articulos AS a 
+		ON a.idarticulo = m.idarticulo
+	LEFT JOIN dbo.ew_ven_transacciones AS vt 
+		ON vt.idtran = m.idtran
+WHERE
+	a.series = 1
+	AND m.importe <> 0
+	AND vt.transaccion <> 'EFA4'
+	AND m.idtran = @idtran
+ORDER BY 
+	m.consecutivo
 	
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	idtran
@@ -468,25 +507,24 @@ SELECT
 	 [idtran] = @idtran
 	,[consecutivo_padre] = m.consecutivo
 	,[consecutivo] = ROW_NUMBER() OVER (PARTITION BY m.consecutivo ORDER BY m.consecutivo)
-	,m.idarticulo
-	,[cantidad] = 1
-	,um.nombre
-	,[noIdentificacion] = s.valor
-	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
-	,[valorUnitario]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
-	,[importe]=ROUND(m.importe/(CASE WHEN vt.transaccion='EDE1' THEN m.cantidad ELSE m.cantidad_facturada END),4)
+	,[idarticulo] = m.idarticulo
+	,[cfd_cantidad] = 1
+	,[cfd_unidad] = um.nombre
+	,[cfd_noIdentificacion] = s.valor
+	,[cfd_descripcion] = 'No. de Serie:' + s.valor + ', ' + a.nombre
+	,[cfd_valorUnitario] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
+	,[cfd_importe] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
 FROM	
 	dbo.ew_ven_transacciones_mov AS m 
-	CROSS APPLY dbo.fn_sys_split(m.series,CHAR(9)) AS s 
+	CROSS APPLY dbo.fn_sys_split(m.series, CHAR(9)) AS s 
 	LEFT JOIN dbo.ew_cat_unidadesMedida AS um 
 		ON um.idum = m.idum
 	LEFT JOIN dbo.ew_articulos AS a 
 		ON a.idarticulo = m.idarticulo
 	LEFT JOIN dbo.ew_ven_transacciones AS vt 
-		ON vt.idtran=m.idtran
+		ON vt.idtran = m.idtran
 WHERE
 	a.series = 1
-	AND m.cantidad_facturada > 1
 	AND m.importe <> 0
 	AND vt.transaccion <> 'EFA4'
 	AND m.idtran = @idtran
@@ -525,7 +563,7 @@ FROM
 WHERE 
 	ct.transaccion = 'EFA4'
 	AND ctr.idtran = @idtran
-
+	
 -----------------------------------------------------------------------
 -- Sellamos el comprobante
 -----------------------------------------------------------------------	

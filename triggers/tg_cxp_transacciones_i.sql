@@ -63,6 +63,16 @@ BEGIN
 	WHERE
 		idtran = @idtran
 
+	UPDATE ct SET
+		ct.idcuenta = u.idcuenta
+	FROM
+		ew_cxp_transacciones AS ct
+		LEFT JOIN evoluware_usuarios AS u
+			ON u.idu = ct.idu
+	WHERE
+		ct.caja_chica = 1
+		AND ct.idtran = @idtran
+
 	-- aplicando la transaccion en cartera
 	EXEC _cxp_prc_aplicarTransaccion @idtran, @fecha, @idu
 	
