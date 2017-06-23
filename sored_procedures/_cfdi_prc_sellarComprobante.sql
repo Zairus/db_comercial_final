@@ -69,6 +69,7 @@ DECLARE
 
 DECLARE
 	@bin_xml AS VARBINARY(MAX)
+	,@str_xml AS VARCHAR(MAX)
 
 DECLARE
 	@pac_usr AS VARCHAR(50)
@@ -133,9 +134,9 @@ BEGIN
 	-- Sellamos y Creamos el archivo XML
 	----------------------------------------------------------------
 	SELECT @sello = ''
-
+	
 	BEGIN TRY
-		EXEC db_comercial.dbo.CFDI_Sellar @idcertificado, @comprobante, @sello OUTPUT,@cadena OUTPUT, @noCertificado OUTPUT, @OutXML OUTPUT
+		EXEC db_comercial.dbo.CFDI_Sellar @idcertificado, @comprobante, @sello OUTPUT, @cadena OUTPUT, @noCertificado OUTPUT, @OutXML OUTPUT
 	END TRY
 	BEGIN CATCH
 		SELECT @r = db_comercial.dbo.XML_GuardarArchivo(@comprobante,'c:\Evoluware\Temp\ERR - ' + LTRIM(RTRIM(STR(@idtran))) + '.xml')
@@ -362,7 +363,7 @@ BEGIN
 				)
 			END
 		END
-
+		
 		IF @idpac = 2
 		BEGIN
 			IF @pac_prueba = 1
@@ -430,6 +431,7 @@ BEGIN
 				,cfdi_cadenaOriginal
 				,cfdi_respuesta_mensaje
 				,QRCode
+				,cfdi_prueba
 			)
 			VALUES (
 				@idtran
@@ -441,6 +443,7 @@ BEGIN
 				,@cadena_original_timbrado
 				,@mensaje
 				,@QR_code
+				,@pac_prueba
 			)
 		END
 
@@ -462,6 +465,18 @@ BEGIN
 	BEGIN TRY
 		SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlBase64)
 		SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@bin_xml, @archivoXML)
+		SELECT @str_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToString](@xmlBase64)
+
+		INSERT INTO ew_cfd_comprobantes_xml (
+			uuid
+			,xml_base64
+			,xml_cfdi
+		)
+		VALUES (
+			@UUID
+			,@xmlBase64
+			,@str_xml
+		)
 
 		------------ NUEVO POR VLADIMIR -------------------------------------------------------
 		-- Actualizar tabla ew_cfd_timbres para sumar el timbre
@@ -481,7 +496,7 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		SELECT @msg = ERROR_MESSAGE()
-
+		
 		RAISERROR(@msg, 16, 1)
 		RETURN
 	END CATCH

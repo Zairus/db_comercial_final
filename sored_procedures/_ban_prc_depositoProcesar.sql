@@ -191,6 +191,42 @@ BEGIN
 	WHERE
 		btm.idr = @idr
 		
+	IF EXISTS (
+		SELECT * 
+		FROM 
+			ew_ban_transacciones_mov AS btm 
+			LEFT JOIN ew_cxc_transacciones AS f 
+				ON f.idtran = btm.idtran2 
+		WHERE 
+			f.saldo < btm.importe
+			AND btm.idr = @idr
+	)
+	BEGIN
+		SELECT
+			@error_mensaje = (
+				'Error: '
+				+ 'Se intenta aplicar pago de mas al documento ['
+				+ f.folio
+				+ '], con saldo '
+				+ CONVERT(VARCHAR(20), f.saldo)
+				+ ', pago a aplicar: '
+				+ CONVERT(VARCHAR(20), btm.importe)
+			)
+		FROM 
+			ew_ban_transacciones_mov AS btm 
+			LEFT JOIN ew_cxc_transacciones AS f 
+				ON f.idtran = btm.idtran2 
+		WHERE 
+			f.saldo < btm.importe
+			AND btm.idr = @idr
+
+		CLOSE cur_depositoPagos
+		DEALLOCATE cur_depositoPagos
+
+		RAISERROR(@error_mensaje, 16, 1)
+		RETURN
+	END
+
 	INSERT INTO ew_cxc_transacciones_mov (
 		idtran
 		,consecutivo

@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -56,9 +56,9 @@ SELECT
 	,@idu = vt.idu
 	,@idsucursal = vt.idsucursal
 	,@idimpuesto1= ct.idimpuesto1
-	,@idimpuesto1_valor=ct.idimpuesto1_valor
-	,@idmoneda=ct.idmoneda
-	,@tipocambio= ct.tipocambio
+	,@idimpuesto1_valor = ct.idimpuesto1_valor
+	,@idmoneda = ct.idmoneda
+	,@tipocambio = ct.tipocambio
 	,@referencia = vt.transaccion +'-'+ vt.folio
 FROM 
 	ew_ven_transacciones vt
@@ -68,7 +68,7 @@ WHERE
 	vt.idtran = @idtran
 
 SELECT
-	@idcuenta =  idcuenta
+	@idcuenta = idcuenta_ventas
 	,@usuario = usuario
 	,@password = [password]
 FROM 

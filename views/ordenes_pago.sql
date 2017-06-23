@@ -49,9 +49,9 @@ SELECT
 	, [idsucursal] = bt.idsucursal
 	, [folio] = bt.folio
 	, [referencia] = bt.referencia
-	, [idconcepto] = bt.idconcepto
-	, [concepto_nombre] = c.nombre
-	, [concepto_cuenta] = c.contabilidad
+	, [idconcepto] = a.idarticulo
+	, [concepto_nombre] = a.nombre
+	, [concepto_cuenta] = ''
 
 	, [Expr1] = bt.referencia
 	, [idrelacion] = 7
@@ -61,21 +61,37 @@ SELECT
 	, [entidad_registro] = ''
 	, [entidad_cuenta] = ''
 	, [idmoneda] = bt.idmoneda
-	, [importe] = bt.total
-	, [idimpuesto_monto] = 0
+	, [importe] = bt.importe
+	, [idimpuesto_monto] = ISNULL((
+		SELECT
+			SUM(ct.impuesto1)
+		FROM 
+			ew_ban_transacciones_mov AS btm
+			LEFT JOIN ew_cxp_transacciones AS ct
+				ON ct.idtran = btm.idtran2
+		WHERE 
+			btm.idtran = bt.idtran
+	), 0)
 	, [idimpuesto] = 0
 	, [impuesto_tasa] = 0
 	, [impuesto_cuenta] = ''
 	, [impuesto_cuenta2] = ''
 FROM
 	ew_ban_transacciones AS bt
-	LEFT OUTER JOIN dbo.conceptos AS c 
-		ON c.idconcepto = bt.idconcepto 
+	LEFT JOIN ew_articulos AS a
+		ON a.codigo = 'CXPP'
 	LEFT JOIN evoluware_usuarios AS u
 		ON u.idu = bt.idu
 WHERE
-	bt.tipo = 2
-	AND bt.transaccion IN ('BOR2')
+	bt.transaccion IN ('BOR2')
+	AND bt.idtran NOT IN (
+		SELECT bt.idtran2
+		FROM
+			ew_ban_transacciones AS bt
+		WHERE
+			bt.cancelado = 0
+			AND bt.transaccion = 'BDA1'
+	)
 
 UNION ALL
 
@@ -118,4 +134,5 @@ FROM
 WHERE
 	a.tipo = 1
 	AND a.transaccion IN ('FOR1')
+
 GO

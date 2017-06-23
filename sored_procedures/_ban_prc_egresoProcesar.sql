@@ -18,7 +18,7 @@ DECLARE
 	,@idu AS INT
 
 SELECT
-	@transaccion_referencia = st.transaccion
+	@transaccion_referencia = ISNULL(st.transaccion, '')
 	,@pago_idtran = bt.idtran2
 	,@fecha = bt.fecha
 	,@idu = bt.idu
@@ -29,13 +29,10 @@ FROM
 WHERE
 	bt.idtran = @idtran
 
-IF @pago_idtran > 0
-BEGIN
-	EXEC _cxp_prc_aplicarTransaccion @pago_idtran, @fecha, @idu
-END
-
 IF @transaccion_referencia = 'DDA3'
 BEGIN
+	EXEC _cxp_prc_aplicarTransaccion @pago_idtran, @fecha, @idu
+
 	EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, @transaccion_referencia
 END
 
@@ -51,5 +48,8 @@ BEGIN
 		(@pago_idtran, 5, @idu)
 END
 
---IF @transaccion = 'BOR2' contabilziar reembolso
+IF @transaccion_referencia = 'BOR2'
+BEGIN
+	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'BDA1R'
+END
 GO

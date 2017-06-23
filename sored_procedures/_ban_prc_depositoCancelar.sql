@@ -43,10 +43,13 @@ BEGIN
 
 	EXEC [dbo].[_sys_prc_trnAplicarEstado] @idtran2, 'CANC', @idu, 1
 
-	INSERT INTO ew_sys_transacciones2
-		(idtran, idestado, idu)
-	VALUES
-		(@idtran2, 255, @idu)
+	IF NOT EXISTS (SELECT * FROM ew_sys_transacciones2 WHERE idtran = @idtran2 AND idestado = 255 AND idu = @idu)
+	BEGIN
+		INSERT INTO ew_sys_transacciones2
+			(idtran, idestado, idu)
+		VALUES
+			(@idtran2, 255, @idu)
+	END
 
 	EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad] @idtran2, 1, @cancelado_fecha, @idu
 
