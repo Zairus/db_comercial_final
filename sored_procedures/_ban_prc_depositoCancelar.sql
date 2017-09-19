@@ -41,6 +41,11 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	EXEC [dbo].[_cxc_prc_pagoCancelar] @idtran2, @cancelado_fecha, @idu, 1
 
+	UPDATE ew_ban_transacciones SET
+		cancelado = 1
+	WHERE
+		idtran2 = @idtran
+
 	EXEC [dbo].[_sys_prc_trnAplicarEstado] @idtran2, 'CANC', @idu, 1
 
 	IF NOT EXISTS (SELECT * FROM ew_sys_transacciones2 WHERE idtran = @idtran2 AND idestado = 255 AND idu = @idu)

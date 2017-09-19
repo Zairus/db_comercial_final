@@ -1,11 +1,11 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20160415
 -- Description:	Cancelar saldos de tickets
 -- =============================================
-ALTER PROCEDURE _cxc_prc_ticketSaldoTrasladarFactura
+ALTER PROCEDURE [dbo].[_cxc_prc_ticketSaldoTrasladarFactura]
 	@idtran AS INT
 AS
 

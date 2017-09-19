@@ -107,6 +107,13 @@ BEGIN
 		,1
 		,'Creado desde Portal Web'
 	)
+	
+	UPDATE ew_clientes_terminos SET
+		credito = 0
+		,credito_limite = 0
+		,idpolitica = 4
+	WHERE
+		idcliente = @idcliente
 
 	INSERT INTO ew_clientes_facturacion (
 		[idcliente]
@@ -170,6 +177,7 @@ BEGIN TRY
 		,[subtotal]
 		,[impuesto1]
 		,[impuesto2]
+		,[redondeo]
 		,[idu]
 		,[comentario]
 	)
@@ -190,6 +198,7 @@ BEGIN TRY
 		,[subtotal] = vt.subtotal
 		,[impuesto1] = vt.impuesto1
 		,[impuesto2] = vt.impuesto2
+		,[redondeo] = vt.redondeo
 		,[idu] = 1
 		,[comentario] = 'Generado desde WEB'
 	FROM
@@ -223,6 +232,7 @@ BEGIN TRY
 		,[subtotal]
 		,[impuesto1]
 		,[impuesto2]
+		,[redondeo]
 		,[idu]
 		,[comentario]
 	)
@@ -245,6 +255,7 @@ BEGIN TRY
 		,[subtotal] = ct.subtotal
 		,[impuesto1] = ct.impuesto1
 		,[impuesto2] = ct.impuesto2
+		,[redondeo] = ct.redondeo
 		,[idu] = 1
 		,[comentario] = 'Generado desde WEB'
 	FROM
@@ -269,7 +280,7 @@ BEGIN TRY
 		[idtran] = @factura_idtran
 		,[idtran2] = @idtran
 		,[saldo] = ct.saldo
-		,[comentario] = 'Generado desde WEB'
+		,[comentario] = ''
 	FROM
 		ew_cxc_transacciones AS ct
 	WHERE
@@ -282,64 +293,7 @@ BEGIN CATCH
 END CATCH
 
 BEGIN TRY
-	INSERT INTO ew_ven_transacciones_mov (
-		[idtran]
-		,[consecutivo]
-		,[idarticulo]
-		,[idum]
-		,[idalmacen]
-		,[tipo]
-		,[cantidad_ordenada]
-		,[cantidad_facturada]
-		,[series]
-		,[descuento1]
-		,[descuento2]
-		,[descuento3]
-		,[idimpuesto1]
-		,[idimpuesto1_valor]
-		,[idimpuesto2]
-		,[idimpuesto2_valor]
-		,[precio_venta]
-		,[importe]
-		,[impuesto1]
-		,[impuesto2]
-		,[comentario]
-	)
-	SELECT
-		[idtran] = @factura_idtran
-		,[consecutivo] = vtm.consecutivo
-		,[idarticulo] = vtm.idarticulo
-		,[idum] = vtm.idum
-		,[idalmacen] = vtm.idalmacen
-		,[tipo] = vtm.tipo
-		,[cantidad_ordenada] = vtm.cantidad_ordenada
-		,[cantidad_facturada] = vtm.cantidad_facturada
-		,[series] = vtm.series
-		,[descuento1] = vtm.descuento1
-		,[descuento2] = vtm.descuento2
-		,[descuento3] = vtm.descuento3
-		,[idimpuesto1] = vtm.idimpuesto1
-		,[idimpuesto1_valor] = vtm.idimpuesto1_valor
-		,[idimpuesto2] = vtm.idimpuesto2
-		,[idimpuesto2_valor] = vtm.idimpuesto2_valor
-		,[precio_venta] = vtm.precio_venta
-		,[importe] = vtm.importe
-		,[impuesto1] = vtm.impuesto1
-		,[impuesto2] = vtm.impuesto2
-		,[comentario] = vtm.comentario
-	FROM
-		ew_ven_transacciones_mov AS vtm
-	WHERE
-		vtm.idtran = @idtran
-END TRY
-BEGIN CATCH
-	SELECT @resultado_codigo = 5
-	SELECT @resultado_mensaje = ERROR_MESSAGE()
-	GOTO PRESENTAR_RESULTADO
-END CATCH
-
-BEGIN TRY
-	EXEC [dbo].[_ven_prc_facturaTicketsProcesar] @idtran
+	EXEC [dbo].[_ven_prc_facturaTicketsProcesar] @factura_idtran, 1
 END TRY
 BEGIN CATCH
 	SELECT @resultado_codigo = 6
@@ -348,7 +302,7 @@ BEGIN CATCH
 END CATCH
 
 BEGIN TRY
-	EXEC _cfd_prc_timbrarComprobante @factura_idtran
+	EXEC _cfd_prc_timbrarComprobante @factura_idtran, 1
 	WAITFOR DELAY '00:00:02'
 END TRY
 BEGIN CATCH

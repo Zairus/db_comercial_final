@@ -1,9 +1,10 @@
 USE [db_comercial_final]
 GO
--- SP: Timbra un comprobante 2do paso
--- 		Elaborado por Laurence Saavedra
--- 		Creado en Agosto 2015
---		
+-- =============================================
+-- Author:		Laurence Saavedra
+-- Create date: 201508
+-- Description:	Timbra un comprobante 2do paso
+-- =============================================
 ALTER PROCEDURE [dbo].[_cfd_prc_timbrarComprobante]
 	 @idtran AS INT
 	 ,@idu AS INT
@@ -18,10 +19,12 @@ DECLARE
 	,@idcomando AS TINYINT
 	,@cfd_idfolio AS SMALLINT
 	,@cfd_folio AS INT
-	,@serie		VARCHAR(10)
-	,@transaccion VARCHAR(5)
-	,@idsucursal SMALLINT
-	,@fecha DATE
+	,@serie AS VARCHAR(10)
+	,@transaccion AS VARCHAR(5)
+	,@idsucursal AS SMALLINT
+	,@fecha AS DATE
+
+	,@folio_documento AS VARCHAR(15)
 
 /*
 Validamos que exista la transaccion en la tabla EW_CFD_TRANSACCIONES
@@ -43,12 +46,12 @@ BEGIN
 		,@cfd_idfolio OUTPUT
 		,@cfd_folio OUTPUT
 		,@serie OUTPUT
-
+	
 	IF EXISTS(
 		SELECT TOP 1
-			tipo = i.tipo,
-			idcomando = i.idcomando,
-			comando = c.comando
+			[tipo] = i.tipo,
+			[idcomando] = i.idcomando,
+			[comando] = c.comando
 		FROM 
 			dbo.ew_cfd_transacciones AS i 
 			LEFT JOIN dbo.ew_cfd_comandos AS c 
@@ -128,64 +131,73 @@ BEGIN
 END
 
 /*
-Validamos que la transaccion no se encuentre timbrada
-*/
-IF EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran=@idtran)
-BEGIN
-	SELECT @msg = '[1002] La transaccion ya se encuentra timbrada'
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END
-/*
 Validamos que la transaccion se encuentre en estado APLICADO
 */
---IF EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran=@idtran)
-IF NOT EXISTS(SELECT idtran FROM dbo.ew_sys_transacciones2 WHERE idtran=@idtran AND (idestado=5 OR idestado=50))
+IF @transaccion NOT IN('NFA1') -- QUE SOLO VALIDE APLICADO O PAGADO CUANDO NO SEA RECIBO DE NOMINA
 BEGIN
-	SELECT @msg='[1003] La transaccion no se encuentra en estado APLICADO o PAGADO'
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END
-/*
-Obtenemos el comando que utilizaremos para timbrar
-*/
-SELECT TOP 1
-	@tipo = i.tipo
-	,@idcomando = i.idcomando
-	,@comando = c.comando
-	,@cfd_idfolio = i.cfd_idfolio
-	,@cfd_folio = i.cfd_folio
-FROM 
-	dbo.ew_cfd_transacciones AS i 
-	LEFT JOIN dbo.ew_cfd_comandos AS c 
-		ON c.idcomando=i.idcomando
-WHERE
-	i.idtran = @idtran
-/*
-	validamos que haya un comando que ejecutar
-*/
-IF @comando IS NULL OR @comando = ''
-BEGIN
-	SELECT @msg = '[1004] No existe ningun comando para timbrar el documento'
-	RAISERROR(@msg, 16, 1)
-	RETURN
+	IF NOT EXISTS(SELECT idtran FROM dbo.ew_sys_transacciones2 WHERE idtran = @idtran AND (idestado = 5 OR idestado = 50))
+	BEGIN
+		SELECT @msg='[1003] La transaccion no se encuentra en estado APLICADO o PAGADO'
+		RAISERROR(@msg, 16, 1)
+		RETURN
+	END
 END
 
-SELECT @comando = REPLACE(@comando, '{idtran}', RTRIM(CONVERT(VARCHAR(8),@idtran)))
-SELECT @comando = REPLACE(@comando, '{cfd_idfolio}', RTRIM(CONVERT(VARCHAR(3),@cfd_idfolio)))
-SELECT @comando = REPLACE(@comando, '{cfd_folio}', @cfd_folio)
-SELECT @comando = REPLACE(@comando, '{tipo}', @tipo)
+--Validamos que la transaccion no se encuentre timbrada
+IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
+BEGIN
+	--Obtenemos el comando que utilizaremos para timbrar
+	SELECT TOP 1
+		@tipo = i.tipo
+		,@idcomando = i.idcomando
+		,@comando = c.comando
+		,@cfd_idfolio = i.cfd_idfolio
+		,@cfd_folio = i.cfd_folio
+	FROM 
+		dbo.ew_cfd_transacciones AS i 
+		LEFT JOIN dbo.ew_cfd_comandos AS c 
+			ON c.idcomando=i.idcomando
+	WHERE
+		i.idtran = @idtran
+	
+	--Validamos que haya un comando que ejecutar
+	IF @comando IS NULL OR @comando = ''
+	BEGIN
+		SELECT @msg = '[1004] No existe ningun comando para timbrar el documento'
+		RAISERROR(@msg, 16, 1)
+		RETURN
+	END
 
-EXEC(@comando)
+	SELECT @comando = REPLACE(@comando, '{idtran}', RTRIM(CONVERT(VARCHAR(8),@idtran)))
+	SELECT @comando = REPLACE(@comando, '{cfd_idfolio}', RTRIM(CONVERT(VARCHAR(3),@cfd_idfolio)))
+	SELECT @comando = REPLACE(@comando, '{cfd_folio}', @cfd_folio)
+	SELECT @comando = REPLACE(@comando, '{tipo}', @tipo)
 
-INSERT INTO dbo.ew_sys_transacciones2 (
-	idtran
-	,idestado
-	,idu
-)
-VALUES(
-	@idtran
-	,23
-	,@idu
-)
+	EXEC(@comando)
+
+	INSERT INTO dbo.ew_sys_transacciones2 (
+		idtran
+		,idestado
+		,idu
+	)
+	VALUES(
+		@idtran
+		,23
+		,@idu
+	)
+
+	SELECT
+		@folio_documento = (
+			cf.serie
+			+dbo._sys_fnc_rellenar(@cfd_folio, 6, '0')
+		)
+	FROM 
+		ew_cfd_folios AS cf
+	WHERE
+		cf.idfolio = @cfd_idfolio
+
+	UPDATE ew_sys_transacciones SET folio = @folio_documento WHERE idtran = @idtran
+	UPDATE ew_ven_transacciones SET folio = @folio_documento WHERE idtran = @idtran
+	UPDATE ew_cxc_transacciones SET folio = @folio_documento WHERE idtran = @idtran
+END
 GO

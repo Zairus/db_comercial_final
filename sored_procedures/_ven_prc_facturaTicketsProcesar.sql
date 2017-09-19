@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -7,6 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_facturaTicketsProcesar]
 	@idtran AS INT
+	,@idu SMALLINT
 AS
 
 SET NOCOUNT ON
@@ -14,9 +15,10 @@ SET NOCOUNT ON
 DECLARE
 	 @total_detalle AS DECIMAL(18,6)
 	,@total_documento AS DECIMAL(18,6)
+	,@error_mensaje AS VARCHAR(1000)
 
 SELECT
-	@total_documento = ct.total
+	@total_documento = ct.total - ct.redondeo
 FROM
 	ew_cxc_transacciones AS ct
 WHERE
@@ -44,8 +46,6 @@ INSERT INTO ew_ven_transacciones_mov (
 	,descuento_pp2
 	,descuento_pp3
 	,importe
-	,idimpuesto1
-	,idimpuesto2
 	,impuesto1
 	,impuesto2
 	,impuesto3
@@ -76,8 +76,6 @@ SELECT
 	,vtm.descuento_pp2
 	,vtm.descuento_pp3
 	,vtm.importe
-	,vtm.idimpuesto1
-	,vtm.idimpuesto2
 	,vtm.impuesto1
 	,vtm.impuesto2
 	,vtm.impuesto3
@@ -105,7 +103,15 @@ SELECT @total_detalle = ISNULL(@total_detalle, 0)
 
 IF ABS(@total_documento - @total_detalle) > 0.10
 BEGIN
-	RAISERROR('Error: El total del detalle no coincide con el total del documento.', 16, 1)
+	SELECT @error_mensaje = (
+		'Error: El total del detalle [' 
+		+ CONVERT(VARCHAR(20), @total_detalle) 
+		+ '] no coincide con el total del documento [' 
+		+ CONVERT(VARCHAR(20), @total_documento) 
+		+ '].'
+	)
+
+	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
 
@@ -114,10 +120,12 @@ EXEC _ven_prc_existenciaComprometer
 INSERT INTO ew_sys_transacciones2 (
 	 idtran
 	,idestado
+	,idu
 )
 SELECT
 	 [idtran] = idtran2
 	,[idestado] = 51
+	,@idu
 FROM
 	ew_cxc_transacciones_rel
 WHERE

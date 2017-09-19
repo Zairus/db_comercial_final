@@ -39,6 +39,7 @@ SELECT
 	,@idsucursal = bt.idsucursal
 	,@fecha = bt.fecha
 	,@idu = bt.idu
+	,@afecha = CONVERT(VARCHAR(8), bt.fecha, 3)
 FROM
 	ew_ban_transacciones AS bt
 	LEFT JOIN evoluware_usuarios AS u

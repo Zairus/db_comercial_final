@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -61,7 +61,7 @@ SELECT
 	,[idu] = vt.idu
 	,[xestado] = e.nombre
 	,[cancelado] = vt.cancelado
-	,[cancelado_fecha] = vt.cancelado_fecha
+	,[cancelado_fecha] = (CASE WHEN vt.cancelado = 0 THEN NULL ELSE vt.cancelado_fecha END)
 	,[UUID] = cct.cfdi_UUID
 	,[idr] = vt.idr
 	,[idtran] = vt.idtran
@@ -72,6 +72,7 @@ SELECT
 	,[impuesto2] = vt.impuesto2
 	,[total] = vt.total
 	,[comentario] = vt.comentario
+	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_clientes AS c
@@ -84,7 +85,7 @@ FROM
 		ON cct.idtran = vt.idtran
 WHERE
 	vt.idtran = @idtran
-
+	
 SELECT
 	[transaccion] = ct.transaccion
 	,[idsucursal] = ct.idsucursal
@@ -100,6 +101,7 @@ SELECT
 	,[idr] = ct.idr
 	,[idtran] = ct.idtran
 	,[idmov] = ct.idmov
+	,[facturara] = cfa.razon_social
 	,[rfc] = cfa.rfc
 	,[direccion] = cfa.direccion1
 	,[colonia] = cfa.colonia
@@ -109,11 +111,13 @@ SELECT
 	,[idfacturacion] = ct.idfacturacion
 	,[email] = cfa.email
 	,[telefono1] = cfa.telefono1
+	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
 	
 	,[codcliente_o] = @codcliente_o
 	,[idcliente_o] = @idcliente_o
 	,[nombre_o] = @nombre_o
 	,[fecha_fact] = ISNULL(@fecha_fact, ct.fecha)
+	,[fecha_fact1] = ISNULL(@fecha_fact, ct.fecha)
 	,[formas] = ''
 	,[spa] = ''
 

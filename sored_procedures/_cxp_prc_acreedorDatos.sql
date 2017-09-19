@@ -48,14 +48,6 @@ SELECT TOP 1
 				END
 		END
 	)
-	,[tipocambio] = ISNULL((
-		SELECT
-			bm1.tipocambio
-		FROM
-			ew_ban_monedas AS bm1
-		WHERE
-			bm1.idmoneda = (CASE WHEN p.extranjero = 1 THEN 1 ELSE @idmoneda END)
-	), 1)
 FROM 
 	ew_proveedores AS p
 	LEFT JOIN ew_proveedores_terminos AS pt

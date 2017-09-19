@@ -130,4 +130,6 @@ FROM
 WHERE
 	id.transaccion = 'GDT3'
 	AND ctr.idtran = @idtran
+
+EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
 GO

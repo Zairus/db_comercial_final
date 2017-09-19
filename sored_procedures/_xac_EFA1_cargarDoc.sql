@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -37,10 +37,12 @@ SELECT
 	,[facturara]= cf.razon_social
 	,[rfc]=cf.rfc
 	,[direccion] = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
-	,[colonia] = cf.colonia
-	,[ciudad] = fac.ciudad
-	,[estado] = fac.estado
-	,[codigopostal] = cf.codpostal
+	,[colonia] = ISNULL(u.cfd_colonia,cf.colonia)
+	,[ciudad] = ISNULL(u.cfd_localidad,fac.ciudad)
+	,[municipio] = ISNULL(u.cfd_municipio,fac.municipio)
+	,[estado] = ISNULL(u.cfd_estado,fac.estado)
+	,[pais] = ISNULL(u.cfd_pais, fac.pais)
+	,[codigopostal] = ISNULL(u.cfd_codigoPostal,cf.codpostal)
 	,cf.email
 	,[contacto] = cc.nombre
 	,[horario] = ecc.horario
@@ -74,6 +76,7 @@ SELECT
 	,UUID=ISNULL(timbres.cfdi_UUID,'')
 
 	,ew_ven_transacciones.idvendedor
+	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
 FROM 
 	ew_ven_transacciones
 	LEFT JOIN ew_ven_ordenes AS vd ON vd.idtran = ew_ven_transacciones.idtran2
@@ -85,6 +88,7 @@ FROM
 	LEFT JOIN ew_sys_ciudades fac ON fac.idciudad = cf.idciudad 
 	LEFT JOIN dbo.ew_proveedores AS p ON p.idproveedor=ew_ven_transacciones.idproveedor
 	LEFT JOIN ew_cfd_comprobantes_timbre timbres ON timbres.idtran = ew_ven_transacciones.idtran
+	LEFT JOIN ew_cfd_comprobantes_ubicacion u ON u.idtran=ew_ven_transacciones.idtran AND u.idtipo=2
 WHERE  
 	ew_ven_transacciones.idtran=@idtran 
  
@@ -441,7 +445,5 @@ ORDER BY
 SELECT
 		*
 	FROM
-		tracking 
-WHERE  
-	tracking.idtran=@idtran 
+		fn_sys_tracking(@idtran)
 GO

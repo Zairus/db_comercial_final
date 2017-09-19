@@ -52,4 +52,9 @@ IF @transaccion_referencia = 'BOR2'
 BEGIN
 	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'BDA1R'
 END
+
+IF @transaccion_referencia = ''
+BEGIN
+	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
+END
 GO
