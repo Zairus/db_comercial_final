@@ -9,7 +9,7 @@ ALTER PROCEDURE [dbo].[_com_prc_articuloDatosR2]
 	@codarticulo AS VARCHAR(MAX)
 	,@idsucursal AS SMALLINT
 	,@idalmacen AS SMALLINT
-	,@idimpuesto AS TINYINT = -1
+	,@idimpuesto AS SMALLINT = -1
 	,@idproveedor AS SMALLINT
 	,@idmoneda AS SMALLINT = 0
 AS

@@ -84,7 +84,7 @@ SELECT
 FROM 
 	db_comercial.dbo.evoluware_parametros AS ep
 WHERE
-	(SELECT COUNT(*) FROM ew_sys_parametros_local AS pl WHERE pl.idparametro = ep.idparametro) = 0
+	(SELECT COUNT(*) FROM ew_sys_parametros_local AS pl WHERE pl.codigo = ep.codigo) = 0
 GO
 CREATE TRIGGER [dbo].[tg_ew_sys_parametros_i]
 	ON [dbo].[ew_sys_parametros]
