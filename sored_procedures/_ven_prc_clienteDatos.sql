@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Fernanda Corona
@@ -37,6 +37,7 @@ SELECT
 	,[f_direccion] = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
 	,[f_colonia] = cf.colonia
 	,[f_ciudad] = fac.ciudad
+	,[f_municipio] = fac.municipio
 	,[f_estado] = fac.estado
 	,[f_codigopostal] = cf.codpostal
 	,[entregara] = cu.nombre
@@ -81,6 +82,7 @@ SELECT
 	,p.dias_pp3
 	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
 	,c.idforma
+	,c.cfd_iduso
 FROM 
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_terminos AS ct 

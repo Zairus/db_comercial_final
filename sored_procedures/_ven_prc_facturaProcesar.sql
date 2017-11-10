@@ -1,13 +1,9 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20091113
--- Modificacion: Arvin 2010JUL agregar pagos de factura.
-
 -- Description:	Procesar factura de cliente.
--- EXEC _ven_prc_facturaProcesar 981
-
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_facturaProcesar]
 	@idtran AS BIGINT
@@ -35,6 +31,12 @@ WHERE
 IF @surtir = 1
 BEGIN
 	EXEC [dbo].[_ven_prc_facturaSurtir] @idtran, 0
+END
+
+IF EXISTS(SELECT * FROM ew_cxc_transacciones WHERE cfd_iduso = 0 AND idtran = @idtran)
+BEGIN
+	RAISERROR('Error: No se ha indicado uso para comprobante fiscal.', 16, 1)
+	RETURN
 END
 
 --------------------------------------------------------------------

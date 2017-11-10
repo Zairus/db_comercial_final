@@ -23,6 +23,12 @@ FROM
 WHERE
 	idtran = @idtran
 
+IF EXISTS (SELECT * FROM ew_cxp_transacciones WHERE cfd_iduso = 0 AND idtran = @idtran)
+BEGIN
+	RAISERROR('Error: No se ha indicado uso para comprobante fiscal.', 16, 1)
+	RETURN
+END
+
 INSERT INTO ew_sys_movimientos_acumula (
 	idmov1
 	,idmov2
