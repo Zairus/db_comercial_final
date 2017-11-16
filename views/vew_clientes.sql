@@ -43,6 +43,7 @@ SELECT
 	, c.inventario_partes
 	, c.inventario_partes_actualizar
 	, c.modificar
+	, c.cfd_iduso
 FROM
 	dbo.ew_clientes AS c
 	LEFT JOIN dbo.ew_clientes_facturacion AS cf

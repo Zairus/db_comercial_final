@@ -11,6 +11,7 @@ GO
 ALTER PROCEDURE [dbo].[_xac_EFA1_cargarDoc]
 	@idtran AS INT
 AS
+
 SET NOCOUNT ON
  
 ----------------------------------------------------
@@ -91,7 +92,7 @@ FROM
 	LEFT JOIN ew_cfd_comprobantes_ubicacion u ON u.idtran=ew_ven_transacciones.idtran AND u.idtipo=2
 WHERE  
 	ew_ven_transacciones.idtran=@idtran 
- 
+
 ----------------------------------------------------
 -- 2)  ew_cxc_transacciones
 ----------------------------------------------------
@@ -118,6 +119,7 @@ SELECT
 	,ew_cxc_transacciones.vencimiento
 	,[tipocambio_dof] = dbo.fn_ban_obtenerTC(ew_cxc_transacciones.idmoneda, ew_cxc_transacciones.fecha)
 	,ew_cxc_transacciones.idforma
+	,ew_cxc_transacciones.idmetodo
 FROM 
 	ew_cxc_transacciones
 	LEFT JOIN ew_cxc_saldos_actual csa 
@@ -127,7 +129,7 @@ FROM
 		ON c.idconcepto=ew_cxc_transacciones.idconcepto
 WHERE  
 	ew_cxc_transacciones.idtran=@idtran 
- 
+
 ----------------------------------------------------
 -- 3)  ew_ven_transacciones_mov
 ----------------------------------------------------
@@ -387,7 +389,7 @@ FROM
 		ON ci.idimpuesto = (CASE WHEN a.idimpuesto1 = 0 THEN s.idimpuesto ELSE a.idimpuesto1 END)
 WHERE  
 	ew_ven_transacciones_mov.idtran=@idtran 
- 
+
 ----------------------------------------------------
 -- 4)  ew_ven_transacciones_pagos
 ----------------------------------------------------
@@ -416,7 +418,7 @@ WHERE
 	ew_ven_transacciones_pagos.cancelado = 0 
  AND  
 	ew_ven_transacciones_pagos.idtran=@idtran 
- 
+
 ----------------------------------------------------
 -- 5)  contabilidad
 ----------------------------------------------------
@@ -426,7 +428,7 @@ FROM
 	contabilidad 
 WHERE  
 	contabilidad.idtran2=@idtran 
- 
+
 ----------------------------------------------------
 -- 6)  bitacora
 ----------------------------------------------------
@@ -439,11 +441,12 @@ WHERE
 	bitacora.idtran=@idtran 
 ORDER BY 
 	fechahora 
+
 ----------------------------------------------------
 -- 7)  tracking
 ----------------------------------------------------
 SELECT
-		*
-	FROM
-		fn_sys_tracking(@idtran)
+	*
+FROM
+	fn_sys_tracking(@idtran)
 GO
