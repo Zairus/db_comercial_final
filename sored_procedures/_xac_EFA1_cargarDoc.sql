@@ -18,10 +18,10 @@ SET NOCOUNT ON
 -- 1)  ew_ven_transacciones
 ----------------------------------------------------
 SELECT
-	ew_ven_transacciones.transaccion
+	[transaccion] = ew_ven_transacciones.transaccion
 	,[referencia] = ISNULL(vd.folio, '')
-	,[idtran2] =ew_ven_transacciones.idtran2
-	,ew_ven_transacciones.idsucursal
+	,[idtran2] = ew_ven_transacciones.idtran2
+	,[idsucursal] = ew_ven_transacciones.idsucursal
 	,ew_ven_transacciones.idalmacen
 	,[codcliente] = c.codigo
 	,ew_ven_transacciones.idconcepto
@@ -120,6 +120,7 @@ SELECT
 	,[tipocambio_dof] = dbo.fn_ban_obtenerTC(ew_cxc_transacciones.idmoneda, ew_cxc_transacciones.fecha)
 	,ew_cxc_transacciones.idforma
 	,ew_cxc_transacciones.idmetodo
+	,ew_cxc_transacciones.cfd_iduso
 FROM 
 	ew_cxc_transacciones
 	LEFT JOIN ew_cxc_saldos_actual csa 
@@ -128,7 +129,7 @@ FROM
 	LEFT JOIN conceptos c 
 		ON c.idconcepto=ew_cxc_transacciones.idconcepto
 WHERE  
-	ew_cxc_transacciones.idtran=@idtran 
+	ew_cxc_transacciones.idtran = @idtran 
 
 ----------------------------------------------------
 -- 3)  ew_ven_transacciones_mov

@@ -12,6 +12,19 @@ AS
 
 SET NOCOUNT ON
 
+IF EXISTS (
+	SELECT *
+	FROM
+		ew_cxc_transacciones
+	WHERE
+		LEN(clabe_origen) = 0
+		AND idtran = @idtran
+)
+BEGIN
+	RAISERROR('Error: No se indico cuenta bancaria del cliente.', 16, 1)
+	RETURN
+END
+
 EXEC [dbo].[_ct_prc_contabilizarBDC2] @idtran
 
 INSERT INTO ew_sys_transacciones2 (

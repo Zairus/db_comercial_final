@@ -5,6 +5,7 @@ BEGIN
 	DROP TABLE ew_sys_parametros_local
 END
 GO
+
 CREATE TABLE ew_sys_parametros_local (
 	idr INT IDENTITY
 	,idparametro INT
@@ -23,6 +24,7 @@ CREATE TABLE ew_sys_parametros_local (
 	) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
 IF OBJECT_ID('ew_sys_parametros') IS NOT NULL
 BEGIN
 	INSERT INTO ew_sys_parametros_local (
@@ -155,6 +157,7 @@ SET NOCOUNT ON
 
 RAISERROR('Error: No se puede borrar registros de esta tabla.', 16, 1)
 RETURN
+
 GO
 SELECT * FROM ew_sys_parametros
 
