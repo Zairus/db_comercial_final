@@ -5,7 +5,7 @@ GO
 -- Create date: 20160523
 -- Description:	Cargar nota de credito
 -- =============================================
-ALTER PROCEDURE _xac_FDA2_cargarDoc
+ALTER PROCEDURE [dbo].[_xac_FDA2_cargarDoc]
 	@idtran AS INT
 AS
 
@@ -16,7 +16,7 @@ SELECT
 	,[idsucursal] = ct.idsucursal
 	,[cliente_codigo] = c.codigo
 	,[idcliente] = ct.idcliente
-	,[referencia] = ISNULL(st.folio, '')
+	,[referencia] = ct.referencia
 	,[idtran2] = ct.idtran2
 	,[idconcepto] = ct.idconcepto
 	,[concepto_nombre] = con.nombre
@@ -57,6 +57,9 @@ SELECT
 	,[total] = ct.total
 	,[saldo] = ct.saldo
 	,[comentario] = ct.comentario
+
+	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
+	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN ew_clientes AS c
@@ -99,10 +102,14 @@ WHERE
 
 SELECT
 	[consecutivo] = ctm.consecutivo
-	,[idtran2] = ctm.idtran2
 	,[ref_folio] = f.folio
+	,[idtran2] = ctm.idtran2
+	,[ref_concepto] = o.nombre + ' [' + f.transaccion + ']'
 	,[ref_fecha] = f.fecha
-	,[idmoneda] = f.idmoneda
+	,[ref_vencimiento] = f.vencimiento
+	,[ref_idmoneda] = f.idmoneda
+	,[idmoneda] = ct.idmoneda
+	,[ref_tipocambio] = f.tipocambio
 	,[tipocambio] = ctm.tipocambio
 	,[r_subtotal] = f.subtotal
 	,[r_impuesto1] = f.impuesto1
@@ -125,10 +132,18 @@ SELECT
 	,[impuesto2_ret] = ctm.impuesto2_ret
 	,[idu] = ctm.idu
 	,[comentario] = ctm.comentario
+
+	,[idr] = ctm.idr
+	,[idtran] = ctm.idtran
+	,[idmov] = ct.idmov
 FROM
 	ew_cxc_transacciones_mov AS ctm
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = ctm.idtran
 	LEFT JOIN ew_cxc_transacciones AS f
 		ON f.idtran = ctm.idtran2
+	LEFT JOIN objetos AS o
+		ON o.codigo = f.transaccion
 WHERE
 	ctm.idtran = @idtran
 

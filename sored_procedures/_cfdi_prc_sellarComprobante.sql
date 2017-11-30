@@ -339,50 +339,17 @@ BEGIN
 
 			SELECT @mensaje = ISNULL(@mensaje, '')
 			SELECT @xmlBase64 = [dbEVOLUWARE].[dbo].[CONV_StringToBase64](@respuestaXml)
-
-			SELECT @msg = [dbEVOLUWARE].[dbo].[TXT_WriteFile](@OutXML, 'F:\Clientes\_Evoluware\comprobante2.xml')
-			SELECT @msg = [dbEVOLUWARE].[dbo].[TXT_WriteFile](@respuestaXml, 'F:\Clientes\_Evoluware\comprobante3.xml')
+			
+			SELECT @msg = @mensaje
 
 			SELECT @QR_code = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@QR_Base64)
-			SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@QR_code, 'F:\Clientes\_Evoluware\comprobante.png')
 
-			/*
-			PRINT 'xml:'
-			PRINT @respuestaXml
-			PRINT '------------------------'
-			PRINT 'cadena:'
-			PRINT @cadena
-			PRINT '------------------------'
-			PRINT 'cadenaSAT:'
-			PRINT @cadena_original_timbrado
-			PRINT '------------------------'
-			PRINT 'fechaTimbrado:'
-			PRINT @fechaTimbrado
-			PRINT '------------------------'
-			PRINT 'noCertificadoCFDi:'
-			PRINT @noCertificado
-			PRINT '------------------------'
-			PRINT 'noCertificadoSAT:'
-			PRINT @noCertificadoSAT
-			PRINT '------------------------'
-			PRINT 'qrBase64:'
-			PRINT @QR_Base64
-			PRINT '------------------------'
-			PRINT 'selloCFD:'
-			PRINT @selloCFD
-			PRINT '------------------------'
-			PRINT 'selloSAT:'
-			PRINT @selloSAT
-			PRINT '------------------------'
-			PRINT 'UUID:'
-			PRINT @UUID
-			PRINT '------------------------'
-			PRINT 'mensaje:'
-			PRINT @mensaje
-			PRINT '========================'
-			*/
+			IF @uuid IS NULL OR LEN(@UUID) = 0
+			BEGIN
+				RAISERROR(@msg, 16, 1)
+			END
 		END
-			
+
 		IF EXISTS(SELECT idtran FROM ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
 		BEGIN
 			UPDATE ew_cfd_comprobantes_timbre SET

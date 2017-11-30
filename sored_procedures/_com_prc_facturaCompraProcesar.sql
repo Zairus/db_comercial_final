@@ -90,6 +90,7 @@ INSERT INTO ew_inv_transacciones_mov (
 	,costo
 	,afectainv
 	,comentario
+	,identidad
 )
 SELECT
 	 [idtran] = {idtran}
@@ -112,6 +113,7 @@ SELECT
 	)
 	,[afectainv] = 1
 	,[comentario] = ctm.comentario
+	,ct.idproveedor
 FROM 
 	ew_com_transacciones_mov AS ctm
 	LEFT JOIN ew_com_transacciones AS ct

@@ -121,6 +121,7 @@ INSERT INTO ew_inv_transacciones_mov (
 	, costo
 	, afectainv
 	, comentario
+	, identidad
 )
 SELECT
 	[idtran] = {idtran}
@@ -149,13 +150,19 @@ SELECT
 	)
 	,[afectainv] = 1
 	,[comentario] = ctm.comentario
+	,[identidad] = cor.idproveedor
 FROM
 	ew_com_transacciones_mov AS ctm
-	LEFT JOIN ew_com_transacciones AS ct ON ct.idtran = ctm.idtran
-	LEFT JOIN ew_ban_monedas AS bm ON bm.idmoneda = ctm.idmoneda
-	LEFT JOIN ew_articulos a ON a.idarticulo = ctm.idarticulo
-	LEFT JOIN ew_cat_unidadesmedida um ON a.idum_compra = um.idum
-	LEFT JOIN ew_com_ordenes AS cor ON cor.idtran = ctm.idtran2
+	LEFT JOIN ew_com_transacciones AS ct 
+		ON ct.idtran = ctm.idtran
+	LEFT JOIN ew_ban_monedas AS bm 
+		ON bm.idmoneda = ctm.idmoneda
+	LEFT JOIN ew_articulos AS a 
+		ON a.idarticulo = ctm.idarticulo
+	LEFT JOIN ew_cat_unidadesmedida AS um 
+		ON a.idum_compra = um.idum
+	LEFT JOIN ew_com_ordenes AS cor 
+		ON cor.idtran = ctm.idtran2
 	OUTER APPLY (
 		SELECT TOP 1
 			[cfa_idmoneda] = cfa1.idmoneda

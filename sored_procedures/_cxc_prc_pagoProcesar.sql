@@ -12,17 +12,23 @@ AS
 
 SET NOCOUNT ON
 
-IF EXISTS (
-	SELECT *
-	FROM
-		ew_cxc_transacciones
-	WHERE
-		LEN(clabe_origen) = 0
-		AND idtran = @idtran
-)
+DECLARE
+	@cfd_version AS VARCHAR(10) = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
+
+IF @cfd_version <> '3.2'
 BEGIN
-	RAISERROR('Error: No se indico cuenta bancaria del cliente.', 16, 1)
-	RETURN
+	IF EXISTS (
+		SELECT *
+		FROM
+			ew_cxc_transacciones
+		WHERE
+			LEN(clabe_origen) = 0
+			AND idtran = @idtran
+	)
+	BEGIN
+		RAISERROR('Error: No se indico cuenta bancaria del cliente.', 16, 1)
+		RETURN
+	END
 END
 
 EXEC [dbo].[_ct_prc_contabilizarBDC2] @idtran

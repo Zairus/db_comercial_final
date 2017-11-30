@@ -72,7 +72,9 @@ SELECT
 	,[impuesto2] = vt.impuesto2
 	,[total] = vt.total
 	,[comentario] = vt.comentario
+
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
+	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_clientes AS c

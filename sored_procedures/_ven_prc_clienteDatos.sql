@@ -83,6 +83,7 @@ SELECT
 	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
 	,c.idforma
 	,c.cfd_iduso
+	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM 
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_terminos AS ct 

@@ -78,6 +78,7 @@ SELECT
 
 	,ew_ven_transacciones.idvendedor
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
+	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM 
 	ew_ven_transacciones
 	LEFT JOIN ew_ven_ordenes AS vd ON vd.idtran = ew_ven_transacciones.idtran2

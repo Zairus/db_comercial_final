@@ -19,7 +19,7 @@ DECLARE
 	,@idconcepto AS INT = 21
 	,@usuario AS VARCHAR(20) = 'IMPLEMENT'
 	,@password AS VARCHAR(20) = '_admin'
-	,@idsucursal AS INT = 1
+	,@idsucursal AS INT
 	,@serie AS VARCHAR(3) = ''
 	,@carga_idtran AS INT
 	,@folio AS VARCHAR(15)
@@ -28,6 +28,7 @@ DECLARE cur_cxpMigracion CURSOR FOR
 	SELECT
 		cm.idr
 		,[transaccion] = (CASE WHEN cm.saldo < 0 THEN 'DDA1' ELSE 'DDC1' END)
+		,cm.idsucursal
 	FROM 
 		ew_cxp_migracion AS cm
 	WHERE
@@ -43,6 +44,7 @@ OPEN cur_cxpMigracion
 FETCH NEXT FROM cur_cxpMigracion INTO
 	@idr
 	,@transaccion
+	,@idsucursal
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
@@ -148,6 +150,7 @@ BEGIN
 	FETCH NEXT FROM cur_cxpMigracion INTO
 		@idr
 		,@transaccion
+		,@idsucursal
 END
 
 CLOSE cur_cxpMigracion
@@ -156,6 +159,7 @@ DEALLOCATE cur_cxpMigracion
 SELECT
 	ct.idtran
 	,ct.transaccion
+	,ct.idsucursal
 	,ct.fecha
 	,ct.folio
 	,ct.idproveedor
