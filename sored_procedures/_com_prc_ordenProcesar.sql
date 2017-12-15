@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -37,6 +37,18 @@ BEGIN
 	WHERE
 		idtran2 <> 0
 		AND idtran = @idtran
+END
+
+IF EXISTS(
+	SELECT * 
+	FROM ew_com_ordenes_mov 
+	WHERE 
+		idobra = 0 
+		AND idtran = @idtran
+)
+BEGIN
+	RAISERROR('Error: No se ha indicado obra.', 16, 1)
+	RETURN
 END
 
 EXEC _com_prc_ordenValidar @idtran, @idu

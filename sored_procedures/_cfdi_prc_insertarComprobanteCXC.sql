@@ -64,8 +64,8 @@ BEGIN
 		cfd_rfc = @rfc
 END
 
-SELECT
-	@formas_pago = @formaS_pago + bf.codigo + ','
+SELECT TOP 1
+	@formas_pago = bf.codigo
 FROM
 	ew_cxc_transacciones_mov AS ctm
 	LEFT JOIN ew_cxc_transacciones AS p
@@ -79,10 +79,6 @@ WHERE
 IF @formas_pago = ''
 BEGIN
 	SELECT @formas_pago = NULL
-END
-	ELSE
-BEGIN
-	SELECT @formas_pago = SUBSTRING(@formas_pago, 1, LEN(@formas_pago) - 1)
 END
 
 SELECT @cfd_version = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
@@ -142,7 +138,7 @@ SELECT
 					END
 				)
 			ELSE 
-				'CONTADO' 
+				'' 
 		END
 	)
 	,[cfd_subTotal] = ct.subtotal
@@ -162,7 +158,7 @@ SELECT
 	,[rfc_emisor] = dbo.fn_sys_parametro('RFC')
 	,[rfc_receptor] = @rfc
 	,[comentario] = ''
-	,[cfd_metodoDePago] = ISNULL(@formaS_pago, ISNULL(bf.codigo, '99'))
+	,[cfd_metodoDePago] = ISNULL(@formas_pago, ISNULL(bf.codigo, '99'))
 	,[cfd_NumCtaPago] = '' --#####################
 	,[cfd_Moneda] = bm.codigo
 	,[cfd_TipoCambio] = ct.tipocambio
@@ -507,8 +503,8 @@ SELECT
 	,[cfd_unidad] = um.nombre
 	,[cfd_noIdentificacion] = a.codigo
 	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
-	,[cfd_valorUnitario] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
-	,[cfd_importe] = CONVERT(DECIMAL(15,2), m.importe)
+	,[cfd_valorUnitario] = (m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
+	,[cfd_importe] = m.importe
 	,[idmov2] = m.idmov
 FROM	
 	dbo.ew_ven_transacciones_mov AS m 
@@ -548,8 +544,8 @@ SELECT
 	,[cfd_unidad] = um.nombre
 	,[cfd_noIdentificacion] = s.valor
 	,[cfd_descripcion] = 'No. de Serie:' + s.valor + ', ' + a.nombre
-	,[cfd_valorUnitario] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
-	,[cfd_importe] = CONVERT(DECIMAL(15,2), m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
+	,[cfd_valorUnitario] = (m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
+	,[cfd_importe] = (m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
 	,[idmov2] = m.idmov
 FROM
 	dbo.ew_ven_transacciones_mov AS m 

@@ -63,8 +63,8 @@ FROM (
 		,ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE CONVERT(DECIMAL(18,6), cc.cfd_TipoCambio) END) AS '@TipoCambio'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) END) AS '@SubTotal'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_total, csm.decimales) END) AS '@Total'
+		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 0 ELSE cc.cfd_subtotal END) AS '@SubTotal'
+		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 0 ELSE cc.cfd_total END) AS '@Total'
 		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
 		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
 		,db_comercial.dbo.EWCFD('CERTIFICADO', cer.certificado + ' 1') AS '@Certificado'
@@ -224,7 +224,7 @@ FROM (
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN
 							'0'
 						ELSE
-							dbo._sys_fnc_decimales(
+							CONVERT(VARCHAR(50),
 								(
 									SELECT 
 										SUM(cci.cfd_importe) 
@@ -235,7 +235,6 @@ FROM (
 										AND cci.idtipo = 2
 										AND cci.idtran = cc.idtran
 								)
-								,csm.decimales
 							)
 					END
 				) AS '@TotalImpuestosRetenidos'
@@ -244,7 +243,7 @@ FROM (
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN
 							'0'
 						ELSE
-							dbo._sys_fnc_decimales(
+							CONVERT(VARCHAR(50),
 								(
 									SELECT 
 										SUM(cci.cfd_importe) 
@@ -255,14 +254,13 @@ FROM (
 										AND cci.idtipo = 1
 										AND cci.idtran = cc.idtran
 								)
-								,csm.decimales
 							)
 					END
 				) AS '@TotalImpuestosTrasladados'
 				,(
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
-						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
+						,SUM(cci.cfd_importe) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
@@ -280,7 +278,7 @@ FROM (
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
 						,CONVERT(DECIMAL(18,6), (cci.cfd_tasa / 100.00)) AS '@TasaOCuota'
-						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
+						,SUM(cci.cfd_importe) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
@@ -308,8 +306,8 @@ FROM (
 								CONVERT(VARCHAR(19), ccp.cfd_fecha, 126) AS '@FechaPago'
 								,ccp.cfd_metodoDePago AS '@FormaDePagoP'
 								,ccp.cfd_moneda AS '@MonedaP'
-								,NULL AS '@TipoCambioP'
-								,dbo._sys_fnc_decimales(ccp.cfd_total, csm.decimales) AS '@Monto'
+								,NULL AS '@TipoCambioP' --CONVERT(DECIMAL(18,6), ccp.cfd_tipoCambio)
+								,ccp.cfd_total AS '@Monto'
 								,(CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
 								,NULL AS '@RfcEmisorCtaOrd'
 								,(CASE WHEN ccb.extranjero = 1 THEN cbb.nombre ELSE NULL END) AS '@NomBancoOrdExt'
@@ -451,8 +449,6 @@ FROM (
 			ON f.idfolio = cc.idfolio
 		LEFT JOIN ew_cfd_certificados AS cer
 			ON cer.idcertificado = f.idcertificado
-		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_monedas AS csm
-			ON csm.c_moneda = cc.cfd_Moneda
 	WHERE
 		cc.idtran = @idtran
 	FOR XML PATH('cfdi:Comprobante'), TYPE

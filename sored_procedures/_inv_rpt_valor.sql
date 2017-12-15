@@ -28,12 +28,12 @@ SELECT
 	[sucursal] = s.nombre
 	,[almacen] = alm.nombre
 	,[nombre] = ('[' + a.codigo + ']  ' + a.nombre)
-	,[codigo] = ISNULL(p0.codigo, p.codigo)
-	,[proveedor] = ISNULL(p0.codigo, ISNULL(p.nombre, ISNULL(p2.nombre, '-No especificado-')))
+	,[codigo] = ISNULL(p.codigo, 'NA')
+	,[proveedor] = ISNULL(p.nombre, '-Np especificado-')
 	,[marca] = ISNULL(m.nombre, '-No especificado-')
-	,ic.idarticulo
-	,ac.existencia
-	,ac.idcapa
+	,[idarticulo] = ic.idarticulo
+	,[existencia] = ac.existencia
+	,[idcapa] = ac.idcapa
 	,[unidad] = um.codigo
 	,[cu] = (ac.costo / ac.existencia)
 	,[costo] = ac.costo
@@ -42,6 +42,7 @@ SELECT
 
 	,[referencia] = im.transaccion + ' - ' + im.folio
 	,[fechacapa] = ic.fecha
+	,[idtran] = itm.idtran
 FROM
 	ew_inv_capas_existencia AS ac
 	LEFT JOIN ew_inv_capas AS ic 
@@ -69,25 +70,40 @@ FROM
 		AND im.idtran = ic.idtran
 	LEFT JOIN ew_inv_transacciones_mov AS itm
 		ON itm.idmov = im.idmov2
-	LEFT JOIN ew_com_transacciones_mov AS ctm
-		ON ctm.idmov = itm.idmov2
-	LEFT JOIN ew_com_ordenes_mov AS com
-		ON com.idmov = ctm.idmov2
-	LEFT JOIN ew_com_ordenes AS co
-		ON co.idtran = com.idtran
 	LEFT JOIN ew_proveedores AS p
-		ON p.idproveedor = co.idproveedor
-	LEFT JOIN ew_proveedores AS p2
-		ON p2.idproveedor = [as].idproveedor
-	LEFT JOIN ew_proveedores AS p0
-		ON p0.idproveedor = itm.identidad
+		ON p.idproveedor = itm.identidad
 WHERE
 	ac.existencia > 0
-	AND [as].idsucursal = (CASE WHEN @codsuc=0 THEN [as].idsucursal ELSE @codsuc END)
-	AND ac.idalmacen = (CASE WHEN @codalm=0 THEN ac.idalmacen ELSE @codalm END)
-	AND a.codigo = (CASE @codigo WHEN '' THEN a.codigo ELSE @codigo END)
-	AND ISNULL(p0.codigo, ISNULL(p.nombre, ISNULL(p2.nombre, '-No especificado-'))) = (CASE WHEN @codprovee = '' THEN ISNULL(p0.codigo, ISNULL(p.nombre, ISNULL(p2.nombre, '-No especificado-'))) ELSE @codprovee END)
-	AND a.idmarca = (CASE WHEN @idmarca = 0 THEN a.idmarca ELSE @idmarca END)
+	AND [as].idsucursal = (
+		CASE 
+			WHEN @codsuc = 0 THEN [as].idsucursal 
+			ELSE @codsuc 
+		END
+	)
+	AND ac.idalmacen = (
+		CASE 
+			WHEN @codalm = 0 THEN ac.idalmacen 
+			ELSE @codalm 
+		END
+	)
+	AND a.codigo = (
+		CASE @codigo 
+			WHEN '' THEN a.codigo 
+			ELSE @codigo 
+		END
+	)
+	AND ISNULL(p.codigo, '') = (
+		CASE 
+			WHEN @codprovee = '' THEN ISNULL(p.codigo, '') 
+			ELSE @codprovee 
+		END
+	)
+	AND a.idmarca = (
+		CASE 
+			WHEN @idmarca = 0 THEN a.idmarca 
+			ELSE @idmarca 
+		END
+	)
 ORDER BY
 	ac.idalmacen
 	,a.codigo
