@@ -28,7 +28,7 @@ DECLARE
 	
 	,@transaccion AS VARCHAR(5) = ''
 
---Validamos que la transaccion no se encuentre timbrada
+--Validamos que la transaccion se encuentre timbrada
 IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
 BEGIN
 	IF @urgente = 1
@@ -45,9 +45,12 @@ END
 -- Tuve que agregar 2 campos más
 -- 1 para la ruta de la EDE1 y otro para la ruta de la FDA2
 ----------------------------------------------------------------------
-SELECT @transaccion = transaccion
-FROM ew_sys_transacciones 
-WHERE idtran = @idtran
+SELECT 
+	@transaccion = transaccion
+FROM 
+	ew_sys_transacciones 
+WHERE 
+	idtran = @idtran
 
 ----------------------------------------------------------------
 -- Obtenemos los parametros generales
@@ -56,20 +59,26 @@ SELECT TOP 1
 	@XML_email = p.XML_email
 	,@PDF_guardar = p.PDF_guardar
 	,@PDF_email = p.PDF_email
-	,@PDF_rs = (
-				CASE WHEN @transaccion = 'EFA1' THEN p.PDF_RS ELSE
-					CASE WHEN @transaccion = 'EDE1' THEN p.PDF_RS1 ELSE
-						CASE WHEN @transaccion = 'FDA2' THEN p.PDF_RS2 ELSE
-							CASE WHEN @transaccion = 'EFA4' THEN p.PDF_RS3 ELSE
-								CASE WHEN @transaccion = 'EFA6' THEN p.PDF_RS ELSE ''
-								END
-							END
-						END
-					END
-				END
-	)
+	,@PDF_rs = ISNULL((
+		dbo.fn_sys_obtenerDato('DEFAULT', '?50')
+		+ 'Pages/ReportViewer.aspx?/'
+		+ od.valor
+		+ '&rs:Command=Render'
+		+ '&rc:Toolbar=true'
+		+ '&rc:parameters=false'
+		+ '&dsu:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?52')
+		+ '&dsp:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?53')
+		+ '&rs:format=PDF'
+		+ '&ServidorSQL=Data Source=104.198.96.129,1093;Initial Catalog=' + DB_NAME()
+		+ '&idtran={idtran}'
+	), p.PDF_RS)
 FROM
 	ew_cfd_parametros AS p
+	LEFT JOIN objetos AS o
+		ON o.codigo = @transaccion
+	LEFT JOIN objetos_datos AS od
+		ON od.objeto = o.objeto
+		AND od.codigo = 'REPORTERS'
 
 SELECT 
 	@archivoXML = ISNULL(archivoXML, '')
@@ -103,9 +112,9 @@ END
 ----------------------------------------------------------------
 IF @PDF_guardar = 1
 BEGIN
-	SELECT @pdf_rs = REPLACE(@pdf_rs,'{idtran}',RTRIM(CONVERT(VARCHAR(15),@idtran)))
+	SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15),@idtran)))
 	
-	SELECT @cadena = 'C:\EVOLUWARE\Temp\' + RIGHT(@archivoXML,PATINDEX('%\%',REVERSE(@archivoXML))-1) + '.pdf'
+	SELECT @cadena = 'C:\EVOLUWARE\Temp\' + RIGHT(@archivoXML, PATINDEX('%\%', REVERSE(@archivoXML)) - 1) + '.pdf'
 	
 	SELECT @success = db_comercial.dbo.WEB_download(@PDF_rs,@cadena, '', '')
 
@@ -125,7 +134,7 @@ BEGIN
 	SELECT @pdf_rs = ''
 
 	IF @XML_email = 1 SELECT @pdf_rs = @archivoXML
-	IF @PDF_email = 1 SELECT @pdf_rs = @pdf_rs + (CASE WHEN @pdf_rs='' THEN '' ELSE ';' END) + @cadena
+	IF @PDF_email = 1 SELECT @pdf_rs = @pdf_rs + (CASE WHEN @pdf_rs = '' THEN '' ELSE ';' END) + @cadena
 
 	SELECT @cadena = 'Mensaje generado automaticamente por el servidor: ' + CONVERT(VARCHAR(20),GETDATE(),0) + '' + @mensaje
 
@@ -139,11 +148,87 @@ BEGIN
 
 	SELECT @idserver = CONVERT(SMALLINT, dbo.fn_sys_parametro('EMAIL_IDSERVER'))
 	SELECT @message_subject = dbo.fn_sys_parametro('EMAIL_SUBJECT')
-	SELECT @message_body = dbo.fn_sys_parametro('EMAIL_BODY') + ' ' + CHAR(13) + CHAR(10) + @mensaje
 	SELECT @message_bodyHTML = CONVERT(BIT, dbo.fn_sys_parametro('EMAIL_BODYHTML'))
 	SELECT @message_cc = RTRIM(dbo.fn_sys_parametro('EMAIL_CC'))
 	SELECT @message_cc = RTRIM(LTRIM(@message_cc))
 	
+	SELECT a = dbo.fn_sys_parametro('EMAIL_BODY')
+
+	SELECT
+		@message_body = (
+			'Estimado Cliente,'
+			+ CHAR(13)
+			+ CHAR(13)
+			+ 'Adjunto se envía ' 
+			+ o.nombre 
+			+ ' ' 
+			+ ct.folio 
+			+ ', generado el día '
+			+ CONVERT(VARCHAR(8), ct.fecha, 3)
+			+ CHAR(13)
+			+ CHAR(13)
+			+ (
+				CASE
+					WHEN ct.tipo = 1 THEN
+						(
+							'Programación de pago: '
+							+ CONVERT(VARCHAR(8), ct.vencimiento, 3)
+							+ CHAR(13)
+						)
+					ELSE ''
+				END
+			)
+			+ 'Total: $'
+			+ CONVERT(VARCHAR(20), CONVERT(MONEY, ct.total), 1)
+			+ (
+				CASE
+					WHEN ct.tipo = 1 THEN
+						(
+							CHAR(13)
+							+ CHAR(13)
+							+ 'DATOS PARA PAGO: '
+							+ CHAR(13)
+							+ (
+								SELECT TOP 1
+									bb.nombre 
+									+ ' ' 
+									+ bc.no_cuenta 
+									+ ' SUC ' 
+									+ bc.sucursal 
+									+ ' CLABE: ' 
+									+ bc.clabe 
+									+ ' ' 
+									+ bm.codigo
+								FROM 
+									ew_ban_cuentas AS bc 
+									LEFT JOIN ew_ban_bancos As bb
+										ON bb.idbanco = bc.idbanco
+									LEFT JOIN ew_ban_monedas AS bm
+										ON bm.idmoneda = bc.idmoneda
+								WHERE 
+									bc.imprimir = 1
+							)
+						)
+					ELSE ''
+				END
+			)
+		)
+	FROM
+		ew_cxc_transacciones AS ct
+		LEFT JOIN objetos AS o
+			ON o.codigo = ct.transaccion
+	WHERE
+		ct.idtran = @idtran
+
+	SELECT 
+		@message_body = (
+			ISNULL(@message_body, dbo.fn_sys_parametro('EMAIL_BODY'))
+			+ ' '
+			+ CHAR(13)
+			+ CHAR(13)
+			+ @mensaje
+		)
+
 	INSERT INTO dbEVOLUWARE.dbo.ew_sys_email (
 		db
 		, idtran
@@ -164,7 +249,8 @@ BEGIN
 		, @message_subject
 		, @message_body
 		, @message_bodyHTML
-		, @pdf_rs,@urgente
+		, @pdf_rs
+		, @urgente
 		, @message_cc
 	)
 
@@ -172,10 +258,14 @@ BEGIN
 	BEGIN
 		DECLARE @id INT
 
-		SELECT TOP 1 @id = ISNULL(idr,0) 
-		FROM dbEVOLUWARE.dbo.ew_sys_email 
-		WHERE idtran = @idtran 
-		ORDER BY idr DESC
+		SELECT TOP 1 
+			@id = ISNULL(idr, 0) 
+		FROM 
+			dbEVOLUWARE.dbo.ew_sys_email 
+		WHERE 
+			idtran = @idtran 
+		ORDER BY 
+			idr DESC
 
 		IF @id > 0
 		BEGIN

@@ -406,7 +406,16 @@ SELECT
 	,[cfd_cantidad] = (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
 	,[cfd_unidad] = um.nombre
 	,[cfd_noIdentificacion] = (CASE WHEN a.series = 1 AND m.cantidad_facturada = 1 THEN m.series ELSE '' END)
-	,[cfd_descripcion] = a.nombre + ' ' + CONVERT(VARCHAR(MAX), m.comentario)
+	,[cfd_descripcion] = (
+		a.nombre 
+		+ (
+			CASE 
+				WHEN LEN(CONVERT(VARCHAR(MAX), m.comentario)) > 0 THEN
+					' ' + CONVERT(VARCHAR(MAX), m.comentario)
+				ELSE ''
+			END
+		)
+	)
 	,[cfd_valorUnitario] = ROUND(
 		(
 			m.importe
@@ -691,6 +700,7 @@ FROM
 		ON vtm.idmov = ccm.idmov2
 WHERE
 	vtm.idr IS NOT NULL
+	AND ccm.consecutivo_padre = 0
 	AND ccm.idtran = @idtran
 GROUP BY
 	ccm.idmov2
@@ -719,6 +729,7 @@ FROM
 		ON vtm.idmov = ccm.idmov2
 WHERE
 	vtm.idr IS NOT NULL
+	AND ccm.consecutivo_padre = 0
 	AND ccm.idtran = @idtran
 GROUP BY
 	ccm.idmov2

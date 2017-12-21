@@ -160,8 +160,6 @@ BEGIN
 		SELECT @OutXML = @comprobante
 	END
 
-	SELECT @msg = [dbEVOLUWARE].[dbo].[TXT_WriteFile](@OutXML, REPLACE(@archivoXML, '.xml', '_debug.xml'))
-
 	BEGIN TRY
 		SELECT
 			@pac_contrato = contrato
@@ -313,7 +311,7 @@ BEGIN
 				SELECT @pac_codigo = 'SW'
 
 			SELECT @codigo = 0
-
+			
 			EXEC [dbEVOLUWARE].[dbo].[Timbrado33]
 				@pac_codigo
 				, @pac_prueba
@@ -336,13 +334,15 @@ BEGIN
 				, @selloSAT OUTPUT
 				, @UUID OUTPUT
 				, @mensaje OUTPUT
-
+				
 			SELECT @mensaje = ISNULL(@mensaje, '')
 			SELECT @xmlBase64 = [dbEVOLUWARE].[dbo].[CONV_StringToBase64](@respuestaXml)
 			
-			SELECT @msg = @mensaje
-
 			SELECT @QR_code = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@QR_Base64)
+
+			SELECT @msg = [dbEVOLUWARE].[dbo].[TXT_WriteFile](@OutXML, REPLACE(@archivoXML, '.xml', '_debug.xml'))
+
+			SELECT @msg = @mensaje
 
 			IF @uuid IS NULL OR LEN(@UUID) = 0
 			BEGIN

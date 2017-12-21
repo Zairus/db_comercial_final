@@ -33,23 +33,27 @@ WHERE
 	idtran = @idtran
 
 SELECT TOP 1
-	@PDF_rs = (
-		CASE WHEN @transaccion = 'EFA1' THEN p.PDF_RS ELSE
-			CASE WHEN @transaccion = 'EDE1' THEN p.PDF_RS1 ELSE
-				CASE WHEN @transaccion = 'FDA2' THEN p.PDF_RS2 ELSE
-					CASE WHEN @transaccion = 'EFA4' THEN p.PDF_RS3 ELSE
-						CASE WHEN @transaccion = 'EFA6' THEN p.PDF_RS ELSE
-							CASE WHEN @transaccion = 'FDA5' THEN p.PDF_RS2 ELSE ''
-							END
-						END
-					END
-				END
-			END
-		END
-	)
+	@PDF_rs = ISNULL((
+		dbo.fn_sys_obtenerDato('DEFAULT', '?50')
+		+ 'Pages/ReportViewer.aspx?/'
+		+ od.valor
+		+ '&rs:Command=Render'
+		+ '&rc:Toolbar=true'
+		+ '&rc:parameters=false'
+		+ '&dsu:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?52')
+		+ '&dsp:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?53')
+		+ '&rs:format=PDF'
+		+ '&ServidorSQL=Data Source=104.198.96.129,1093;Initial Catalog=' + DB_NAME()
+		+ '&idtran={idtran}'
+	), p.PDF_RS)
 FROM
 	ew_cfd_parametros AS p
-
+	LEFT JOIN objetos AS o
+		ON o.codigo = @transaccion
+	LEFT JOIN objetos_datos AS od
+		ON od.objeto = o.objeto
+		AND od.codigo = 'REPORTERS'
+	
 IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
 BEGIN
 	SELECT @msg = '[2001] La transaccion no se encuentra timbrada'

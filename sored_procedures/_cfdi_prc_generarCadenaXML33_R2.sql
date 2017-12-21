@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -162,7 +162,7 @@ FROM (
 								cmi.base AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,ci.valor AS '@TasaOCuota'
+								,CONVERT(DECIMAL(18,6), ci.valor) AS '@TasaOCuota'
 								,cmi.importe AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
@@ -199,6 +199,31 @@ FROM (
 						(SELECT COUNT(*) FROM ew_cfd_comprobantes_mov_impuesto AS ccmi WHERE ccmi.idtran = cc.idtran) > 0
 					FOR XML PATH ('cfdi:Impuestos'), TYPE
 				) AS '*'
+
+				--Partes
+				,(
+					SELECT
+						csc.clave AS '@ClaveProdServ'
+						,(CASE WHEN ccmp.cfd_noIdentificacion = '' THEN NULL ELSE ccmp.cfd_noIdentificacion END) AS '@NoIdentificacion'
+						,ccmp.cfd_cantidad AS '@Cantidad'
+						,NULL AS '@ClaveUnidad'
+						,(
+							CASE
+								WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL
+								ELSE ccm.cfd_unidad
+							END
+						) AS '@Unidad'
+						,ccmp.cfd_descripcion AS '@Descripcion'
+						,ccmp.cfd_valorUnitario AS '@ValorUnitario'
+						,ccmp.cfd_importe AS '@Importe'
+						,NULL AS '@Descuento'
+					FROM
+						ew_cfd_comprobantes_mov AS ccmp
+					WHERE
+						ccmp.consecutivo_padre = ccm.consecutivo
+						AND ccmp.idtran = ccm.idtran
+					FOR XML PATH ('cfdi:Parte'), TYPE
+				) AS '*'
 			FROM
 				ew_cfd_comprobantes_mov AS ccm
 				LEFT JOIN ew_ven_transacciones_mov AS vtm
@@ -212,7 +237,8 @@ FROM (
 				LEFT JOIN ew_cat_unidadesMedida AS um
 					ON um.idum = a.idum_venta
 			WHERE
-				ccm.idtran = cc.idtran
+				ccm.consecutivo_padre = 0
+				AND ccm.idtran = cc.idtran
 			FOR XML PATH('cfdi:Concepto'), TYPE
 		) AS 'cfdi:Conceptos'
 		

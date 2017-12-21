@@ -5,7 +5,7 @@ GO
 -- Create date: 20171212
 -- Description:	Formato de impreison CFDi 33 para CXC
 -- =============================================
-ALTER PROCEDURE _cfdi_rpt_CXC33
+ALTER PROCEDURE [dbo].[_cfdi_rpt_CXC33]
 	@idtran AS INT
 AS
 
@@ -61,9 +61,9 @@ SELECT
 		SELECT
 			s.nombre
 			+ CHAR(10)
-			+ s.direccion
+			+ REPLACE(s.direccion, CHAR(13), '')
 			+ CHAR(10)
-			+ scd.ciudad
+			+ REPLACE(scd.ciudad, CHAR(13), '')
 			+ ', '
 			+ scd.estado
 			+ ', '
@@ -200,6 +200,7 @@ SELECT
 			ccu.idtipo = 1 
 			AND ccu.idtran = cc.idtran
 	)
+	,[observaciones] = doc.comentario
 FROM 
 	ew_cfd_comprobantes AS cc
 	LEFT JOIN ew_cfd_comprobantes_cancelados AS ccc
