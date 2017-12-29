@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -150,7 +150,7 @@ FROM (
 					END
 				) AS '@Unidad'
 				,ccm.cfd_descripcion AS '@Descripcion'
-				,ccm.cfd_valorUnitario AS '@ValorUnitario'
+				,dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, csm.decimales) AS '@ValorUnitario'
 				,ccm.cfd_importe AS '@Importe'
 				--,ccm.cfd_descuento AS '@Descuento'
 				
@@ -162,7 +162,7 @@ FROM (
 								cmi.base AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,CONVERT(DECIMAL(18,6), ci.valor) AS '@TasaOCuota'
+								,CONVERT(DECIMAL(18,6), cmi.importe / cmi.base) AS '@TasaOCuota'
 								,cmi.importe AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
