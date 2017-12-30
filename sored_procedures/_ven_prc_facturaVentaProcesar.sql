@@ -97,6 +97,12 @@ BEGIN
 	RETURN
 END
 
+IF EXISTS(SELECT * FROM ew_cxc_transacciones WHERE cfd_iduso = 0 AND idtran = @idtran)
+BEGIN
+	RAISERROR('Error: No se ha indicado uso para comprobante fiscal.', 16, 1)
+	RETURN
+END
+
 --------------------------------------------------------------------------------
 -- VALIDAR REGISTROS DE VENTA ##################################################
 

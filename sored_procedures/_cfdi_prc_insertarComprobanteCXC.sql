@@ -1,4 +1,4 @@
-USE db_refriequipos_datos
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -75,6 +75,42 @@ FROM
 WHERE
 	p.tipo = 2
 	AND ctm.idtran2 = @idtran
+
+IF EXISTS (
+	SELECT * 
+	FROM ew_ven_transacciones_pagos 
+	WHERE idtran = @idtran
+)
+BEGIN
+	SELECT @formas_pago = '99'
+
+	UPDATE ew_cxc_transacciones SET
+		idforma = (
+			SELECT TOP 1 bf.idforma 
+			FROM ew_ban_formas AS bf 
+			WHERE codigo = '99'
+		)
+	WHERE
+		idtran = @idtran
+	
+	IF EXISTS (
+		SELECT * 
+		FROM 
+			ew_ven_transacciones_pagos  AS vtp
+			LEFT JOIN ew_ban_formas AS bf
+				ON bf.idforma = vtp.idforma
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+				ON csf.c_formapago = bf.codigo
+		WHERE 
+			vtp.clabe_origen = ''
+			AND csf.bancarizado = 1
+			AND vtp.idtran = @idtran
+	)
+	BEGIN
+		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
+		RETURN
+	END
+END
 
 IF @formas_pago = ''
 BEGIN

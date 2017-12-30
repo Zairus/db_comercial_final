@@ -404,6 +404,7 @@ SELECT
 	,ew_ven_transacciones_pagos.idforma
 	,[forma_fecha] = ct.fecha
 	,[forma_referencia] = ct.folio
+	,[clabe_origen] = ew_ven_transacciones_pagos.clabe_origen
 	,[ref_moneda]=(SELECT nombre FROM ew_ban_monedas WHERE idmoneda=ct.idmoneda)
 	,[saldo_ref]=ct.saldo
 	,forma_moneda
