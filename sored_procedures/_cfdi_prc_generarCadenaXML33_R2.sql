@@ -229,7 +229,7 @@ FROM (
 				LEFT JOIN ew_ven_transacciones_mov AS vtm
 					ON vtm.idmov = ccm.idmov2
 				LEFT JOIN ew_articulos AS a0
-					ON a0.codigo = ccm.cfd_noIdentificacion
+					ON a0.idarticulo = ccm.idarticulo
 				LEFT JOIN ew_articulos AS a
 					ON a.idarticulo = ISNULL(a0.idarticulo, vtm.idarticulo)
 				LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_clasificaciones AS csc

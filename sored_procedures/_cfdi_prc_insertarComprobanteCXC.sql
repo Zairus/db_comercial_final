@@ -690,6 +690,50 @@ WHERE
 ORDER BY 
 	m.consecutivo
 
+INSERT INTO #_tmp_venta_detalle (
+	consecutivo
+	,consecutivo_padre
+	,idarticulo
+	,cantidad
+	,unidad
+	,codigo
+	,descripcion
+	,precio_unitario
+	,importe
+	,idimpuesto1
+	,impuesto1
+	,idimpuesto2
+	,impuesto2
+	,idmov
+)
+SELECT
+	[consecutivo] = 1
+	,[consecutivo_padre] = 0
+	,[idarticulo] = (SELECT a.idarticulo FROM ew_articulos AS a WHERE a.codigo = dbo._sys_fnc_parametroTexto('CXC_CONCEPTOPAGO'))
+	,[cfd_cantidad] = 1
+	,[cfd_unidad] = 'ACT'
+	,[cfd_noIdentificacion] = ''
+	,[cfd_descripcion] = 'Nota de Credito por ' + ISNULL(c.nombre, 'credito') + ' en el comprobante ' + m2.folio + ' del ' + CONVERT(VARCHAR(8), m2.fecha, 3)
+	,[cfd_valorUnitario] = ct.subtotal
+	,[cfd_importe] = ct.subtotal
+
+	,[idimpuesto1] = ct.idimpuesto1
+	,[impuesto1] = ct.impuesto1
+	,[idimpuesto2] = ct.idimpuesto2
+	,[impuesto2] = ct.impuesto2
+	,[idmov] = ct.idmov
+FROM	
+	dbo.ew_cxc_transacciones AS ct
+	LEFT JOIN dbo.ew_sys_transacciones AS t 
+		ON t.idtran = ct.idtran
+	LEFT JOIN dbo.ew_cxc_transacciones AS m2 
+		ON m2.idtran = ct.idtran2
+	LEFT JOIN conceptos As c
+		ON c.idconcepto = ct.idconcepto
+WHERE
+	ct.transaccion = 'FDA2'
+	AND ct.idtran = @idtran
+
 --Detalle de venta
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	 idtran
@@ -788,45 +832,6 @@ FROM
 WHERE
 	ct.transaccion = 'BDC2'
 	AND ct.idtran = @idtran
-
---Notas de credito
-INSERT INTO dbo.ew_cfd_comprobantes_mov (
-	idtran
-	,consecutivo_padre
-	,consecutivo
-	,idarticulo
-	,cfd_cantidad
-	,cfd_unidad
-	,cfd_noIdentificacion
-	,cfd_descripcion
-	,cfd_valorUnitario
-	,cfd_importe
-	,idmov2
-)
-SELECT
-	[idtran] = @idtran
-	,[consecutivo_padre] = 0
-	,[consecutivo] = 1
-	,[idarticulo] = (SELECT a.idarticulo FROM ew_articulos AS a WHERE a.codigo = dbo._sys_fnc_parametroTexto('CXC_CONCEPTOPAGO'))
-	,[cfd_cantidad] = 1
-	,[cfd_unidad] = 'ACT'
-	,[cfd_noIdentificacion] = ''
-	,[cfd_descripcion] = 'Nota de Credito por ' + ISNULL(c.nombre, 'credito') + ' en el comprobante ' + m2.folio + ' del ' + CONVERT(VARCHAR(8), m2.fecha, 3)
-	,[cfd_valorUnitario] = ct.subtotal
-	,[cfd_importe] = ct.subtotal
-	,[idmov2] = ct.idmov
-FROM	
-	dbo.ew_cxc_transacciones AS ct
-	LEFT JOIN dbo.ew_sys_transacciones AS t 
-		ON t.idtran = ct.idtran
-	LEFT JOIN dbo.ew_cxc_transacciones AS m2 
-		ON m2.idtran = ct.idtran2
-	LEFT JOIN conceptos As c
-		ON c.idconcepto = ct.idconcepto
-WHERE
-	ct.transaccion = 'FDA2'
-	AND ct.idtran = @idtran
-	
 -----------------------------------------------------------------------
 -- Insertando los conceptos en EW_CFD_COMPROBANTES_MOV_IMPUESTO
 -----------------------------------------------------------------------	

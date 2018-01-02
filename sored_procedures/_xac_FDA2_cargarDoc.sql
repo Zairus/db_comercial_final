@@ -59,6 +59,7 @@ SELECT
 	,[comentario] = ct.comentario
 
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
+	,[UUID] = ISNULL(timbres.cfdi_UUID,'')
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM
 	ew_cxc_transacciones AS ct
@@ -81,6 +82,9 @@ FROM
 
 	LEFT JOIN ew_cxc_transacciones AS ct2
 		ON ct2.idtran = ct.idtran2
+
+	LEFT JOIN ew_cfd_comprobantes_timbre AS timbres 
+		ON timbres.idtran = ct.idtran
 
 	CROSS APPLY (
 		SELECT TOP 1 
