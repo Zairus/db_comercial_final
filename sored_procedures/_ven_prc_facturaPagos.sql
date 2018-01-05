@@ -19,9 +19,9 @@ DECLARE
 	@idmov AS MONEY
 	,@idtran2 AS INT
 	,@idforma AS SMALLINT
-	,@subtotal AS DECIMAL(15,2)
-	,@impuesto1 AS DECIMAL(15,2)
-	,@total AS DECIMAL(15,2)
+	,@subtotal AS DECIMAL(18,6)
+	,@impuesto1 AS DECIMAL(18,6)
+	,@total AS DECIMAL(18,6)
 	,@comentario AS VARCHAR(MAX)
 	,@error AS BIT
 	,@error_mensaje AS VARCHAR(500)
@@ -29,11 +29,11 @@ DECLARE
 	,@idsucursal AS SMALLINT
 	,@idcliente AS INT
 	,@idmoneda AS SMALLINT
-	,@tipocambio AS DECIMAL(15,2)
+	,@tipocambio AS DECIMAL(18,6)
 	,@idimpuesto1 AS SMALLINT
-	,@idimpuesto1_valor AS DECIMAL(15,2)
-	,@saldo_referencia AS DECIMAL(15,2)
-	,@saldo_aplicacion AS DECIMAL(15,2)
+	,@idimpuesto1_valor AS DECIMAL(18,6)
+	,@saldo_referencia AS DECIMAL(18,6)
+	,@saldo_aplicacion AS DECIMAL(18,6)
 	,@idu AS SMALLINT
 	,@idcuenta AS SMALLINT
 	,@consecutivo AS SMALLINT

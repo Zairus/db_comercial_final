@@ -157,4 +157,6 @@ BEGIN
 	WHERE 
 		idtran = @idtran
 END
+
+EXEC _ct_prc_polizaAplicarDeconfiguracion @idtran, 'EFA6', @idtran
 GO
