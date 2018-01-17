@@ -5,7 +5,7 @@ GO
 -- Create date: 20151209
 -- Description:	Importar proveedor de comprobante.
 -- =============================================
-ALTER PROCEDURE _ect_prc_importarProveedor
+ALTER PROCEDURE [dbo].[_ect_prc_importarProveedor]
 	@idcomprobante AS INT
 AS
 
@@ -34,6 +34,7 @@ INSERT INTO ew_proveedores (
 	,idciudad
 	,codigo_postal
 	,comentario
+	,contabilidad
 )
 
 SELECT
@@ -49,6 +50,7 @@ SELECT
 	,[idciudad] = ISNULL((SELECT TOP 1 cd.idciudad FROM ew_sys_ciudades AS cd WHERE cd.ciudad = ccr.Emisor_municipio), 0)
 	,[codigo_postal] = ccr.Emisor_codigoPostal
 	,[comentario] = 'Importado de XML: ' +  ccr.Timbre_UUID
+	,[contabilidad] = '2100001000'
 FROM 
 	ew_cfd_comprobantes_recepcion AS ccr
 WHERE

@@ -127,18 +127,21 @@ SELECT
 	,[importe] = ctm.importe
 	,[importe2] = ctm.importe2
 	,[saldo] = f.saldo - ctm.importe2
-	,[subtotal] = ctm.subtotal
+	
 	,[impuesto1] = ctm.impuesto1
 	,[impuesto2] = ctm.impuesto2
 	,[impuesto3] = ctm.impuesto3
 	,[impuesto4] = ctm.impuesto4
 	,[impuesto1_ret] = ctm.impuesto1_ret
 	,[impuesto2_ret] = ctm.impuesto2_ret
+	,[subtotal] = ctm.subtotal
+
 	,[idu] = ctm.idu
 	,[comentario] = ctm.comentario
 
 	,[idr] = ctm.idr
 	,[idtran] = ctm.idtran
+	,[objidtran] = ctm.idtran2
 	,[idmov] = ct.idmov
 FROM
 	ew_cxc_transacciones_mov AS ctm

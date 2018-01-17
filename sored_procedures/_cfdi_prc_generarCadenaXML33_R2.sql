@@ -162,7 +162,7 @@ FROM (
 								cmi.base AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,CONVERT(DECIMAL(18,6), cmi.importe / cmi.base) AS '@TasaOCuota'
+								,CONVERT(DECIMAL(18,6), CONVERT(DECIMAL(18,2), (cmi.importe / cmi.base))) AS '@TasaOCuota'
 								,cmi.importe AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
@@ -196,7 +196,14 @@ FROM (
 							FOR XML PATH ('cfdi:Retencion'), TYPE
 						) AS 'cfdi:Retenciones'
 					WHERE
-						(SELECT COUNT(*) FROM ew_cfd_comprobantes_mov_impuesto AS ccmi WHERE ccmi.idtran = cc.idtran) > 0
+						(
+							SELECT COUNT(*) 
+							FROM 
+								ew_cfd_comprobantes_mov_impuesto AS ccmi 
+							WHERE 
+								ccmi.idtran = cc.idtran 
+								AND ccmi.idmov2 = ccm.idmov2
+						) > 0
 					FOR XML PATH ('cfdi:Impuestos'), TYPE
 				) AS '*'
 
@@ -288,7 +295,7 @@ FROM (
 				,(
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
-						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
+						,SUM(cci.cfd_importe) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
@@ -306,7 +313,7 @@ FROM (
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
 						,CONVERT(DECIMAL(18,6), (cci.cfd_tasa / 100.00)) AS '@TasaOCuota'
-						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
+						,SUM(cci.cfd_importe) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi

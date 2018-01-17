@@ -79,6 +79,8 @@ BEGIN
 				ON c.idcomando = i.idcomando
 		WHERE
 			i.cfd_idfolio = @cfd_idfolio
+		ORDER BY
+			i.idtran DESC
 
 		INSERT INTO ew_cfd_transacciones(
 			cfd_idfolio

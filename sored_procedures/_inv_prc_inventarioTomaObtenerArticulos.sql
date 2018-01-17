@@ -5,7 +5,7 @@ GO
 -- Create date: 20170201
 -- Description:	Alimentar toma de inventario con registros
 -- =============================================
-ALTER PROCEDURE _inv_prc_inventarioTomaObtenerArticulos
+ALTER PROCEDURE [dbo].[_inv_prc_inventarioTomaObtenerArticulos]
 	@idtran AS INT
 	,@idalmacen AS INT
 	,@tipo AS INT --#0,Todos...|#1,Con Existencias|
@@ -63,6 +63,12 @@ FROM
 	LEFT JOIN ew_articulos_sucursales AS [as]
 		ON [as].idarticulo = a.idarticulo
 		AND [as].idsucursal = alm.idsucursal
+	LEFT JOIN ew_articulos_niveles AS an1
+		ON an1.nivel = 1
+		AND an1.codigo = a.nivel1
+	LEFT JOIN ew_articulos_niveles AS an2
+		ON an2.nivel = 2
+		AND an2.codigo = a.nivel2
 	LEFT JOIN ew_articulos_niveles AS an3
 		ON an3.nivel = 3
 		AND an3.codigo = a.nivel3
@@ -82,7 +88,7 @@ WHERE
 	)
 	OR (
 		@filtrar = 2
-		AND ISNULL(an3.codigo, '') = @parametro
+		AND ISNULL(an1.codigo, '') = @parametro
 	)
 	OR (
 		@filtrar = 3

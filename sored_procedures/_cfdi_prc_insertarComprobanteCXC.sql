@@ -356,7 +356,7 @@ SELECT
 	,[idtipo] = vtmi.idtipo
 	,[cfd_impuesto] = vtmi.cfd_impuesto
 	,[cfd_tasa] = vtmi.cfd_tasa
-	,[cfd_importe] = SUM(ctm.impuesto1)
+	,[cfd_importe] = SUM(CASE WHEN ci.idimpuesto = f.idimpuesto1 THEN ctm.impuesto1 ELSE ctm.impuesto2 END)
 FROM
 	ew_cxc_transacciones_mov AS ctm
 	LEFT JOIN ew_cxc_transacciones AS ct
@@ -365,6 +365,8 @@ FROM
 		ON f.idtran = ctm.idtran2
 	LEFT JOIN ew_ven_transacciones_mov_impuestos AS vtmi
 		ON vtmi.idtran = f.idtran
+	LEFT JOIN ew_cat_impuestos AS ci 
+		ON ci.grupo = vtmi.cfd_impuesto
 WHERE
 	ct.tipo = 2
 	AND ctm.idtran = @idtran
@@ -706,7 +708,7 @@ INSERT INTO #_tmp_venta_detalle (
 	,impuesto2
 	,idmov
 )
-SELECT
+SELECT TOP 1
 	[consecutivo] = 1
 	,[consecutivo_padre] = 0
 	,[idarticulo] = (SELECT a.idarticulo FROM ew_articulos AS a WHERE a.codigo = dbo._sys_fnc_parametroTexto('CXC_CONCEPTOPAGO'))
@@ -717,17 +719,19 @@ SELECT
 	,[cfd_valorUnitario] = ct.subtotal
 	,[cfd_importe] = ct.subtotal
 
-	,[idimpuesto1] = ct.idimpuesto1
+	,[idimpuesto1] = m2.idimpuesto1
 	,[impuesto1] = ct.impuesto1
-	,[idimpuesto2] = ct.idimpuesto2
+	,[idimpuesto2] = m2.idimpuesto2
 	,[impuesto2] = ct.impuesto2
 	,[idmov] = ct.idmov
 FROM	
 	dbo.ew_cxc_transacciones AS ct
 	LEFT JOIN dbo.ew_sys_transacciones AS t 
 		ON t.idtran = ct.idtran
+	LEFT JOIN dbo.ew_cxc_transacciones_mov AS ctm
+		ON ctm.idtran = ct.idtran
 	LEFT JOIN dbo.ew_cxc_transacciones AS m2 
-		ON m2.idtran = ct.idtran2
+		ON m2.idtran = ctm.idtran2
 	LEFT JOIN conceptos As c
 		ON c.idconcepto = ct.idconcepto
 WHERE
