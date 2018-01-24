@@ -5,7 +5,7 @@ GO
 -- Create date: 20171207
 -- Description:	Regresa un valor con los decimales especificados
 -- =============================================
-ALTER FUNCTION _sys_fnc_decimales
+ALTER FUNCTION [dbo].[_sys_fnc_decimales]
 (
 	@numero AS DECIMAL(18, 6)
 	,@decimales AS INT
@@ -18,9 +18,8 @@ BEGIN
 
 	SELECT @decimales = ISNULL(@decimales, 6)
 
-	SELECT @valor = LTRIM(RTRIM(STR(@numero, 20, @decimales)))
+	SELECT @valor = LTRIM(RTRIM(STR(ROUND(@numero, @decimales), 20, @decimales)))
 
 	RETURN @valor
 END
 GO
-

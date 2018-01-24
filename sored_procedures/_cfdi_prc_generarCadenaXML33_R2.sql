@@ -64,7 +64,39 @@ FROM (
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE CONVERT(DECIMAL(18,6), cc.cfd_TipoCambio) END) AS '@TipoCambio'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) END) AS '@SubTotal'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_total, csm.decimales) END) AS '@Total'
+		
+		,(
+			CASE 
+				WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' 
+				ELSE dbo._sys_fnc_decimales(
+					(
+						ROUND(cc.cfd_subtotal, 2)
+						+ ROUND(ISNULL((
+							SELECT 
+								SUM(cci.cfd_importe) 
+							FROM 
+								ew_cfd_comprobantes_impuesto AS cci
+							WHERE 
+								cci.cfd_ambito = 0
+								AND cci.idtipo = 1
+								AND cci.idtran = cc.idtran
+						), 0), 2)
+						- ROUND(ISNULL((
+							SELECT 
+								SUM(cci.cfd_importe) 
+							FROM 
+								ew_cfd_comprobantes_impuesto AS cci
+							WHERE 
+								cci.cfd_ambito = 0
+								AND cci.idtipo = 2
+								AND cci.idtran = cc.idtran
+						), 0), 2)
+					)
+					, csm.decimales
+				) 
+			END
+		) AS '@Total'
+
 		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
 		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
 		,db_comercial.dbo.EWCFD('CERTIFICADO', cer.certificado + ' 1') AS '@Certificado'

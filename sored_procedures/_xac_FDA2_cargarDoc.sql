@@ -29,6 +29,8 @@ SELECT
 	,[idr] = ct.idr
 	,[idtran] = ct.idtran
 	,[idmov] = ct.idmov
+	,[idmoneda] = ct.idmoneda
+	,[tipocambio] = ct.tipocambio
 	,[cliente_nombre] = c.nombre
 	,[cliente_rfc] = cfa.rfc
 	,[cliente_direccion] = cfa.calle
@@ -36,8 +38,6 @@ SELECT
 	,[cliente_estado] = cfa.estado
 	,[cliente_cp] = cfa.codpostal
 	,[cliente_email] = cfa.email
-	,[idmoneda] = ct.idmoneda
-	,[tipocambio] = ct.tipocambio
 	,[spa] = ''
 	,[doc_subtotal] = ct2.subtotal
 	,[doc_impuesto1] = ct2.impuesto1
