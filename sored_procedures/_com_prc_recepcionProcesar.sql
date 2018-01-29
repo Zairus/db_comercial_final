@@ -237,38 +237,28 @@ INSERT INTO ew_sys_transacciones2 (
 	,idu
 )
 SELECT DISTINCT
-	[idtran] = co.idtran
+	[idtran] = com.idtran
 	,[idestado] = (
 		CASE 
-			WHEN (com.cantidad_ordenada - com.cantidad_surtida) > 0 THEN
-				dbo.fn_sys_estadoID('SUR~')
-			WHEN (com.cantidad_ordenada - com.cantidad_surtida) <= 0 THEN
-				dbo.fn_sys_estadoID('RCBO')
+			WHEN (
+				SELECT SUM(ctm.cantidad_ordenada - ctm.cantidad_surtida) 
+				FROM ew_com_ordenes_mov AS ctm 
+				WHERE ctm.idtran = com.idtran
+			) > 0 THEN 
+				dbo.fn_sys_estadoID('SUR~') 
+			ELSE 
+				dbo.fn_sys_estadoID('RCBO') 
 		END
 	)
 	,[idu] = r.idu
-FROM 
+FROM
 	ew_com_transacciones_mov AS rd
 	LEFT JOIN ew_com_transacciones AS r
 		ON r.idtran = rd.idtran
 	LEFT JOIN ew_com_ordenes_mov AS com
 		ON com.idmov = rd.idmov2
-	LEFT JOIN ew_com_ordenes AS co
-		ON co.idtran = com.idtran
-	LEFT JOIN ew_sys_transacciones AS st
-		ON st.idtran = co.idtran
 WHERE
-	(
-		(
-			(com.cantidad_ordenada - com.cantidad_surtida) > 0
-			AND st.idestado <> dbo.fn_sys_estadoID('SUR~')
-		)
-		OR (
-			(com.cantidad_ordenada - com.cantidad_surtida) <= 0
-			AND st.idestado <> dbo.fn_sys_estadoID('RCBO')
-		)
-	)
-	AND rd.idtran = @idtran
+	rd.idtran = @idtran
 
 EXEC [dbo].[_com_prc_recepcionProcesarConsignacion] @idtran
 GO

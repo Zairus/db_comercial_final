@@ -62,7 +62,7 @@ FROM (
 		,(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END) AS '@CondicionesDePago'
 		,ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE CONVERT(DECIMAL(18,6), cc.cfd_TipoCambio) END) AS '@TipoCambio'
+		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) END) AS '@TipoCambio'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) END) AS '@SubTotal'
 		
 		,(
@@ -183,7 +183,7 @@ FROM (
 				) AS '@Unidad'
 				,ccm.cfd_descripcion AS '@Descripcion'
 				,dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, csm.decimales) AS '@ValorUnitario'
-				,ccm.cfd_importe AS '@Importe'
+				,dbo._sys_fnc_decimales(ccm.cfd_importe, csm.decimales) AS '@Importe'
 				--,ccm.cfd_descuento AS '@Descuento'
 				
 				--Impuestos por conceptos
@@ -191,11 +191,12 @@ FROM (
 					SELECT
 						(
 							SELECT
-								cmi.base AS '@Base'
+								dbo._sys_fnc_decimales(cmi.base, csm.decimales) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,CONVERT(DECIMAL(18,6), CONVERT(DECIMAL(18,2), (cmi.importe / cmi.base))) AS '@TasaOCuota'
-								,cmi.importe AS '@Importe'
+								--,CONVERT(DECIMAL(18,6), CONVERT(DECIMAL(18,2), (cmi.importe / cmi.base))) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales((cmi.importe / cmi.base), csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
 								LEFT JOIN ew_cat_impuestos AS ci
@@ -210,11 +211,11 @@ FROM (
 						) AS 'cfdi:Traslados'
 						,(
 							SELECT
-								cmi.base AS '@Base'
+								dbo._sys_fnc_decimales(cmi.base, csm.decimales) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,ci.valor AS '@TasaOCuota'
-								,cmi.importe AS '@Importe'
+								,dbo._sys_fnc_decimales(ci.valor, csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
 								LEFT JOIN ew_cat_impuestos AS ci
@@ -253,8 +254,8 @@ FROM (
 							END
 						) AS '@Unidad'
 						,ccmp.cfd_descripcion AS '@Descripcion'
-						,ccmp.cfd_valorUnitario AS '@ValorUnitario'
-						,ccmp.cfd_importe AS '@Importe'
+						,dbo._sys_fnc_decimales(ccmp.cfd_valorUnitario, csm.decimales) AS '@ValorUnitario'
+						,dbo._sys_fnc_decimales(ccmp.cfd_importe, csm.decimales) AS '@Importe'
 						,NULL AS '@Descuento'
 					FROM
 						ew_cfd_comprobantes_mov AS ccmp
@@ -327,7 +328,7 @@ FROM (
 				,(
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
-						,SUM(cci.cfd_importe) AS '@Importe'
+						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
@@ -344,8 +345,9 @@ FROM (
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
-						,CONVERT(DECIMAL(18,6), (cci.cfd_tasa / 100.00)) AS '@TasaOCuota'
-						,SUM(cci.cfd_importe) AS '@Importe'
+						--,CONVERT(DECIMAL(18,6), (cci.cfd_tasa / 100.00)) AS '@TasaOCuota'
+						,dbo._sys_fnc_decimales((cci.cfd_tasa / 100.00), csm.decimales) AS '@TasaOCuota'
+						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 
 						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
