@@ -711,7 +711,7 @@ SELECT TOP 1
 
 	,[idimpuesto1] = m2.idimpuesto1
 	,[impuesto1] = ct.impuesto1
-	,[idimpuesto2] = m2.idimpuesto2
+	,[idimpuesto2] = 11 --m2.idimpuesto2
 	,[impuesto2] = ct.impuesto2
 	,[idmov] = ct.idmov
 FROM	

@@ -20,6 +20,7 @@ SELECT
 			ELSE o.nombre
 		END
 	)
+	,[documento_tipo] = vt.tipo
 	,[fecha] = cc.cfd_fecha
 	,[folio] = cc.cfd_serie + LTRIM(RTRIM(STR(cc.cfd_folio)))
 
@@ -40,16 +41,15 @@ SELECT
 					ELSE '' 
 				END
 			)
-			+ CHAR(10)
-			+ ccu.cfd_municipio
+			+ ' COL. ' + ccu.cfd_colonia
+			+ ' '
+			+ (CASE WHEN ccu.cfd_municipio='' THEN ccu.cfd_localidad ELSE ccu.cfd_municipio END)
 			+ ', '
 			+ ccu.cfd_estado
 			+ ', '
-			+ ccu.cfd_pais
-			+ ' '
+			+ ' C.P. '
 			+ ccu.cfd_codigoPostal
-			+ CHAR(10)
-			+ 'Tel: '
+			+ ' TEL: '
 			+ s.telefono
 		FROM 
 			ew_cfd_comprobantes_ubicacion AS ccu 
@@ -62,29 +62,22 @@ SELECT
 			s.nombre
 			+ CHAR(10)
 			+ REPLACE(s.direccion, CHAR(13), '')
+			+ ' COL. ' + s.colonia
 			+ CHAR(10)
 			+ REPLACE(scd.ciudad, CHAR(13), '')
 			+ ', '
 			+ scd.estado
-			+ ', '
-			+ scd.pais
-			+ ' '
+			+ ' C.P. '
 			+ s.codpostal
-			+ CHAR(10)
 		FROM
 			ew_sys_ciudades AS scd
 		WHERE
 			scd.idciudad = s.idciudad
 	)
 	
-	,[receptor_nombre] = (
-		SELECT
-			ccrfc.cfd_nombre
-		FROM
-			ew_cfd_rfc AS ccrfc
-		WHERE
-			ccrfc.cfd_rfc = cc.rfc_receptor
-	)
+	,[receptor_no_orden] = ISNULL(vt2.no_orden,'') --ORDEN DE COMPRA DEL CLIENTE
+	,[receptor_codigo] = c.codigo
+	,[receptor_nombre] = cf.razon_social
 	,[receptor_rfc] = cc.rfc_receptor
 	,[receptor_domicilio] = (
 		SELECT
@@ -97,12 +90,11 @@ SELECT
 					ELSE '' 
 				END
 			)
+			+ ' COL. ' + ccu.cfd_colonia
 			+ CHAR(10)
-			+ ccu.cfd_municipio
+			+ (CASE WHEN ccu.cfd_municipio='' THEN ccu.cfd_localidad ELSE ccu.cfd_municipio END)
 			+ ', '
 			+ ccu.cfd_estado
-			+ ', '
-			+ ccu.cfd_pais
 			+ ' '
 			+ ccu.cfd_codigoPostal
 		FROM 
@@ -210,9 +202,21 @@ FROM
 	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
 		ON cct.idtran = cc.idtran
 	LEFT JOIN ew_clientes_facturacion AS ecfa
-		ON ecfa.idcliente = 0
-		AND ecfa.idfacturacion = 0
+		ON ecfa.idcliente = 0 AND ecfa.idfacturacion = 0
+---------------------------------------------------------------------------
+-- Se agregaron estos LEFT JOIN para que se haga el amarre por medio de idcliente
+-- y no por RFC para evitar que ponga otro nombre en la factura cuando se repite el RFC
+-- en ew_clientes_facturacion
+	LEFT JOIN ew_cxc_transacciones AS vt
+		ON cc.idtran = vt.idtran
+	LEFT JOIN ew_clientes_facturacion cf
+		ON cf.idcliente = vt.idcliente AND cf.idfacturacion=0
+	LEFT JOIN ew_clientes c
+		ON c.idcliente = cf.idcliente
 
+	LEFT JOIN ew_ven_transacciones AS vt2
+		ON vt2.idtran = vt.idtran
+---------------------------------------------------------------------------
 	LEFT JOIN (
 		SELECT
 			[idtran] = ccm1.idtran
@@ -222,7 +226,7 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = ccm1.cfd_descripcion
+			,[concepto_descripcion] = ccm1.cfd_descripcion + CASE WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2))>0 THEN ' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) ELSE '' END
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -233,6 +237,7 @@ FROM
 				ON csc.idclasificacion = a.idclasificacion_sat
 		WHERE
 			ccm1.cfd_unidad <> 'ACT'
+			AND ccm1.consecutivo_padre = 0
 
 		UNION ALL
 
@@ -245,13 +250,13 @@ FROM
 			,[concepto_cantidad] = 1
 			,[concepto_unidad] = ccm1.cfd_unidad
 			,[concepto_descripcion] = (
-				'Pago '
+				'Aplicación a '
 				+ o1.nombre
 				+ ': '
 				+ ccf.cfd_serie
 				+ LTRIM(RTRIM(STR(ccf.cfd_folio)))
 			)
-			,[concepto_precio_unitario] = ctm1.importe
+			,[concepto_precio_unitario] = ct1.subtotal
 			,[concepto_importe] = ctm1.importe
 		FROM
 			ew_cfd_comprobantes_mov AS ccm1
@@ -267,11 +272,10 @@ FROM
 				ON ct1.idtran = ctm1.idtran2
 			LEFT JOIN objetos AS o1
 				ON o1.codigo = ct1.transaccion
+			WHERE 
+				ccm1.consecutivo_padre = 0
 	) AS ccm
 		ON ccm.idtran = cc.idtran
-
-	--LEFT JOIN ew_cfd_comprobantes_mov AS ccm
-		--ON ccm.idtran = cc.idtran
 
 	LEFT JOIN ew_cxc_transacciones AS doc
 		ON doc.idtran = cc.idtran

@@ -209,6 +209,7 @@ BEGIN
 			,programado_fecha
 			,saldo
 			,referencia
+			,idcuenta
 		)
 		VALUES (
 			{idtran}
@@ -233,6 +234,7 @@ BEGIN
 			,''' + CONVERT(VARCHAR(8), @fecha, 3) + '''
 			,' + CONVERT(VARCHAR(20), @total) + '
 			,''' + @referencia + '''
+			,' + CONVERT(VARCHAR(20), @idcuenta) + '
 		)
 
 		INSERT INTO ew_cxc_transacciones_mov (
@@ -308,7 +310,6 @@ BEGIN
 			,' + CONVERT(VARCHAR(20), @impuesto1) + '
 			,' + CONVERT(VARCHAR(20), @subtotal+ @impuesto1) + '		
 		)
-
 		INSERT INTO ew_ban_transacciones_mov (
 			idtran
 			,consecutivo

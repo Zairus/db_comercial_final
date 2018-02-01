@@ -408,6 +408,20 @@ END
 
 EXEC _ven_prc_facturaPagos @idtran
 
+UPDATE ct SET
+	ct.idmetodo = (
+		CASE
+			WHEN ABS(ct.saldo) < 0.01 THEN
+				(SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PUE')
+			ELSE
+				(SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PPD')
+		END
+	)
+FROM
+	ew_cxc_transacciones AS ct
+WHERE
+	ct.idtran = @idtran
+
 --------------------------------------------------------------------------------
 -- CONTABILIZAR VENTA CON COSTO ################################################
 

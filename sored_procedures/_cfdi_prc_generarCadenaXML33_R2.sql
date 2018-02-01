@@ -191,11 +191,10 @@ FROM (
 					SELECT
 						(
 							SELECT
-								dbo._sys_fnc_decimales(cmi.base, csm.decimales) AS '@Base'
+								CONVERT(DECIMAL(15,2), CONVERT(DECIMAL(15,2), cmi.importe) / CONVERT(DECIMAL(15,2), ci.valor)) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								--,CONVERT(DECIMAL(18,6), CONVERT(DECIMAL(18,2), (cmi.importe / cmi.base))) AS '@TasaOCuota'
-								,dbo._sys_fnc_decimales((cmi.importe / cmi.base), csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(ci.valor, csm.decimales) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi

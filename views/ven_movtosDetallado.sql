@@ -13,6 +13,8 @@ SELECT
 	, precio_unitario
 	, impuesto1
 	, importe, total
+	, comentario
+	, objlevel
 FROM
 	ew_ven_documentos_mov
 
@@ -29,6 +31,8 @@ SELECT
 	, precio_unitario
 	, impuesto1
 	, importe, total
+	, comentario
+	, objlevel
 FROM
 	ew_ven_ordenes_mov
 
@@ -46,6 +50,8 @@ SELECT
 	, impuesto1
 	, importe
 	, total
+	, comentario
+	, objlevel
 FROM
 	ew_ven_transacciones_mov
 GO
