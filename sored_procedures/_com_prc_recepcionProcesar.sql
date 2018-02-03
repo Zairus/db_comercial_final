@@ -88,6 +88,7 @@ SELECT
 	, referencia
 	, idconcepto
 	, comentario
+	, idu
 )
 SELECT
 	{idtran}
@@ -100,11 +101,11 @@ SELECT
 	''CRE1 - '' + folio
 	, 16
 	, comentario
+	, ' + CONVERT(VARCHAR(5),@idu) + '
 FROM 
 	ew_com_transacciones
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran) + '
-
 INSERT INTO ew_inv_transacciones_mov (
 	idtran
 	, idtran2
@@ -261,4 +262,6 @@ WHERE
 	rd.idtran = @idtran
 
 EXEC [dbo].[_com_prc_recepcionProcesarConsignacion] @idtran
+
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran
 GO

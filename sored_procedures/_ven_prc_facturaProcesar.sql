@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -82,22 +82,7 @@ WHERE
 	cantidad_facturada > 0
 	AND idtran = @idtran
 
--- Aplicar los pagos si la factura es de contado ---
-IF EXISTS (
-	SELECT idtran 
-	FROM 
-		ew_ven_transacciones 
-	WHERE
-		credito = 0
-		AND idtran = @idtran
-)
-BEGIN
-	EXEC _ven_prc_facturaPagos @idtran
-END
-	ELSE
-BEGIN
-	DELETE FROM ew_ven_transacciones_pagos WHERE idtran = @idtran
-END
+EXEC _ven_prc_facturaPagos @idtran
 
 --------------------------------------------------------------------
 -- Cambiamos el estado de la orden
