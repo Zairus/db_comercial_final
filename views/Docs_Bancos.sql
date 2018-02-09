@@ -13,7 +13,7 @@ SELECT
 	, [tipo] = b.tipo
 	, [fecha] = b.fecha
 	, [fechacap] = b.fechahora
-	, [importe] = b.importe
+	, [importe] = CONVERT(DECIMAL(18,2), b.importe)
 	, [tcbanco] = b.tipocambio
 	, [tc_dof] = b.tipocambio
 	, [beneficiario] = b.identidad
@@ -58,7 +58,7 @@ SELECT
 	, [tipo] = b.tipo
 	, [fecha] = b.fecha
 	, [fechacap] = b.fechahora
-	, [importe] = btm.importe
+	, [importe] = CONVERT(DECIMAL(18,2), btm.importe)
 	, [tcbanco] = b.tipocambio
 	, [tc_dof] = b.tipocambio
 	, [beneficiario] = b.identidad

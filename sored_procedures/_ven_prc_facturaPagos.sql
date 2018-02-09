@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -395,13 +395,35 @@ IF EXISTS (
 	WHERE idtran = @idtran
 )
 BEGIN
+	SELECT @idforma = NULL
+
+	SELECT TOP 1 
+		@idforma = ISNULL(bfa.idforma, bfa.idforma)
+	FROM 
+		ew_ven_transacciones_pagos AS vtp
+		LEFT JOIN ew_cxc_transacciones AS ct
+			ON ct.idtran = vtp.idtran2
+		LEFT JOIN ew_ban_formas_aplica AS bfa
+			ON bfa.idforma = ct.idforma
+	WHERE 
+		vtp.idtran = @idtran 
+	ORDER BY 
+		vtp.total DESC
+
+	SELECT TOP 1
+		@idforma = ISNULL(@idforma, bf.idforma)
+	FROM 
+		ew_ban_formas_aplica AS bf
+	WHERE
+		bf.codigo = '99'
+
 	UPDATE ew_ven_transacciones SET
-		idforma = (SELECT TOP 1 bf.idforma FROM ew_ven_transacciones_pagos AS bf WHERE idtran = @idtran ORDER BY bf.total DESC)
+		idforma = @idforma
 	WHERE
 		idtran = @idtran
 
 	UPDATE ew_cxc_transacciones SET
-		idforma = (SELECT TOP 1 bf.idforma FROM ew_ven_transacciones_pagos AS bf WHERE idtran=@idtran ORDER BY bf.total DESC)
+		idforma = @idforma
 	WHERE
 		idtran = @idtran
 END

@@ -191,13 +191,18 @@ FROM (
 					SELECT
 						(
 							SELECT
-								CONVERT(DECIMAL(15,2), CONVERT(DECIMAL(15,2), cmi.importe) / CONVERT(DECIMAL(15,2), ci.valor)) AS '@Base'
+								CONVERT(DECIMAL(15,2), CONVERT(DECIMAL(15,2), cmi.importe) / CONVERT(DECIMAL(15,2), (CASE WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor ELSE ci.valor END))) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,dbo._sys_fnc_decimales(ci.valor, csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(
+									(CASE WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor ELSE ci.valor END)
+									, csm.decimales
+								) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
+								LEFT JOIN ew_ven_transacciones_mov AS vtm
+									ON vtm.idmov = cmi.idmov2
 								LEFT JOIN ew_cat_impuestos AS ci
 									ON ci.idimpuesto = cmi.idimpuesto
 								LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
