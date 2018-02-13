@@ -24,7 +24,7 @@ CREATE TABLE #_tmp_ns (
 	codigo VARCHAR(50)
 )
 
-INSERT INTO #_tmp_ns (codigo) VALUES ('xsi'), ('cfdi'), ('pago10')
+INSERT INTO #_tmp_ns (codigo) VALUES ('xsi'), ('cfdi')--, ('pago10')
 
 SELECT
 	@cfd_fecha = cc.cfd_fecha
@@ -38,7 +38,8 @@ SELECT
 FROM
 	db_comercial.dbo.evoluware_cfd_sat_xmlnamespace AS xmlns
 WHERE
-	xmlns.codigo IN (SELECT tns.codigo FROM #_tmp_ns AS tns)
+	(LEN(xmlns.uri) > 0 AND LEN(xmlns.xsd) > 0)
+	AND xmlns.codigo IN (SELECT tns.codigo FROM #_tmp_ns AS tns)
 
 SELECT @schema_location = REPLACE(@schema_location, '  ', ' ')
 SELECT @schema_location = LTRIM(RTRIM(@schema_location))

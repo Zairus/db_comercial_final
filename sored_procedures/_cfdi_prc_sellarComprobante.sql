@@ -64,6 +64,9 @@ DECLARE
 	,@respuestaXml AS VARCHAR(MAX)
 	,@cadena_original_timbrado AS VARCHAR(MAX)
 
+	, @xmlSellado64 NVARCHAR (MAX)
+	, @xmlTimbrado64 NVARCHAR (MAX)
+
 DECLARE
 	@pac_i AS INT = 0
 
@@ -322,8 +325,10 @@ BEGIN
 				, '' --Opciones
 				, @xslt
 				, @firma
-				, @OutXML OUTPUT
-				, @respuestaXml OUTPUT
+				, @OutXML OUTPUT -- XMLSellado
+				, @xmlSellado64 OUTPUT -- XMLSellado64
+				, @respuestaXml OUTPUT --XMLTimbrado
+				, @xmlTimbrado64 OUTPUT --XMLTimbrado64
 				, @cadena OUTPUT
 				, @cadena_original_timbrado OUTPUT
 				, @FechaTimbrado OUTPUT
@@ -334,13 +339,15 @@ BEGIN
 				, @selloSAT OUTPUT
 				, @UUID OUTPUT
 				, @mensaje OUTPUT
-				
+			
 			SELECT @mensaje = ISNULL(@mensaje, '')
-			SELECT @xmlBase64 = [dbEVOLUWARE].[dbo].[CONV_StringToBase64](@respuestaXml)
+			SELECT @xmlBase64 = @xmlTimbrado64 -- [dbEVOLUWARE].[dbo].[CONV_StringToBase64](@respuestaXml)
 			
 			SELECT @QR_code = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@QR_Base64)
 
-			SELECT @msg = [dbEVOLUWARE].[dbo].[TXT_WriteFile](@OutXML, REPLACE(@archivoXML, '.xml', '_debug.xml'))
+			SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlSellado64)
+			SELECT @r = [dbEVOLUWARE].[dbo].[bin_save](@bin_xml, REPLACE(@archivoXML, '.xml', '_debug.xml'))
+			SELECT @bin_xml = NULL
 
 			SELECT @msg = @mensaje
 
