@@ -76,30 +76,30 @@ WHERE
 	p.tipo = 2
 	AND ctm.idtran2 = @idtran
 
-IF EXISTS (
-	SELECT * 
-	FROM ew_ven_transacciones_pagos 
-	WHERE idtran = @idtran
-)
-BEGIN
-	IF EXISTS (
-		SELECT * 
-		FROM 
-			ew_ven_transacciones_pagos  AS vtp
-			LEFT JOIN ew_ban_formas AS bf
-				ON bf.idforma = vtp.idforma
-			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
-				ON csf.c_formapago = bf.codigo
-		WHERE 
-			vtp.clabe_origen = ''
-			AND csf.bancarizado = 1
-			AND vtp.idtran = @idtran
-	)
-	BEGIN
-		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
-		RETURN
-	END
-END
+--IF EXISTS (
+--	SELECT * 
+--	FROM ew_ven_transacciones_pagos 
+--	WHERE idtran = @idtran
+--)
+--BEGIN
+--	IF EXISTS (
+--		SELECT * 
+--		FROM 
+--			ew_ven_transacciones_pagos  AS vtp
+--			LEFT JOIN ew_ban_formas AS bf
+--				ON bf.idforma = vtp.idforma
+--			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+--				ON csf.c_formapago = bf.codigo
+--		WHERE 
+--			vtp.clabe_origen = ''
+--			AND csf.bancarizado = 1
+--			AND vtp.idtran = @idtran
+--	)
+--	BEGIN
+--		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
+--		RETURN
+--	END
+--END
 
 IF @formas_pago = ''
 BEGIN
@@ -130,6 +130,7 @@ INSERT INTO [dbo].[ew_cfd_comprobantes] (
 	,[cfd_tipoDeComprobante]
 	,[rfc_emisor]
 	,[rfc_receptor]
+	,[receptor_nombre]
 	,[comentario]
 	,[cfd_metodoDePago]
 	,[cfd_NumCtaPago]
@@ -182,6 +183,7 @@ SELECT
 	)
 	,[rfc_emisor] = dbo.fn_sys_parametro('RFC')
 	,[rfc_receptor] = @rfc
+	,[receptor_nombre]=cf.razon_social
 	,[comentario] = ''
 	,[cfd_metodoDePago] = ISNULL(@formas_pago, ISNULL(bf.codigo, '99'))
 	,[cfd_NumCtaPago] = '' --#####################
@@ -202,6 +204,9 @@ FROM
 		ON bf.idforma = ct.idforma
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_uso AS csu
 		ON csu.id = ct.cfd_iduso
+
+	LEFT JOIN ew_clientes_facturacion cf
+		ON cf.idcliente = ct.idcliente AND cf.idfacturacion=0
 WHERE
 	ct.idtran = @idtran
 	
@@ -848,11 +853,12 @@ FROM
 	#_tmp_venta_detalle AS tvd
 WHERE
 	tvd.consecutivo_padre = 0
+	AND tvd.idimpuesto1 > 0
 GROUP BY
 	tvd.idmov
 	,tvd.idimpuesto1
-HAVING
-	ABS(SUM(tvd.impuesto1)) > 0.0
+--HAVING
+	--ABS(SUM(tvd.impuesto1)) > 0.0
 
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran

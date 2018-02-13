@@ -192,11 +192,34 @@ FROM (
 					SELECT
 						(
 							SELECT
-								CONVERT(DECIMAL(15,2), CONVERT(DECIMAL(15,2), cmi.importe) / CONVERT(DECIMAL(15,2), (CASE WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor ELSE ci.valor END))) AS '@Base'
+								dbo._sys_fnc_decimales(
+									(
+										CASE
+											WHEN cmi.importe = 0 THEN 
+												cmi.base
+											ELSE
+												CONVERT(DECIMAL(15,2), 
+													CONVERT(DECIMAL(15,2), cmi.importe) 
+													/ CONVERT(DECIMAL(15,2), (
+														CASE 
+															WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
+															ELSE ci.valor 
+														END))
+												)
+										END
+									)
+									, csm.decimales
+								) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
 								,dbo._sys_fnc_decimales(
-									(CASE WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor ELSE ci.valor END)
+									(
+										CASE 
+											WHEN cmi.importe = 0 THEN 0
+											WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
+											ELSE ci.valor 
+										END
+									)
 									, csm.decimales
 								) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
@@ -350,7 +373,6 @@ FROM (
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
-						--,CONVERT(DECIMAL(18,6), (cci.cfd_tasa / 100.00)) AS '@TasaOCuota'
 						,dbo._sys_fnc_decimales((cci.cfd_tasa / 100.00), csm.decimales) AS '@TasaOCuota'
 						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
 					FROM

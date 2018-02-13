@@ -6,7 +6,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (cit.tasa * 100)
+	,[cfd_tasa] = (CASE WHEN SUM(vtm.impuesto1) = 0 THEN 0 ELSE (cit.tasa * 100) END)
 	,[cfd_importe] = SUM(vtm.impuesto1)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -18,7 +18,7 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = cit.idimpuesto
 WHERE
-	vtm.impuesto1 <> 0
+	vtm.idimpuesto1 > 0
 GROUP BY
 	vtm.idtran
 	,cit.tipo
