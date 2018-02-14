@@ -4,26 +4,21 @@ ALTER VIEW [dbo].[ew_ven_transacciones_mov_impuestos]
 AS
 SELECT
 	[idtran] = vtm.idtran
-	,[idtipo] = cit.tipo
+	,[idtipo] = 1
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (CASE WHEN SUM(vtm.impuesto1) = 0 THEN 0 ELSE (cit.tasa * 100) END)
+	,[cfd_tasa] = (CASE WHEN SUM(vtm.impuesto1) = 0 THEN 0 ELSE (ci.valor * 100) END)
 	,[cfd_importe] = SUM(vtm.impuesto1)
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idimpuesto = 1
-		AND cit.tipo = 1
-		AND cit.tasa > 0
-		AND cit.tasa = (CASE WHEN vtm.idimpuesto1_valor = 0 THEN 0.16 ELSE vtm.idimpuesto1_valor END)
 	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
+		ON ci.idimpuesto = vtm.idimpuesto1
 WHERE
 	vtm.idimpuesto1 > 0
 GROUP BY
 	vtm.idtran
-	,cit.tipo
 	,ci.grupo
-	,cit.tasa
+	,ci.valor
+	,(CASE WHEN vtm.impuesto1 = 0 THEN 0 ELSE ci.valor END)
 
 UNION ALL
 
