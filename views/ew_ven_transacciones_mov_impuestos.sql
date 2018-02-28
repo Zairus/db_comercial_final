@@ -7,7 +7,7 @@ SELECT
 	,[idtipo] = 1
 	,[cfd_impuesto] = ci.grupo
 	,[cfd_tasa] = (CASE WHEN SUM(vtm.impuesto1) = 0 THEN 0 ELSE (ci.valor * 100) END)
-	,[cfd_importe] = SUM(vtm.impuesto1)
+	,[cfd_importe] = SUM(CONVERT(DECIMAL(15,2), vtm.impuesto1))
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_cat_impuestos AS ci
@@ -27,7 +27,7 @@ SELECT
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
 	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto1_ret)
+	,[cfd_importe] = SUM(CONVERT(DECIMAL(15,2), vtm.impuesto1_ret))
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -52,7 +52,7 @@ SELECT
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
 	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto2_ret)
+	,[cfd_importe] = SUM(CONVERT(DECIMAL(15,2), vtm.impuesto2_ret))
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -77,7 +77,7 @@ SELECT
 	,[idtipo] = cit.tipo
 	,[cfd_impuesto] = ci.grupo
 	,[cfd_tasa] = (cit.tasa * 100)
-	,[cfd_importe] = SUM(vtm.impuesto2)
+	,[cfd_importe] = SUM(CONVERT(DECIMAL(15,2), vtm.impuesto2))
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_cat_impuestos_tasas AS cit

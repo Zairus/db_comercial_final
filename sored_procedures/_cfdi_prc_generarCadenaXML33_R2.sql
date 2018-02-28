@@ -199,12 +199,13 @@ FROM (
 												cmi.base
 											ELSE
 												CONVERT(DECIMAL(15,2), 
-													CONVERT(DECIMAL(15,2), cmi.importe) 
-													/ CONVERT(DECIMAL(15,2), (
+													cmi.importe
+													/ (
 														CASE 
 															WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
 															ELSE ci.valor 
-														END))
+														END
+													)
 												)
 										END
 									)

@@ -76,30 +76,32 @@ WHERE
 	p.tipo = 2
 	AND ctm.idtran2 = @idtran
 
---IF EXISTS (
---	SELECT * 
---	FROM ew_ven_transacciones_pagos 
---	WHERE idtran = @idtran
---)
---BEGIN
---	IF EXISTS (
---		SELECT * 
---		FROM 
---			ew_ven_transacciones_pagos  AS vtp
---			LEFT JOIN ew_ban_formas AS bf
---				ON bf.idforma = vtp.idforma
---			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
---				ON csf.c_formapago = bf.codigo
---		WHERE 
---			vtp.clabe_origen = ''
---			AND csf.bancarizado = 1
---			AND vtp.idtran = @idtran
---	)
---	BEGIN
---		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
---		RETURN
---	END
---END
+/*
+IF EXISTS (
+	SELECT * 
+	FROM ew_ven_transacciones_pagos 
+	WHERE idtran = @idtran
+)
+BEGIN
+	IF EXISTS (
+		SELECT * 
+		FROM 
+			ew_ven_transacciones_pagos  AS vtp
+			LEFT JOIN ew_ban_formas AS bf
+				ON bf.idforma = vtp.idforma
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+				ON csf.c_formapago = bf.codigo
+		WHERE 
+			vtp.clabe_origen = ''
+			AND csf.bancarizado = 1
+			AND vtp.idtran = @idtran
+	)
+	BEGIN
+		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
+		RETURN
+	END
+END
+*/
 
 IF @formas_pago = ''
 BEGIN
@@ -308,7 +310,7 @@ FROM
 	LEFT JOIN ew_ven_transacciones AS vt
 		ON vt.idtran = vtmi.idtran
 WHERE
-	vt.transaccion NOT IN ('EFA4', 'EDE1')
+	vt.transaccion NOT IN ('EFA4')
 	AND vtmi.idtran = @idtran
 	
 INSERT INTO ew_cfd_comprobantes_impuesto (
@@ -363,6 +365,7 @@ FROM
 		ON ci.grupo = vtmi.cfd_impuesto
 WHERE
 	ct.tipo = 2
+	AND ct.transaccion NOT IN ('EDE1')
 	AND vtmi.idtran IS NOT NULL
 	AND ctm.idtran = @idtran
 GROUP BY
