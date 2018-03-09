@@ -392,8 +392,9 @@ FROM
 		ON ci.idimpuesto = ct.idimpuesto1
 WHERE
 	ct.tipo = 2
-	AND ct.idtran = @idtran
+	AND ct.transaccion NOT IN ('EDE1')
 	AND (SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS ctm WHERE ctm.idtran = ct.idtran) = 0
+	AND ct.idtran = @idtran
 
 INSERT INTO ew_cfd_comprobantes_impuesto (
 	idtran

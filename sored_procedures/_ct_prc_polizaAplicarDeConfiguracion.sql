@@ -10,6 +10,7 @@ ALTER PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
 	,@objeto_codigo AS VARCHAR(10) = NULL
 	,@idtran2 AS INT = NULL
 	,@poliza_idtran AS INT = NULL OUTPUT
+	,@regenerar AS BIT = 0
 AS
 
 SET NOCOUNT ON
@@ -29,6 +30,11 @@ DECLARE
 	,@cuenta_cuadre_cargos AS VARCHAR(100)
 	,@cuenta_cuadre_abonos AS VARCHAR(100)
 	,@diferencia AS DECIMAL(18,6)
+
+IF @regenerar = 1
+BEGIN
+	EXEC _ct_prc_transaccionAnularCT @idtran, 1
+END
 
 SELECT
 	@idsucursal = st.idsucursal

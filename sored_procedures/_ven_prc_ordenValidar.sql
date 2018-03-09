@@ -3,7 +3,6 @@ GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20091029
--- MODI:		Arvin 20100416 - modifique cantidades de las ordenes consolidadas
 -- Description:	Procesar Orden de Venta
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_ordenValidar]
@@ -39,26 +38,19 @@ INSERT INTO ew_sys_movimientos_acumula (
 	,valor
 )
 SELECT
-	[idmov1] = idmov
-	,[idmov2] = idmov2
+	[idmov1] = vom.idmov
+	,[idmov2] = vom.idmov2
 	,[campo] = @campo
-	,[valor] = cantidad_ordenada 
+	,[valor] = vom.cantidad_ordenada 
 FROM
-	ew_ven_ordenes_mov
+	ew_ven_ordenes_mov AS vom
 WHERE
-	idtran = @idtran
-
-INSERT INTO ew_sys_transacciones2 (
-	idtran
-	,idestado
-	,idu
-)
-SELECT 
-	[idtrab] = idtran2
-	,[idestado] = 251 
-	,[idu] = @idu
-FROM 
-	ew_ven_ordenes
-WHERE
-	idtran = @idtran
+	(
+		SELECT COUNT(*)
+		FROM
+			ew_sys_movimientos_acumula AS sma
+		WHERE
+			sma.idmov1 = vom.idmov
+	) = 0
+	AND idtran = @idtran
 GO
