@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -218,7 +218,7 @@ FROM (
 										CASE 
 											WHEN cmi.importe = 0 THEN 0
 											WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
-											ELSE ci.valor 
+											ELSE ISNULL(cit.tasa, ci.valor)
 										END
 									)
 									, csm.decimales
@@ -228,12 +228,14 @@ FROM (
 								ew_cfd_comprobantes_mov_impuesto AS cmi
 								LEFT JOIN ew_ven_transacciones_mov AS vtm
 									ON vtm.idmov = cmi.idmov2
+								LEFT JOIN ew_cat_impuestos_tasas AS cit
+									ON cit.idtasa = cmi.idtasa
 								LEFT JOIN ew_cat_impuestos AS ci
 									ON ci.idimpuesto = cmi.idimpuesto
 								LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
 									ON csi.descripcion = ci.nombre
 							WHERE
-								ci.tipo = 1
+								ISNULL(cit.tipo, ci.tipo) = 1
 								AND cmi.idtran = @idtran
 								AND cmi.idmov2 = ccm.idmov2
 							FOR XML PATH ('cfdi:Traslado'), TYPE
@@ -243,16 +245,18 @@ FROM (
 								dbo._sys_fnc_decimales(cmi.base, csm.decimales) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,dbo._sys_fnc_decimales(ci.valor, csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(ISNULL(cit.tasa, ci.valor), csm.decimales) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
+								LEFT JOIN ew_cat_impuestos_tasas AS cit
+									ON cit.idtasa = cmi.idtasa
 								LEFT JOIN ew_cat_impuestos AS ci
 									ON ci.idimpuesto = cmi.idimpuesto
 								LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
 									ON csi.descripcion = ci.nombre
 							WHERE
-								ci.tipo = 2
+								ISNULL(cit.tipo, ci.tipo) = 2
 								AND cmi.idtran = @idtran
 								AND cmi.idmov2 = ccm.idmov2
 							FOR XML PATH ('cfdi:Retencion'), TYPE

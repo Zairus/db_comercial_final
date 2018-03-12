@@ -1,11 +1,11 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180310
 -- Description:	Referencia de orden de venta a factura
 -- =============================================
-ALTER PROCEDURE _ven_prc_ordenReferenciaImpuestos
+ALTER PROCEDURE [dbo].[_ven_prc_ordenReferenciaImpuestos]
 	@referencia AS VARCHAR(15)
 	,@idsucursal AS INT
 AS
@@ -23,6 +23,7 @@ SELECT
 	,[idr] = ew_ct_impuestos_transacciones.idr
 	,[idtran] = ew_ct_impuestos_transacciones.idtran
 	,[idmov] = ew_ct_impuestos_transacciones.idmov
+	,[idmov2] = ew_ct_impuestos_transacciones.idmov
 FROM 
 	ew_ct_impuestos_transacciones 
 	LEFT JOIN ew_ven_ordenes_mov AS vom

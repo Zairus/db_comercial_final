@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -372,6 +372,8 @@ SELECT
 
 	,ew_ven_transacciones_mov.agrupar
 	,ew_ven_transacciones_mov.objlevel
+
+	,[clasif_SAT] = CASE WHEN a.idclasificacion_SAT=0 THEN '-Sin Clasif.-' ELSE ISNULL(csat.clave,'-Sin Clasif.-') END
 FROM 
 	ew_ven_transacciones_mov
 	LEFT JOIN ew_articulos AS a 
@@ -389,6 +391,9 @@ FROM
 		ON s.idsucursal = vt.idsucursal
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = (CASE WHEN a.idimpuesto1 = 0 THEN s.idimpuesto ELSE a.idimpuesto1 END)
+
+	LEFT JOIN ew_cfd_sat_clasificaciones csat
+		ON csat.idclasificacion = a.idclasificacion_sat
 WHERE  
 	ew_ven_transacciones_mov.idtran=@idtran 
 
@@ -407,20 +412,53 @@ SELECT
 	,[clabe_origen] = ew_ven_transacciones_pagos.clabe_origen
 	,[ref_moneda]=(SELECT nombre FROM ew_ban_monedas WHERE idmoneda=ct.idmoneda)
 	,[saldo_ref]=ct.saldo
-	,forma_moneda
+	,ew_ven_transacciones_pagos.forma_moneda
 	,forma_tipocambio
 	,ew_ven_transacciones_pagos.subtotal
 	,ew_ven_transacciones_pagos.impuesto1
 	,ew_ven_transacciones_pagos.total
 	,ew_ven_transacciones_pagos.comentario
+	------ por Vladimir (Feb. 07, 2018) --------------
+	,[objidtran]=CASE WHEN ew_ven_transacciones_pagos.idtran2 = 0 THEN bt.idtran ELSE ew_ven_transacciones_pagos.idtran2 END
+	--------------------------------------------------
 FROM 
 	ew_ven_transacciones_pagos
 	LEFT JOIN ew_cxc_transacciones AS ct
 		ON ct.idtran = ew_ven_transacciones_pagos.idtran
+	------ por Vladimir (Feb. 07, 2018) --------------
+	LEFT JOIN ew_ban_transacciones bt
+		ON ct.idtran=bt.idtran2 AND ct.idforma=bt.idforma
+	--------------------------------------------------
 WHERE
 	ew_ven_transacciones_pagos.cancelado = 0 
  AND  
 	ew_ven_transacciones_pagos.idtran=@idtran 
+
+----------------------------------------------------
+-- Impuestos
+----------------------------------------------------
+SELECT
+	[codigo] = a.codigo
+	,[nombre] = a.nombre
+	,[idtasa] = citr.idtasa
+	,[tasa] = cit.tasa
+	,[base_proporcion] = cit.base_proporcion
+	,[base] = citr.base
+	,[importe] = citr.importe
+	,[idr] = citr.idr
+	,[idtran] = citr.idtran
+	,[idmov] = citr.idmov
+	,[idmov2] = citr.idmov2
+FROM 
+	ew_ct_impuestos_transacciones AS citr
+	LEFT JOIN ew_ven_transacciones_mov AS vom
+		ON vom.idmov = citr.idmov
+	LEFT JOIN ew_articulos AS a
+		ON a.idarticulo = vom.idarticulo
+	LEFT JOIN ew_cat_impuestos_tasas AS cit
+		ON cit.idtasa = citr.idtasa
+WHERE 
+	citr.idtran = @idtran
 
 ----------------------------------------------------
 -- 5)  contabilidad

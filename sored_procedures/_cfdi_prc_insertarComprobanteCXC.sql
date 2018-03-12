@@ -438,6 +438,14 @@ CREATE TABLE #_tmp_venta_detalle (
 	,impuesto1 DECIMAL(18,6)
 	,idimpuesto2 INT
 	,impuesto2 DECIMAL(18,6)
+	,idimpuesto3 INT NOT NULL DEFAULT 0
+	,impuesto3 DECIMAL(18,6) NOT NULL DEFAULT 0
+	,idimpuesto4 INT NOT NULL DEFAULT 0
+	,impuesto4 DECIMAL(18,6) NOT NULL DEFAULT 0
+	,idimpuesto1_ret INT NOT NULL DEFAULT 0
+	,impuesto1_ret DECIMAL(18,6) NOT NULL DEFAULT 0
+	,idimpuesto2_ret INT NOT NULL DEFAULT 0
+	,impuesto2_ret DECIMAL(18,6) NOT NULL DEFAULT 0
 	,idmov MONEY
 ) ON [PRIMARY]
 
@@ -455,6 +463,10 @@ INSERT INTO #_tmp_venta_detalle (
 	,impuesto1
 	,idimpuesto2
 	,impuesto2
+	,idimpuesto1_ret
+	,impuesto1_ret
+	,idimpuesto2_ret
+	,impuesto2_ret
 	,idmov
 )
 SELECT
@@ -560,6 +572,56 @@ SELECT
 		vtm.impuesto2
 		+ISNULL((
 			SELECT SUM(vtm1.impuesto2) 
+			FROM 
+				ew_ven_transacciones_mov AS vtm1
+			WHERE 
+				vtm1.no_imprimir = 1
+				AND vtm1.idtran = vtm.idtran 
+				AND vtm1.idr > vtm.idr
+				AND vtm1.idr < ISNULL((
+					SELECT TOP 1
+						vtm2.idr
+					FROM
+						ew_ven_transacciones_mov AS vtm2
+					WHERE
+						vtm2.no_imprimir = 0
+						AND vtm2.idtran = vtm.idtran
+						AND vtm2.idr > vtm.idr
+					ORDER BY
+						vtm2.idr
+				), 999999999)
+		), 0)
+	)
+	,[idimpuesto1_ret] = vtm.idimpuesto1_ret
+	,[impuesto1_ret] = (
+		vtm.impuesto1_ret
+		+ISNULL((
+			SELECT SUM(vtm1.impuesto1_ret) 
+			FROM 
+				ew_ven_transacciones_mov AS vtm1
+			WHERE 
+				vtm1.no_imprimir = 1
+				AND vtm1.idtran = vtm.idtran 
+				AND vtm1.idr > vtm.idr
+				AND vtm1.idr < ISNULL((
+					SELECT TOP 1
+						vtm2.idr
+					FROM
+						ew_ven_transacciones_mov AS vtm2
+					WHERE
+						vtm2.no_imprimir = 0
+						AND vtm2.idtran = vtm.idtran
+						AND vtm2.idr > vtm.idr
+					ORDER BY
+						vtm2.idr
+				), 999999999)
+		), 0)
+	)
+	,[idimpuesto2_ret] = vtm.idimpuesto2_ret
+	,[impuesto2_ret] = (
+		vtm.impuesto2_ret
+		+ISNULL((
+			SELECT SUM(vtm1.impuesto2_ret) 
 			FROM 
 				ew_ven_transacciones_mov AS vtm1
 			WHERE 
@@ -847,6 +909,30 @@ INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	,importe
 )
 SELECT
+	[idtran] = citr.idtran
+	,[idmov2] = vtm.idmov
+	,[idimpuesto] = cit.idimpuesto
+	,[idtasa] = citr.idtasa
+	,[base] = citr.base
+	,[importe] = citr.importe
+FROM
+	ew_ct_impuestos_transacciones AS citr
+	LEFT JOIN ew_ven_transacciones_mov AS vtm
+		ON vtm.idmov2 = citr.idmov2
+	LEFT JOIN ew_cat_impuestos_tasas AS cit
+		ON cit.idtasa = citr.idtasa
+WHERE
+	citr.idtran = @idtran
+
+INSERT INTO ew_cfd_comprobantes_mov_impuesto (
+	idtran
+	,idmov2
+	,idimpuesto
+	,idtasa
+	,base
+	,importe
+)
+SELECT
 	[idtran] = @idtran
 	,[idmov2] = tvd.idmov
 	,[idimpuesto] = tvd.idimpuesto1
@@ -858,6 +944,7 @@ FROM
 WHERE
 	tvd.consecutivo_padre = 0
 	AND tvd.idimpuesto1 > 0
+	AND (SELECT COUNT(*) FROM ew_ct_impuestos_transacciones AS citr WHERE citr.idtran = @idtran) = 0
 GROUP BY
 	tvd.idmov
 	,tvd.idimpuesto1
@@ -883,6 +970,7 @@ FROM
 	#_tmp_venta_detalle AS tvd
 WHERE
 	tvd.consecutivo_padre = 0
+	AND (SELECT COUNT(*) FROM ew_ct_impuestos_transacciones AS citr WHERE citr.idtran = @idtran) = 0
 GROUP BY
 	tvd.idmov
 	,tvd.idimpuesto2
