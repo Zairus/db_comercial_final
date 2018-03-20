@@ -29,6 +29,24 @@ FROM
 WHERE
 	bt.idtran = @idtran
 
+IF EXISTS(
+	SELECT bt.idr
+	FROM
+		ew_ban_transacciones AS bt
+		LEFT JOIN ew_ban_formas AS bf
+			ON bf.idforma = bt.idforma
+		LEFT JOIN ew_ban_cheques AS chq
+			ON chq.idtran = bt.idtran
+	WHERE
+		ISNULL(bf.maneja_cheques, 0) > 0
+		AND ISNULL(chq.idchequera, 0) = 0
+		AND bt.idtran = @idtran
+)
+BEGIN
+	RAISERROR('Error: Se indico forma de pago Cheque, pero no se selecciono chequera.', 16, 1)
+	RETURN
+END
+
 IF @transaccion_referencia = 'DDA3'
 BEGIN
 	EXEC _cxp_prc_aplicarTransaccion @pago_idtran, @fecha, @idu

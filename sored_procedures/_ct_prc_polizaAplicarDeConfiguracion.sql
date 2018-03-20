@@ -13,6 +13,7 @@ ALTER PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
 	,@regenerar AS BIT = 0
 AS
 
+SET ANSI_WARNINGS OFF
 SET NOCOUNT ON
 
 DECLARE
@@ -198,7 +199,7 @@ INSERT INTO ew_ct_poliza_mov (
 SELECT
 	[idtran] = @poliza_idtran
 	,[idtran2] = ISNULL(@idtran2, @idtran)
-	,[consecutivo] = tpp.orden -- ROW_NUMBER() OVER (ORDER BY tpp.orden)
+	,[consecutivo] = tpp.orden
 	,[idsucursal] = @idsucursal
 	,[cuenta] = tpp.cuenta
 	,[tipomov] = tpp.tipomov

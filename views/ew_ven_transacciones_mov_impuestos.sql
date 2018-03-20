@@ -6,7 +6,7 @@ SELECT
 	[idtran] = vtm.idtran
 	,[idtipo] = 1
 	,[cfd_impuesto] = ci.grupo
-	,[cfd_tasa] = (CASE WHEN SUM(vtm.impuesto1) = 0 THEN 0 ELSE (ci.valor * 100) END)
+	,[cfd_tasa] = (CASE WHEN vtm.impuesto1 = 0 AND vtm.importe > 0.06 THEN 0 ELSE (ci.valor * 100) END)
 	,[cfd_importe] = SUM(CONVERT(DECIMAL(15,2), vtm.impuesto1))
 FROM
 	dbo.ew_ven_transacciones_mov AS vtm
@@ -17,8 +17,7 @@ WHERE
 GROUP BY
 	vtm.idtran
 	,ci.grupo
-	,ci.valor
-	,(CASE WHEN vtm.impuesto1 = 0 THEN 0 ELSE ci.valor END)
+	,(CASE WHEN vtm.impuesto1 = 0 AND vtm.importe > 0.06 THEN 0 ELSE (ci.valor * 100) END)
 
 UNION ALL
 

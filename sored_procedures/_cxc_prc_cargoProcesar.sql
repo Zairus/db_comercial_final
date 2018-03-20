@@ -170,5 +170,5 @@ BEGIN
 		ct.idtran = @idtran
 END
 
-EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
+EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1_A', @idtran
 GO

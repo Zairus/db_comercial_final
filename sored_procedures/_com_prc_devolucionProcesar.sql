@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -128,5 +128,5 @@ WHERE
 	
 EXEC _cxp_prc_aplicarTransaccion @idtran, @fecha, @idu
 
-EXEC _ct_prc_contabilizarCDE1 @idtran, @debug
+EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'CDE1', @idtran
 GO
