@@ -13,7 +13,11 @@ AS
 
 SET NOCOUNT ON
 
-EXEC _ven_prc_existenciaComprometer
+EXEC [dbo].[_ven_prc_existenciaComprometer]
 
-EXEC _ven_prc_ordenValidar @idtran, @idu
+EXEC [dbo].[_ven_prc_ordenValidar] @idtran, @idu
+
+EXEC [dbo].[_sys_prc_genera_consecutivo] @idtran, ''
+
+EXEC [dbo].[_ven_prc_ordenProcesarImpuestos] @idtran
 GO

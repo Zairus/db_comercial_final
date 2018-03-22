@@ -29,6 +29,7 @@ FROM
 WHERE
 	bt.idtran = @idtran
 
+/*
 IF EXISTS(
 	SELECT bt.idr
 	FROM
@@ -46,6 +47,7 @@ BEGIN
 	RAISERROR('Error: Se indico forma de pago Cheque, pero no se selecciono chequera.', 16, 1)
 	RETURN
 END
+*/
 
 IF @transaccion_referencia = 'DDA3'
 BEGIN
