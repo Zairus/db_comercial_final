@@ -61,6 +61,10 @@ SELECT
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
 	,[UUID] = ISNULL(timbres.cfdi_UUID,'')
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
+
+	,ct.cfd_iduso
+	,ct.idforma
+	,ct.idmetodo
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN ew_clientes AS c

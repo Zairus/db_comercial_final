@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -183,7 +183,7 @@ FROM (
 					END
 				) AS '@Unidad'
 				,ccm.cfd_descripcion AS '@Descripcion'
-				,dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, csm.decimales) AS '@ValorUnitario'
+				,dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 6) AS '@ValorUnitario'
 				,dbo._sys_fnc_decimales(ccm.cfd_importe, csm.decimales) AS '@Importe'
 				--,ccm.cfd_descuento AS '@Descuento'
 				
@@ -221,7 +221,7 @@ FROM (
 											ELSE ISNULL(cit.tasa, ci.valor)
 										END
 									)
-									, csm.decimales
+									, 6
 								) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
@@ -245,7 +245,7 @@ FROM (
 								dbo._sys_fnc_decimales(cmi.base, csm.decimales) AS '@Base'
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
-								,dbo._sys_fnc_decimales(ISNULL(cit.tasa, ci.valor), csm.decimales) AS '@TasaOCuota'
+								,dbo._sys_fnc_decimales(ISNULL(cit.tasa, ci.valor), 6) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'
 							FROM
 								ew_cfd_comprobantes_mov_impuesto AS cmi
@@ -378,7 +378,7 @@ FROM (
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
-						,dbo._sys_fnc_decimales((cci.cfd_tasa / 100.00), csm.decimales) AS '@TasaOCuota'
+						,dbo._sys_fnc_decimales((cci.cfd_tasa / 100.00), 6) AS '@TasaOCuota'
 						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
 					FROM
 						ew_cfd_comprobantes_impuesto AS cci 

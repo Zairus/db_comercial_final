@@ -517,7 +517,7 @@ SELECT
 				ELSE vtm.cantidad_facturada 
 			END
 		)
-	, 4)
+	, 6)
 	,[importe] = (
 		vtm.importe
 		+ISNULL((
