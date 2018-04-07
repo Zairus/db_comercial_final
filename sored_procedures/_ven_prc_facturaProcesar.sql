@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -18,15 +18,38 @@ DECLARE
 	@idu AS SMALLINT
 	,@idtran2 AS INT
 
+DECLARE
+	@idcliente AS INT
+	,@rfc AS VARCHAR(20)
+	,@idfacturacion AS INT
+
 SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
 
 SELECT
-	@idtran2 = idtran2
-	,@idu = idu
+	@idtran2 = vt.idtran2
+	,@idu = vt.idu
+	,@idcliente = vt.idcliente
+	,@idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = vt.idcliente)
 FROM 
-	ew_ven_transacciones
+	ew_ven_transacciones AS vt
 WHERE
-	idtran = @idtran
+	vt.idtran = @idtran
+
+SELECT
+	@rfc = cf.rfc
+FROM
+	ew_clientes_facturacion AS cf
+	LEFT JOIN ew_sys_ciudades AS cd
+		ON cd.idciudad = cf.idciudad
+WHERE
+	idcliente = @idcliente
+	AND idfacturacion = @idfacturacion
+
+IF [dbo].[fn_sys_validaRFC](@rfc) = 0
+BEGIN
+	RAISERROR('Error: Hay un error con el RFC del cliente.', 16, 1)
+	RETURN
+END
 
 IF @surtir = 1
 BEGIN

@@ -18,15 +18,13 @@ DECLARE
 	,@restantes AS INT
 
 DECLARE
-	@pass AS VARBINARY(256)
-	,@msg AS VARCHAR(4000)
+	@msg AS VARCHAR(4000)
 
 DECLARE 
 	@rfc_emisor AS VARCHAR(13)
 	,@rfc_receptor AS VARCHAR(13)
 	,@cfd_total AS DECIMAL(17,6)
 	,@QR_Base64 AS NVARCHAR(MAX)
-	,@QR_cadena AS NVARCHAR(122)
 	,@QR_code AS VARBINARY(MAX)
 
 DECLARE
@@ -37,6 +35,7 @@ DECLARE
 	,@tmp AS VARCHAR(200)
 	,@OutXML AS VARCHAR(MAX)
 	,@idpac AS INT
+	,@pac_codigo AS VARCHAR(50)
 
 DECLARE
 	@r AS BIT
@@ -44,16 +43,14 @@ DECLARE
 
 DECLARE
 	@pac_contrato AS VARCHAR(36)
-	,@pac_usuario AS VARCHAR(50)
-	,@pac_clave_acceso AS VARCHAR(50)
+	,@pac_usr AS VARCHAR(50)
+	,@pac_pwd AS VARCHAR(50)
 	,@pac_wsdl_url AS VARCHAR(200)
 	,@pac_prueba AS BIT
 
 DECLARE
-	@respuestaOk AS VARCHAR(MAX)
-	,@codigo AS VARCHAR(10)
+	@codigo AS VARCHAR(10)
 	,@mensaje AS VARCHAR(500)
-	,@contrato AS VARCHAR(MAX)
 	,@version AS VARCHAR(MAX)
 	,@UUID AS VARCHAR(MAX)
 	,@FechaTimbrado AS VARCHAR(MAX)
@@ -64,34 +61,30 @@ DECLARE
 	,@respuestaXml AS VARCHAR(MAX)
 	,@cadena_original_timbrado AS VARCHAR(MAX)
 
-	, @xmlSellado64 NVARCHAR (MAX)
-	, @xmlTimbrado64 NVARCHAR (MAX)
-
-DECLARE
-	@pac_i AS INT = 0
+	,@xmlSellado64 NVARCHAR (MAX)
+	,@xmlTimbrado64 NVARCHAR (MAX)
 
 DECLARE
 	@bin_xml AS VARBINARY(MAX)
 	,@str_xml AS VARCHAR(MAX)
 
 DECLARE
-	@pac_usr AS VARCHAR(50)
-	,@pac_pwd AS VARCHAR(50)
+	@xslt AS VARCHAR(1000)
+	,@firma AS VARCHAR(MAX)
 
 DECLARE
-	@cfd_version AS VARCHAR(5) = [dbo].[_sys_fnc_parametroTexto]('CFDI_VERSION')
-	,@xslt AS VARCHAR(1000)
-	,@firma AS VARCHAR(MAX)
+	@error_xml AS XML
+	,@error_fatal AS BIT = 1
 	
 IF NOT EXISTS(SELECT idtran FROM ew_cfd_comprobantes WHERE idtran = @idtran)
-IF @@ROWCOUNT = 0
 BEGIN
-	RAISERROR('No existe el comprobante',16,1)
-	RETURN
+	SELECT @msg = 'No existe el comprobante'
+
+	GOTO ERROR_HANDLING
 END
 
 SELECT
-	 @rfc_emisor = c.rfc_emisor
+	@rfc_emisor = c.rfc_emisor
 	,@rfc_receptor = c.rfc_receptor
 	,@cfd_total = cfd_total
 FROM
@@ -103,390 +96,285 @@ SELECT @idtimbre = dbo.fn_cfd_getidtimbre()
 
 IF @idtimbre = NULL OR @idtimbre = -1
 BEGIN
-	RAISERROR('Error! No hay timbres disponibles. Consulte con el personal de soporte para mayor información.',16,1)
-	RETURN
+	SELECT @msg = 'Error! No hay timbres disponibles. Consulte con el personal de soporte para mayor información.'
+
+	GOTO ERROR_HANDLING
 END
-	ELSE
-BEGIN
-	----------------------------------------------------------------
-	-- Obtenemos los datos de la FIEL y el CERTIFICADO
-	----------------------------------------------------------------
-	SELECT TOP 1 
-		@idcertificado = f.idcertificado
-		,@ruta = directorio
-		,@tmp = RTRIM(rfc_emisor) + '_' + RTRIM(cfd_serie) + '-' + dbo.fnRellenar(RTRIM(CONVERT(VARCHAR(10),cfd_folio)),5,'0') + '.xml'
-		,@idpac = fc.idpac
-		,@pac_usr = fc.pac_usr
-		,@pac_pwd = fc.pac_pwd
 
-		,@xslt = fc.cadenaOriginal
-		,@firma = db_comercial.dbo.EWCFD('LLAVE', fc.firma + ' ' + dbo.fn_sys_desencripta([fc].[contraseña], ''))
-	FROM	
-		ew_cfd_comprobantes AS c 
-		LEFT JOIN ew_cfd_folios AS f
-			ON f.idfolio = c.idfolio
-		LEFT JOIN ew_cfd_certificados AS fc
-			ON fc.idcertificado = f.idcertificado
-	WHERE	
-		c.idtran = @idtran
+----------------------------------------------------------------
+-- Obtenemos los datos de la FIEL y el CERTIFICADO
+----------------------------------------------------------------
+SELECT TOP 1 
+	@idcertificado = f.idcertificado
+	,@ruta = directorio
+	,@tmp = RTRIM(rfc_emisor) + '_' + RTRIM(cfd_serie) + '-' + dbo.fnRellenar(RTRIM(CONVERT(VARCHAR(10),cfd_folio)),5,'0') + '.xml'
+	,@idpac = fc.idpac
+	,@pac_codigo = ep.codigo
+	,@pac_contrato = ep.contrato
+	,@pac_wsdl_url = ep.wsdl_url
+	,@pac_usr = pc.usuario
+	,@pac_pwd = pc.clave_acceso
+	,@pac_prueba = fc.prueba
+
+	,@xslt = fc.cadenaOriginal
+	,@firma = db_comercial.dbo.EWCFD('LLAVE', fc.firma + ' ' + dbo.fn_sys_desencripta([fc].[contraseña], ''))
+FROM	
+	ew_cfd_comprobantes AS c 
+	LEFT JOIN ew_cfd_folios AS f
+		ON f.idfolio = c.idfolio
+	LEFT JOIN ew_cfd_certificados AS fc
+		ON fc.idcertificado = f.idcertificado
+	LEFT JOIN db_comercial.dbo.evoluware_pac AS ep
+		ON ep.idpac = fc.idpac
+	LEFT JOIN ew_cat_pac_credenciales AS pc
+		ON ep.idpac = pc.idpac
+WHERE	
+	c.idtran = @idtran
 	
-	IF RIGHT(@ruta,1) != '\' 
-		SELECT @ruta = @ruta + '\'
-	IF @archivoXML = ''
-		SELECT @archivoXML = @ruta + @tmp
+IF RIGHT(@ruta, 1) != '\' 
+	SELECT @ruta = @ruta + '\'
+
+IF @archivoXML = ''
+	SELECT @archivoXML = @ruta + @tmp
 	
-	SELECT @comprobante = ''
-	SELECT @cadena = ''
-	SELECT @sello = ''
+SELECT @comprobante = ''
+SELECT @cadena = ''
+SELECT @sello = ''
 
-	--##############################################################
-	--SELECT @cfd_version = '3.3'
+EXEC [dbo].[_cfdi_prc_generarCadenaXML33_R2] @idtran, @comprobante OUTPUT
+SELECT @OutXML = @comprobante
 
-	IF @cfd_version = '3.2'
+BEGIN TRY
+	IF @rfc_emisor IS NULL OR LTRIM(RTRIM(@rfc_emisor)) = ''
 	BEGIN
-		EXEC [dbo].[_cfdi_prc_generarCadenaXML] @idtran, @comprobante OUTPUT
+		SELECT @msg = 'Error: RFC de emisor nulo.'
+		GOTO ERROR_HANDLING
+	END
+		
+	IF @rfc_receptor IS NULL OR LTRIM(RTRIM(@rfc_receptor)) = ''
+	BEGIN
+		SELECT @msg = 'Error: RFC de Receptor nulo.'
+		GOTO ERROR_HANDLING
+	END
+	
+	IF @idpac = 2
+	BEGIN
+		SELECT @pac_codigo = 'SW'
+	END
 
-		BEGIN TRY
-			EXEC db_comercial.dbo.CFDI_Sellar @idcertificado, @comprobante, @sello OUTPUT, @cadena OUTPUT, @noCertificado OUTPUT, @OutXML OUTPUT
-		END TRY
-		BEGIN CATCH
-			SELECT @r = db_comercial.dbo.XML_GuardarArchivo(@comprobante,'c:\Evoluware\Temp\ERR - ' + LTRIM(RTRIM(STR(@idtran))) + '.xml')
-			SELECT @msg = 'dbo.CFDI_Sellar: Ocurrió un error al generar el sello digital.'
+	SELECT @codigo = 0
+	
+	EXEC [dbEVOLUWARE].[dbo].[Timbrado33]
+		@pac_codigo
+		, @pac_prueba
+		, @pac_contrato
+		, @pac_usr
+		, @pac_pwd
+		, @OutXML
+		, '' --Opciones
+		, @xslt
+		, @firma
+		, @OutXML OUTPUT -- XMLSellado
+		, @xmlSellado64 OUTPUT -- XMLSellado64
+		, @respuestaXml OUTPUT --XMLTimbrado
+		, @xmlTimbrado64 OUTPUT --XMLTimbrado64
+		, @cadena OUTPUT
+		, @cadena_original_timbrado OUTPUT
+		, @FechaTimbrado OUTPUT
+		, @noCertificado OUTPUT
+		, @noCertificadoSAT OUTPUT
+		, @QR_Base64 OUTPUT
+		, @selloCFD OUTPUT
+		, @selloSAT OUTPUT
+		, @UUID OUTPUT
+		, @mensaje OUTPUT
+			
+	SELECT @mensaje = ISNULL(@mensaje, '')
+	SELECT @xmlBase64 = @xmlTimbrado64
+	
+	SELECT @QR_code = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@QR_Base64)
+	SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlSellado64)
+	SELECT @r = [dbEVOLUWARE].[dbo].[bin_save](@bin_xml, REPLACE(@archivoXML, '.xml', '_debug.xml'))
+	SELECT @bin_xml = NULL
+	SELECT @error_fatal = 0
+	SELECT @msg = @mensaje
+			
+	IF @uuid IS NULL OR LEN(@UUID) = 0
+	BEGIN
+		GOTO ERROR_HANDLING
+	END
 
-			RAISERROR(@msg,16,1)
-			RETURN	
-		END CATCH
+	IF EXISTS(SELECT idtran FROM ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
+	BEGIN
+		UPDATE ew_cfd_comprobantes_timbre SET
+			cfdi_FechaTimbrado = @FechaTimbrado
+			,cfdi_versionTFD = @version
+			,cfdi_UUID = @UUID
+			,cfdi_noCertificadoSAT = @noCertificadoSAT
+			,cfdi_selloDigital = @selloSAT
+			,cfdi_cadenaOriginal = @cadena_original_timbrado
+			,cfdi_respuesta_codigo = @codigo
+			,cfdi_respuesta_mensaje = @mensaje
+			,QRCode = @QR_code
+			,cfdi_prueba = @pac_prueba
+		WHERE
+			idtran = @idtran
 	END
 		ELSE
 	BEGIN
-		EXEC [dbo].[_cfdi_prc_generarCadenaXML33_R2] @idtran, @comprobante OUTPUT
-		SELECT @OutXML = @comprobante
-	END
-
-	BEGIN TRY
-		SELECT
-			@pac_contrato = contrato
-			,@pac_usuario = usuario
-			,@pac_clave_acceso = clave_acceso
-			,@pac_wsdl_url = wsdl_url
-			,@pac_prueba = ISNULL((SELECT prueba FROM evoluware_certificados WHERE idcertificado = @idcertificado), 1)
-		FROM
-			db_comercial.dbo.evoluware_pac
-		WHERE
-			idpac = @idpac
-
-		IF @rfc_emisor IS NULL OR LTRIM(RTRIM(@rfc_emisor)) = ''
-		BEGIN
-			RAISERROR('Error: RFC de emisor nulo.', 16, 1)
-			RETURN
-		END
-		
-		IF @rfc_receptor IS NULL OR LTRIM(RTRIM(@rfc_receptor)) = ''
-		BEGIN
-			RAISERROR('Error: RFC de Receptor nulo.', 16, 1)
-			RETURN
-		END
-		
-		IF @cfd_version = '3.2'
-		BEGIN
-			IF @idpac = 1
-			BEGIN
-				IF @pac_prueba = 1
-				BEGIN
-					EXECUTE [dbEVOLUWARE].[prodigia].[TimbradoPruebas]
-						@pac_contrato
-						,@pac_usuario
-						,@pac_clave_acceso
-						,120
-						,@pac_wsdl_url
-						,@OutXML
-						,'' --Opciones
-					
-						,@respuestaOk OUTPUT
-						,@codigo OUTPUT
-						,@mensaje OUTPUT
-						,@contrato OUTPUT
-						,@version OUTPUT
-						,@UUID OUTPUT
-						,@FechaTimbrado OUTPUT
-						,@selloCFD OUTPUT
-						,@noCertificadoSAT OUTPUT
-						,@selloSAT OUTPUT
-						,@comprobante OUTPUT
-						,@xmlBase64 OUTPUT
-						,@respuestaXml OUTPUT
-				END
-					ELSE
-				BEGIN
-					EXECUTE [dbEVOLUWARE].[prodigia].[Timbrado]
-						@pac_contrato
-						,@pac_usuario
-						,@pac_clave_acceso
-						,120
-						,@pac_wsdl_url
-						,@OutXML
-						,'' --Opciones
-					
-						,@respuestaOk OUTPUT
-						,@codigo OUTPUT
-						,@mensaje OUTPUT
-						,@contrato OUTPUT
-						,@version OUTPUT
-						,@UUID OUTPUT
-						,@FechaTimbrado OUTPUT
-						,@selloCFD OUTPUT
-						,@noCertificadoSAT OUTPUT
-						,@selloSAT OUTPUT
-						,@comprobante OUTPUT
-						,@xmlBase64 OUTPUT
-						,@respuestaXml OUTPUT
-				END
-			END
-		
-			IF @idpac = 2
-			BEGIN
-				SELECT @codigo = 0
-
-				IF @pac_prueba = 1
-				BEGIN
-					EXEC [dbEVOLUWARE].[dbo].[SWTimbradoPruebaEX]
-						@OutXML
-						, @OutXML OUTPUT
-						, @mensaje OUTPUT
-						, @UUID OUTPUT
-						, @fechaTimbrado OUTPUT
-						, @selloCFD OUTPUT
-						, @noCertificadoSAT OUTPUT
-						, @selloSAT OUTPUT
-						, @xmlBase64 OUTPUT
-				END
-					ELSE
-				BEGIN
-					EXEC [dbEVOLUWARE].[dbo].[SWTimbradoEX]
-						@OutXML
-						, @pac_usr
-						, @pac_pwd
-						, @OutXML OUTPUT
-						, @mensaje OUTPUT
-						, @UUID OUTPUT
-						, @fechaTimbrado OUTPUT
-						, @selloCFD OUTPUT
-						, @noCertificadoSAT OUTPUT
-						, @selloSAT OUTPUT
-						, @xmlBase64 OUTPUT
-				END
-			END
-
-			IF @UUID IS NULL OR LTRIM(RTRIM(@UUID)) = ''
-			BEGIN
-				SELECT @msg = 'Error, no se obtuvo UUID. ' + @mensaje
-
-				RAISERROR(@msg, 16, 1)
-				RETURN
-			END
-		
-			SELECT
-				@QR_cadena = (
-					'?re=' + @rfc_emisor + 
-					'&rr=' + @rfc_receptor + 
-					'&tt=' + dbo.fnRellenar(CONVERT(DECIMAL(17,6), @cfd_total), 17, '0') + 
-					'&id=' + @UUID
-				)
-			
-			SELECT @QR_code = dbEVOLUWARE.dbo.QR_Codificar(@QR_cadena)
-			SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@QR_code, REPLACE(@archivoXML, '.xml', '.png'))
-
-			SELECT
-				@cadena_original_timbrado = (
-					'||1.0|'
-					+ @UUID + '|'
-					+ @FechaTimbrado + '|'
-					+ @selloSAT + '|'
-					+ @noCertificadoSAT + '||'
-				)
-		END
-			ELSE
-		BEGIN
-			DECLARE
-				@pac_codigo AS VARCHAR(50) = 'PRODIGIA'
-
-			IF @idpac = 2
-				SELECT @pac_codigo = 'SW'
-
-			SELECT @codigo = 0
-			
-			EXEC [dbEVOLUWARE].[dbo].[Timbrado33]
-				@pac_codigo
-				, @pac_prueba
-				, @pac_contrato
-				, @pac_usuario
-				, @pac_clave_acceso
-				, @OutXML
-				, '' --Opciones
-				, @xslt
-				, @firma
-				, @OutXML OUTPUT -- XMLSellado
-				, @xmlSellado64 OUTPUT -- XMLSellado64
-				, @respuestaXml OUTPUT --XMLTimbrado
-				, @xmlTimbrado64 OUTPUT --XMLTimbrado64
-				, @cadena OUTPUT
-				, @cadena_original_timbrado OUTPUT
-				, @FechaTimbrado OUTPUT
-				, @noCertificado OUTPUT
-				, @noCertificadoSAT OUTPUT
-				, @QR_Base64 OUTPUT
-				, @selloCFD OUTPUT
-				, @selloSAT OUTPUT
-				, @UUID OUTPUT
-				, @mensaje OUTPUT
-			
-			SELECT @mensaje = ISNULL(@mensaje, '')
-			SELECT @xmlBase64 = @xmlTimbrado64 -- [dbEVOLUWARE].[dbo].[CONV_StringToBase64](@respuestaXml)
-			
-			SELECT @QR_code = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@QR_Base64)
-
-			SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlSellado64)
-			SELECT @r = [dbEVOLUWARE].[dbo].[bin_save](@bin_xml, REPLACE(@archivoXML, '.xml', '_debug.xml'))
-			SELECT @bin_xml = NULL
-
-			SELECT @msg = @mensaje
-
-			IF @uuid IS NULL OR LEN(@UUID) = 0
-			BEGIN
-				RAISERROR(@msg, 16, 1)
-			END
-		END
-
-		IF EXISTS(SELECT idtran FROM ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
-		BEGIN
-			UPDATE ew_cfd_comprobantes_timbre SET
-				cfdi_FechaTimbrado = @FechaTimbrado
-				,cfdi_versionTFD = @version
-				,cfdi_UUID = @UUID
-				,cfdi_noCertificadoSAT = @noCertificadoSAT
-				,cfdi_selloDigital = @selloSAT
-				,cfdi_cadenaOriginal = @cadena_original_timbrado
-				,cfdi_respuesta_codigo = @codigo
-				,cfdi_respuesta_mensaje = @mensaje
-				,QRCode = @QR_code
-				,cfdi_prueba = @pac_prueba
-			WHERE
-				idtran = @idtran
-		END
-			ELSE
-		BEGIN
-			INSERT INTO ew_cfd_comprobantes_timbre (
-				idtran
-				,cfdi_FechaTimbrado
-				,cfdi_versionTFD
-				,cfdi_UUID
-				,cfdi_noCertificadoSAT
-				,cfdi_selloDigital
-				,cfdi_cadenaOriginal
-				,cfdi_respuesta_codigo
-				,cfdi_respuesta_mensaje
-				,QRCode
-				,cfdi_prueba
-			)
-			VALUES (
-				@idtran
-				,@FechaTimbrado
-				,@version
-				,@UUID
-				,@noCertificadoSAT
-				,@selloSAT
-				,@cadena_original_timbrado
-				,@codigo
-				,@mensaje
-				,@QR_code
-				,@pac_prueba
-			)
-		END
-
-		IF @idpac NOT IN (1,2)
-		BEGIN
-			RAISERROR('Error: PAC Incorrecto.', 16, 1)
-		END
-	END TRY
-	BEGIN CATCH
-		SELECT @msg = ERROR_MESSAGE()
-
-		RAISERROR(@msg, 16, 1)
-		RETURN
-	END CATCH
-	
-	UPDATE ew_cfd_comprobantes_sello SET 
-		cadenaOriginal = @cadena
-		,cfd_sello = @sello
-		,archivoXML = @archivoXML
-	WHERE
-		idtran = @idtran
-
-	IF @@ROWCOUNT = 0
-	BEGIN
-		INSERT INTO ew_cfd_comprobantes_sello (
+		INSERT INTO ew_cfd_comprobantes_timbre (
 			idtran
-			, cadenaOriginal
-			, cfd_sello
-		)
-		SELECT
-			idtran = @idtran
-			,cadenaOriginal = @cadena
-			,cfd_sello = @sello
-	END
-
-	UPDATE ew_cfd_comprobantes SET cfd_noCertificado = @noCertificado WHERE idtran = @idtran
-
-	----------------------------------------------------------------
-	-- Guardamos el archivo XML
-	----------------------------------------------------------------
-	BEGIN TRY
-		SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlBase64)
-		SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@bin_xml, @archivoXML)
-		SELECT @str_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToString](@xmlBase64)
-
-		IF EXISTS (SELECT * FROM ew_cfd_comprobantes_xml WHERE uuid = @UUID)
-		BEGIN
-			DELETE FROM ew_cfd_comprobantes_xml WHERE uuid = @UUID
-		END
-
-		INSERT INTO ew_cfd_comprobantes_xml (
-			uuid
-			,xml_base64
-			,xml_cfdi
+			,cfdi_FechaTimbrado
+			,cfdi_versionTFD
+			,cfdi_UUID
+			,cfdi_noCertificadoSAT
+			,cfdi_selloDigital
+			,cfdi_cadenaOriginal
+			,cfdi_respuesta_codigo
+			,cfdi_respuesta_mensaje
+			,QRCode
+			,cfdi_prueba
 		)
 		VALUES (
-			@UUID
-			,@xmlBase64
-			,@str_xml
+			@idtran
+			,@FechaTimbrado
+			,@version
+			,@UUID
+			,@noCertificadoSAT
+			,@selloSAT
+			,@cadena_original_timbrado
+			,@codigo
+			,@mensaje
+			,@QR_code
+			,@pac_prueba
 		)
+	END
 
-		------------ NUEVO POR VLADIMIR -------------------------------------------------------
-		-- Actualizar tabla ew_cfd_timbres para sumar el timbre
-		UPDATE ew_cfd_timbres SET usados = usados + 1 WHERE idtimbre = @idtimbre
+	IF @idpac NOT IN (1,2)
+	BEGIN
+		SELECT @msg = 'Error: PAC Incorrecto.'
+		GOTO ERROR_HANDLING
+	END
+END TRY
+BEGIN CATCH
+	SELECT @error_fatal = 0
+	SELECT @msg = ERROR_MESSAGE()
+	GOTO ERROR_HANDLING
+END CATCH
 
-		--Insertar en la tabla ew_cfd_timbres_mov para llevar detalle de las facturas timbradas
-		IF NOT EXISTS (SELECT * FROM ew_cfd_timbres_mov WHERE idtimbre = @idtimbre)
-		BEGIN
-			INSERT INTO ew_cfd_timbres_mov (idtimbre, idtran) 
-			VALUES (@idtimbre, @idtran)
-		END
+UPDATE ew_cfd_comprobantes_sello SET 
+	cadenaOriginal = @cadena
+	,cfd_sello = @sello
+	,archivoXML = @archivoXML
+WHERE
+	idtran = @idtran
 
-		---------------------------------------------------------------------------------------
-		------------------------ Si se acabaron, deshabilitar ----------------------------------
-		SELECT @restantes = restantes FROM ew_cfd_timbres WHERE idtimbre = @idtimbre
-		
-		IF @restantes <= 0
-		BEGIN
-			UPDATE ew_cfd_timbres SET activo = 0 WHERE idtimbre = @idtimbre
-		END
-		---------------------------------------------------------------------------------------
-	END TRY
-	BEGIN CATCH
-		SELECT @msg = ERROR_MESSAGE()
-		
-		RAISERROR(@msg, 16, 1)
-		RETURN
-	END CATCH
+IF @@ROWCOUNT = 0
+BEGIN
+	INSERT INTO ew_cfd_comprobantes_sello (
+		idtran
+		, cadenaOriginal
+		, cfd_sello
+	)
+	SELECT
+		idtran = @idtran
+		,cadenaOriginal = @cadena
+		,cfd_sello = @sello
 END
+
+UPDATE ew_cfd_comprobantes SET cfd_noCertificado = @noCertificado WHERE idtran = @idtran
+
+----------------------------------------------------------------
+-- Guardamos el archivo XML
+----------------------------------------------------------------
+BEGIN TRY
+	SELECT @bin_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToBin](@xmlBase64)
+	SELECT @msg = [dbEVOLUWARE].[dbo].[BIN_WriteFile](@bin_xml, @archivoXML)
+	SELECT @str_xml = [dbEVOLUWARE].[dbo].[CONV_Base64ToString](@xmlBase64)
+
+	IF EXISTS (SELECT * FROM ew_cfd_comprobantes_xml WHERE uuid = @UUID)
+	BEGIN
+		DELETE FROM ew_cfd_comprobantes_xml WHERE uuid = @UUID
+	END
+
+	INSERT INTO ew_cfd_comprobantes_xml (
+		uuid
+		,xml_base64
+		,xml_cfdi
+	)
+	VALUES (
+		@UUID
+		,@xmlBase64
+		,@str_xml
+	)
+
+	------------ NUEVO POR VLADIMIR -------------------------------------------------------
+	-- Actualizar tabla ew_cfd_timbres para sumar el timbre
+	IF EXISTS(SELECT * FROM ew_cfd_comprobantes_timbre) AND (ISNULL(@UUID,'') <>'')
+		BEGIN
+			UPDATE ew_cfd_timbres SET usados = usados + 1 WHERE idtimbre = @idtimbre
+
+			--Insertar en la tabla ew_cfd_timbres_mov para llevar detalle de las facturas timbradas
+			IF NOT EXISTS (SELECT * FROM ew_cfd_timbres_mov WHERE idtimbre = @idtimbre)
+			BEGIN
+				INSERT INTO ew_cfd_timbres_mov (idtimbre, idtran) 
+				VALUES (@idtimbre, @idtran)
+			END
+
+			------------------------ Si se acabaron, deshabilitar ----------------------------------
+			SELECT @restantes = restantes FROM ew_cfd_timbres WHERE idtimbre = @idtimbre
+		
+			IF @restantes <= 0
+			BEGIN
+				UPDATE ew_cfd_timbres SET activo = 0 WHERE idtimbre = @idtimbre
+			END
+			---------------------------------------------------------------------------------------
+		END
+	---------------------------------------------------------------------------------------
+END TRY
+BEGIN CATCH
+	SELECT @error_fatal = 0
+	SELECT @msg = ERROR_MESSAGE()
+	GOTO ERROR_HANDLING
+END CATCH
+
+RETURN
+
+ERROR_HANDLING:
+
+EXEC [dbo].[_cfdi_prc_errorXML] @idtran, @msg, @error_xml OUTPUT
+
+SELECT @ruta = 'F:\Clientes\_ErrorTimbrado\'
+
+EXEC master.dbo.xp_create_subdir @ruta
+
+SELECT
+	@ruta = (
+		@ruta 
+		+ 'Err_'
+		+ DB_NAME()
+		+ '_'
+		+ CONVERT(VARCHAR(MAX), st.uuidtran)
+		+ '.xml'
+	)
+FROM
+	ew_sys_transacciones AS st
+WHERE
+	st.idtran = @idtran
+
+SELECT @mensaje = @msg
+SELECT @msg = [dbEVOLUWARE].[dbo].[txt_save](CONVERT(VARCHAR(MAX), @error_xml), @ruta)
+
+IF @error_fatal = 0
+BEGIN
+	SELECT @mensaje = (
+		'ERROR: Ha ocurrido un problema al intentar procesar el timbrado de comprobante, '
+		+ 'por favor realice el intento en unos minutos. '
+		+ 'Si la situacion persiste, reportar a Evoluware. '
+		+ 'Gracias.'
+	)
+END
+
+RAISERROR(@mensaje, 16, 1)
+RETURN
 GO

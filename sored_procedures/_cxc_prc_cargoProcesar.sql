@@ -168,7 +168,11 @@ BEGIN
 		ew_cxc_transacciones AS ct
 	WHERE
 		ct.idtran = @idtran
-END
 
-EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1_A', @idtran
+	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1', @idtran
+END
+	ELSE
+BEGIN
+	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1_A', @idtran
+END
 GO
