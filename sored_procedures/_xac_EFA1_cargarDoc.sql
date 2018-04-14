@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -13,6 +13,8 @@ ALTER PROCEDURE [dbo].[_xac_EFA1_cargarDoc]
 AS
 
 SET NOCOUNT ON
+
+EXEC [dbEVOLUWARE].[dbo].[_sys_prc_procesarErrores]
  
 ----------------------------------------------------
 -- 1)  ew_ven_transacciones

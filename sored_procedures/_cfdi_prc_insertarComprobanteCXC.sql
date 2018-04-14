@@ -367,6 +367,7 @@ WHERE
 	ct.tipo = 2
 	AND ct.transaccion NOT IN ('EDE1')
 	AND vtmi.idtran IS NOT NULL
+	AND vtmi.cfd_importe > 0
 	AND ctm.idtran = @idtran
 GROUP BY
 	vtmi.idtipo

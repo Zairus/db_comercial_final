@@ -346,8 +346,6 @@ EXEC [dbo].[_cfdi_prc_errorXML] @idtran, @msg, @error_xml OUTPUT
 
 SELECT @ruta = 'F:\Clientes\_ErrorTimbrado\'
 
-EXEC master.dbo.xp_create_subdir @ruta
-
 SELECT
 	@ruta = (
 		@ruta 

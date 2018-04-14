@@ -13,6 +13,49 @@ AS
 SET NOCOUNT ON
 
 --------------------------------------------------------------------------------
+-- Validar afectaciones a documentos no timbrados
+--------------------------------------------------------------------------------
+
+IF EXISTS (
+	SELECT *
+	FROM
+		inserted AS ctm
+		LEFT JOIN ew_sys_transacciones AS st
+			ON st.idtran = ctm.idtran2
+	WHERE
+		st.transaccion IN (
+			SELECT DISTINCT
+				o.codigo 
+			FROM 
+				objetos_datos AS od 
+				LEFT JOIN objetos AS o
+					ON o.objeto = od.objeto
+			WHERE 
+				od.codigo = 'CFD'
+				AND od.valor > 0
+		)
+		AND (
+			SELECT COUNT(*) 
+			FROM 
+				ew_cfd_comprobantes_timbre AS cct 
+			WHERE 
+				LEN(ISNULL(cct.cfdi_UUID, '')) > 0
+				AND cct.idtran = st.idtran 
+		) = 0
+		AND (
+			SELECT COUNT(*)
+			FROM
+				ew_ven_transacciones_pagos AS vtp
+			WHERE
+				vtp.idtran = ctm.idtran2
+		) = 0
+)
+BEGIN
+	RAISERROR('Error: Se intenta afectar documentos no timbrados.', 16, 1)
+	RETURN
+END
+
+--------------------------------------------------------------------------------
 -- Afectando el saldo pendiente de aplicar en la transaccion principal IDTRAN
 --------------------------------------------------------------------------------
 UPDATE t SET
