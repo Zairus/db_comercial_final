@@ -3,15 +3,15 @@ GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180307
--- Description:	Procesar impuestos por partida
+-- Description:	Procesar impuestos por partida en Factura
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_ordenProcesarImpuestos]
+ALTER PROCEDURE [dbo].[_ven_prc_facturaProcesarImpuestos]
 	@idtran AS INT
 AS
 
 SET NOCOUNT ON
 
-IF EXISTS (SELECT * FROM ew_ven_ordenes_mov AS vom WHERE (vom.idmov IS NULL OR vom.idmov = 0) AND vom.idtran = @idtran)
+IF EXISTS (SELECT * FROM ew_ven_transacciones_mov AS vom WHERE (vom.idmov IS NULL OR vom.idmov = 0) AND vom.idtran = @idtran)
 BEGIN
 	RAISERROR('Error: Existen registros con identificador en 0.', 16, 1)
 	RETURN
@@ -24,6 +24,7 @@ WHERE
 INSERT INTO ew_ct_impuestos_transacciones (
 	idtran
 	,idmov
+	,idmov2
 	,idtasa
 	,base
 	,importe
@@ -31,11 +32,12 @@ INSERT INTO ew_ct_impuestos_transacciones (
 SELECT
 	[idtran] = vom.idtran
 	,[idmov] = vom.idmov
+	,[idmov2] = vom.idmov2
 	,[idtasa] = ait.idtasa
 	,[base] = CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion))
 	,[importe] = CONVERT(DECIMAL(18,2), (CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion)) * cit.tasa))
 FROM
-	ew_ven_ordenes_mov AS vom
+	ew_ven_transacciones_mov AS vom
 	LEFT JOIN ew_articulos_impuestos_tasas AS ait
 		ON ait.idarticulo = vom.idarticulo
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -61,7 +63,7 @@ UPDATE vom1 SET
 	,vom1.impuesto1_ret = vom2.impuesto1_ret
 	,vom1.impuesto2_ret = vom2.impuesto2_ret
 FROM
-	ew_ven_ordenes_mov AS vom1
+	ew_ven_transacciones_mov AS vom1
 	LEFT JOIN (
 		SELECT
 			vom.idmov
@@ -76,7 +78,7 @@ FROM
 			,[impuesto1_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
 			,[impuesto2_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'ISR' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
 		FROM
-			ew_ven_ordenes_mov AS vom
+			ew_ven_transacciones_mov AS vom
 			LEFT JOIN ew_ct_impuestos_transacciones AS citr
 				ON citr.idtran = vom.idtran
 				AND citr.idmov = vom.idmov
@@ -92,14 +94,4 @@ FROM
 		ON vom2.idmov = vom1.idmov
 WHERE
 	vom1.idtran = @idtran
-
-UPDATE vo SET
-	vo.impuesto1 = ISNULL((SELECT SUM(vom.impuesto1) FROM ew_ven_ordenes_mov AS vom WHERE vom.idtran = vo.idtran), 0)
-	,vo.impuesto2 = ISNULL((SELECT SUM(vom.impuesto2) FROM ew_ven_ordenes_mov AS vom WHERE vom.idtran = vo.idtran), 0)
-	,vo.impuesto1_ret = ISNULL((SELECT SUM(vom.impuesto1_ret) FROM ew_ven_ordenes_mov AS vom WHERE vom.idtran = vo.idtran), 0)
-	,vo.impuesto2_ret = ISNULL((SELECT SUM(vom.impuesto2_ret) FROM ew_ven_ordenes_mov AS vom WHERE vom.idtran = vo.idtran), 0)
-FROM
-	ew_ven_ordenes AS vo
-WHERE
-	vo.idtran = @idtran
 GO

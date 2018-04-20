@@ -11,6 +11,7 @@ CREATE TABLE ew_ser_equipos (
 	, idequipo INT NOT NULL
 	, serie VARCHAR(50) NOT NULL
 	, idarticulo INT NOT NULL DEFAULT 0
+	, idmodelo INT NOT NULL DEFAULT 0
 	, activo BIT NOT NULL DEFAULT 1
 	, idestado INT NOT NULL DEFAULT 0
 	, idsucursal1 INT NOT NULL
@@ -27,6 +28,24 @@ CREATE TABLE ew_ser_equipos (
 ) ON [PRIMARY]
 GO
 SELECT * FROM ew_ser_equipos
+GO
+IF OBJECT_ID('ew_ser_equipos_caracteristicas') IS NOT NULL
+BEGIN
+	DROP TABLE ew_ser_equipos_caracteristicas
+END
+GO
+CREATE TABLE ew_ser_equipos_caracteristicas (
+	idr INT IDENTITY
+	, idequipo INT NOT NULL
+	, descripcion VARCHAR(512) NOT NULL
+
+	, CONSTRAINT [PK_ew_ser_equipos_caracteristicas] PRIMARY KEY CLUSTERED (
+		[idequipo] ASC
+		, [descripcion] ASC
+	) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SELECT * FROM ew_ser_equipos_caracteristicas
 GO
 -- #### ESTADOS DE EQUIPO
 IF OBJECT_ID('ew_ser_estados') IS NOT NULL
@@ -57,6 +76,66 @@ INSERT INTO ew_ser_estados (idestado, codigo, nombre) VALUES (4, 'VEN', 'Vendida
 INSERT INTO ew_ser_estados (idestado, codigo, nombre) VALUES (5, 'BAJ', 'Baja')
 GO
 SELECT * FROM ew_ser_estados
+GO
+-- #### MODELOS
+IF OBJECT_ID('ew_ser_modelos') IS NOT NULL
+BEGIN
+	DROP TABLE ew_ser_modelos
+END
+GO
+CREATE TABLE ew_ser_modelos (
+	idr INT IDENTITY
+	, idmodelo INT NOT NULL
+	, codigo VARCHAR(20) NOT NULL
+	, descripcion VARCHAR(512) NOT NULL DEFAULT ''
+
+	, CONSTRAINT [PK_ew_ser_modelos] PRIMARY KEY CLUSTERED (
+		[idmodelo] ASC
+	) ON [PRIMARY]
+	, CONSTRAINT [UK_ew_ser_modelos_codigo] UNIQUE (
+		[codigo] ASC
+	)
+) ON [PRIMARY]
+GO
+SELECT * FROM ew_ser_modelos
+GO
+-- #### MODELOS DE EQUIPOS
+IF OBJECT_ID('ew_ser_equipos_modelos') IS NOT NULL
+BEGIN
+	DROP TABLE ew_ser_equipos_modelos
+END
+GO
+CREATE TABLE ew_ser_equipos_modelos (
+	idr INT IDENTITY
+	, idequipo INT NOT NULL
+	, idmodelo INT NOT NULL
+
+	, CONSTRAINT [PK_ew_ser_equipos_modelos] PRIMARY KEY CLUSTERED (
+		[idequipo] ASC
+		,[idmodelo] ASC
+	) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SELECT * FROM ew_ser_equipos_modelos
+GO
+-- #### MODELOS DE ARTICULOS
+IF OBJECT_ID('ew_articulos_modelos') IS NOT NULL
+BEGIN
+	DROP TABLE ew_articulos_modelos
+END
+GO
+CREATE TABLE ew_articulos_modelos (
+	idr INT IDENTITY
+	, idarticulo INT NOT NULL
+	, idmodelo INT NOT NULL
+
+	, CONSTRAINT [PK_ew_articulos_modelos] PRIMARY KEY CLUSTERED (
+		[idarticulo] ASC
+		, [idmodelo] ASC
+	) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SELECT * FROM ew_articulos_modelos
 GO
 -- #### RENDIMIENTOS
 IF OBJECT_ID('ew_ser_rendimientos') IS NOT NULL

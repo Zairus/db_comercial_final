@@ -18,6 +18,7 @@ DECLARE
 	,@idfolio AS INT
 	,@folio AS INT
 	,@formas_pago AS VARCHAR(500) = ''
+	,@transaccion AS VARCHAR(5)
 
 SELECT
 	@idfolio = ct.cfd_idfolio
@@ -30,6 +31,7 @@ WHERE
 SELECT 
 	@rfc = f.rfc 
 	,@razon_social  = f.razon_social
+	,@transaccion = ct.transaccion
 FROM 
 	dbo.ew_cxc_transacciones AS ct
 	LEFT JOIN dbo.ew_clientes_facturacion AS f 
@@ -37,6 +39,11 @@ FROM
 		AND f.idfacturacion = ct.idfacturacion
 WHERE
 	ct.idtran = @idtran
+
+IF @transaccion LIKE 'EFA%'
+BEGIN
+	EXEC [dbo].[_ven_prc_facturaProcesarImpuestos] @idtran
+END
 
 SELECT @rfc = REPLACE(REPLACE(@rfc,' ',''), '-', '')
 

@@ -6,6 +6,7 @@ ALTER PROCEDURE [dbo].[_ct_rpt_estadpResultadosR2]
 	,@periodo2 AS INT = NULL
 	,@idsucursal AS INT = 0
 	,@detallado AS BIT = 0
+	,@opcion AS TINYINT = 0
 AS
 
 SET NOCOUNT ON
@@ -149,6 +150,9 @@ SELECT
 	,[objlevel] = erf.objlevel
 FROM 
 	#_tmp_estado_resultados_formato AS erf
+WHERE
+	ABS(erf.saldo_periodo) > (CASE WHEN @opcion = 0 THEN 0 ELSE -1 END)
+	
 ORDER BY erf.id
 
 DROP TABLE #_tmp_estado_resultados_formato
