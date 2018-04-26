@@ -922,15 +922,41 @@ SELECT
 	,[idimpuesto] = cit.idimpuesto
 	,[idtasa] = citr.idtasa
 	,[base] = citr.base
-	,[importe] = citr.importe
+	,[importe] = (
+		citr.importe
+		+ ISNULL((
+			SELECT SUM(citr1.importe)
+			FROM
+				ew_ct_impuestos_transacciones AS citr1
+				LEFT JOIN ew_ven_transacciones_mov AS vtm1
+					ON vtm1.idmov = citr1.idmov
+			WHERE
+				vtm1.no_imprimir = 1
+				AND citr1.idtran = citr.idtran
+				AND vtm1.idr > vtm.idr
+				AND vtm1.idr < ISNULL((
+					SELECT TOP 1
+						vtm2.idr
+					FROM
+						ew_ven_transacciones_mov AS vtm2
+					WHERE
+						vtm2.no_imprimir = 0
+						AND vtm2.idtran = vtm.idtran
+						AND vtm2.idr > vtm.idr
+					ORDER BY
+						vtm2.idr
+				), 999999999)
+		), 0)
+	)
 FROM
 	ew_ct_impuestos_transacciones AS citr
 	LEFT JOIN ew_ven_transacciones_mov AS vtm
-		ON vtm.idmov2 = citr.idmov2
+		ON vtm.idmov = citr.idmov
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
 		ON cit.idtasa = citr.idtasa
 WHERE
-	citr.idtran = @idtran
+	vtm.no_imprimir = 0
+	AND citr.idtran = @idtran
 
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran
@@ -956,8 +982,6 @@ WHERE
 GROUP BY
 	tvd.idmov
 	,tvd.idimpuesto1
---HAVING
-	--ABS(SUM(tvd.impuesto1)) > 0.0
 
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran

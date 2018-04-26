@@ -269,6 +269,10 @@ FROM (
 							WHERE 
 								ccmi.idtran = cc.idtran 
 								AND ccmi.idmov2 = ccm.idmov2
+								AND (
+									ccmi.importe > 0
+									OR ct.transaccion NOT IN ('FDA2')
+								)
 						) > 0
 					FOR XML PATH ('cfdi:Impuestos'), TYPE
 				) AS '*'
@@ -393,7 +397,8 @@ FROM (
 						,cci.cfd_tasa
 					FOR XML PATH('cfdi:Traslado'), TYPE
 				) AS 'cfdi:Traslados'
-			WHERE cc.cfd_tipoDeComprobante NOT IN ('P')
+			WHERE 
+				cc.cfd_tipoDeComprobante NOT IN ('P')
 			FOR XML PATH ('cfdi:Impuestos'), TYPE
 		) AS '*'
 		
