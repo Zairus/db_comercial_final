@@ -45,6 +45,36 @@ BEGIN
 	EXEC [dbo].[_ven_prc_facturaProcesarImpuestos] @idtran
 END
 
+IF @transaccion = 'EFA4'
+BEGIN
+	DECLARE
+		@ticket_idtran AS INT
+
+	DECLARE cur_tickets CURSOR FOR
+		SELECT
+			ctr.idtran2
+		FROM
+			ew_cxc_transacciones_rel AS ctr
+		WHERE
+			ctr.idtran = @idtran
+
+	OPEN cur_tickets
+
+	FETCH NEXT FROM cur_tickets INTO
+		@ticket_idtran
+
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		EXEC [dbo].[_ven_prc_facturaProcesarImpuestos] @ticket_idtran
+
+		FETCH NEXT FROM cur_tickets INTO
+			@ticket_idtran
+	END
+
+	CLOSE cur_tickets
+	DEALLOCATE cur_tickets
+END
+
 SELECT @rfc = REPLACE(REPLACE(@rfc,' ',''), '-', '')
 
 IF NOT EXISTS(
@@ -708,7 +738,7 @@ FROM
 WHERE
 	a.series = 1
 	AND m.importe <> 0
-	AND vt.transaccion <> 'EFA4'
+	AND vt.transaccion NOT IN ('EFA4')
 	AND m.idtran = @idtran
 ORDER BY 
 	m.consecutivo
@@ -756,7 +786,7 @@ FROM
 WHERE
 	a.series = 1
 	AND m.importe <> 0
-	AND vt.transaccion <> 'EFA4'
+	AND vt.transaccion NOT IN ('EFA4')
 	AND m.idtran = @idtran
 ORDER BY 
 	m.consecutivo
@@ -807,6 +837,51 @@ WHERE
 	ct.transaccion = 'FDA2'
 	AND ct.idtran = @idtran
 
+INSERT INTO #_tmp_venta_detalle (
+	consecutivo
+	,consecutivo_padre
+	,idarticulo
+	,cantidad
+	,unidad
+	,codigo
+	,descripcion
+	,precio_unitario
+	,importe
+	,idimpuesto1
+	,impuesto1
+	,idimpuesto2
+	,impuesto2
+	,idmov
+)
+
+SELECT
+	[consecutivo] = ROW_NUMBER() OVER (ORDER BY ctr.idr)
+	,[consecutivo_padre] = 0
+	,[idarticulo] = (SELECT a.idarticulo FROM ew_articulos AS a WHERE a.codigo = 'EWACT')
+	,[cfd_cantidad] = 1
+	,[cfd_unidad] = 'ACT'
+	,[cfd_noIdentificacion] = efa3.folio
+	,[cfd_descripcion] = o.nombre + ' ' + efa3.folio + ', del ' + CONVERT(VARCHAR(8), efa3.fecha, 3)
+	,[cfd_valorUnitario] = efa3.subtotal
+	,[cfd_importe] = efa3.subtotal
+
+	,[idimpuesto1] = efa4.idimpuesto1
+	,[impuesto1] = efa3.impuesto1
+	,[idimpuesto2] = 11
+	,[impuesto2] = efa3.impuesto2
+	,[idmov] = ctr.idmov
+FROM
+	ew_cxc_transacciones AS efa4
+	LEFT JOIN ew_cxc_transacciones_rel AS ctr
+		ON ctr.idtran = efa4.idtran
+	LEFT JOIN ew_cxc_transacciones AS efa3
+		ON efa3.idtran = ctr.idtran2
+	LEFT JOIN objetos AS o
+		ON o.codigo = efa3.transaccion
+WHERE
+	efa4.transaccion = 'EFA4'
+	AND efa4.idtran = @idtran
+
 --Detalle de venta
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	 idtran
@@ -839,6 +914,7 @@ ORDER BY
 	tvd.idr
 
 --Factura de tickets
+/*
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	idtran
 	,consecutivo_padre
@@ -873,6 +949,7 @@ FROM
 WHERE 
 	ct.transaccion = 'EFA4'
 	AND ctr.idtran = @idtran
+*/
 
 --Pagos
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
@@ -954,9 +1031,44 @@ FROM
 		ON vtm.idmov = citr.idmov
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
 		ON cit.idtasa = citr.idtasa
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = citr.idtran
 WHERE
-	vtm.no_imprimir = 0
+	ct.transaccion NOT IN ('EFA4')
+	AND ISNULL(vtm.no_imprimir, 0) = 0
 	AND citr.idtran = @idtran
+	
+INSERT INTO ew_cfd_comprobantes_mov_impuesto (
+	idtran
+	,idmov2
+	,idimpuesto
+	,idtasa
+	,base
+	,importe
+)
+SELECT
+	[idtran] = ctr.idtran
+	,[idmov2] = ctr.idmov
+	,[idimpuesto] = cit.idimpuesto
+	,[idtasa] = citr.idtasa
+	,[base] = SUM(citr.base)
+	,[importe] = SUM(citr.importe)
+FROM
+	ew_cxc_transacciones_rel AS ctr
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = ctr.idtran
+	LEFT JOIN ew_ct_impuestos_transacciones AS citr
+		ON citr.idtran = ctr.idtran2
+	LEFT JOIN ew_cat_impuestos_tasas AS cit
+		ON cit.idtasa = citr.idtasa
+WHERE
+	ct.transaccion IN ('EFA4')
+	AND ctr.idtran = @idtran
+GROUP BY
+	ctr.idtran
+	,ctr.idmov
+	,cit.idimpuesto
+	,citr.idtasa
 
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran

@@ -15,10 +15,11 @@ SELECT
 	[idsucursal] = cc.idsucursal
 	,[sucursal] = s.nombre
 	,[documento] = (
-		CASE
+		o.nombre
+		/*CASE
 			WHEN o.codigo LIKE 'EFA%' THEN 'Factura de Venta'
 			ELSE o.nombre
-		END
+		END*/
 	)
 	,[documento_tipo] = vt.tipo
 	,[fecha] = cc.cfd_fecha
@@ -192,7 +193,7 @@ SELECT
 			ccu.idtipo = 1 
 			AND ccu.idtran = cc.idtran
 	)
-	,[observaciones] = doc.comentario
+	,[observaciones] = CASE WHEN doc.transaccion IN('EFA1','EFA6') THEN (CONVERT(VARCHAR(MAX),doc.comentario) + ISNULL(dbo.fn_sys_parametro('VEN_MENSAJE_COMENTARIO'),'')) ELSE doc.comentario END
 FROM 
 	ew_cfd_comprobantes AS cc
 	LEFT JOIN ew_cfd_comprobantes_cancelados AS ccc
@@ -210,7 +211,7 @@ FROM
 	LEFT JOIN ew_cxc_transacciones AS vt
 		ON cc.idtran = vt.idtran
 	LEFT JOIN ew_clientes_facturacion cf
-		ON cf.idcliente = vt.idcliente AND cf.idfacturacion=0
+		ON cf.idcliente = vt.idcliente AND cf.idfacturacion=vt.idfacturacion
 	LEFT JOIN ew_clientes c
 		ON c.idcliente = cf.idcliente
 
@@ -273,7 +274,33 @@ FROM
 			LEFT JOIN objetos AS o1
 				ON o1.codigo = ct1.transaccion
 			WHERE 
-				ccm1.consecutivo_padre = 0
+				ccm1.idr IS NOT NULL
+				AND ccm1.consecutivo_padre = 0
+
+		UNION ALL
+		
+		SELECT
+			[idtran] = ccm1.idtran
+
+			,[concepto_consecutivo] = ccm1.consecutivo
+			,[concepto_idarticulo] = ccm1.idarticulo
+			,[concepto_codarticulo] = ccm1.cfd_noIdentificacion
+			,[concepto_claveSAT] = csc.clave
+			,[concepto_cantidad] = ccm1.cfd_cantidad
+			,[concepto_unidad] = ccm1.cfd_unidad
+			,[concepto_descripcion] = ccm1.cfd_descripcion
+			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
+			,[concepto_importe] = ccm1.cfd_importe
+		FROM
+			ew_cfd_comprobantes_mov AS ccm1
+			LEFT JOIN ew_cxc_transacciones AS ct
+				ON ct.idtran = ccm1.idtran
+			LEFT JOIN ew_articulos AS a
+				ON a.idarticulo = ccm1.idarticulo
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_clasificaciones AS csc
+				ON csc.idclasificacion = a.idclasificacion_sat
+		WHERE
+			ct.transaccion IN ('EFA4')
 	) AS ccm
 		ON ccm.idtran = cc.idtran
 

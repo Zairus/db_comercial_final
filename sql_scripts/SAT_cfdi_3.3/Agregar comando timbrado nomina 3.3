@@ -1,0 +1,23 @@
+USE db_comercial_final
+
+INSERT INTO ew_cfd_comandos (
+	idcomando
+	,comando
+)
+
+SELECT
+	[idcomando] = (
+		ISNULL((SELECT MAX(cc1.idcomando) FROM ew_cfd_comandos AS cc1), 0) 
+		+ 1
+	)
+	,[comando] = (
+		'EXEC [dbo].[_cfdi_prc_insertarComprobanteNOM] {idtran}'
+	)
+WHERE
+	(
+		SELECT COUNT(*) 
+		FROM ew_cfd_comandos AS cc 
+		WHERE cc.comando LIKE '%_cfdi_prc_insertarComprobanteNOM%'
+	) = 0
+
+SELECT * FROM ew_cfd_comandos

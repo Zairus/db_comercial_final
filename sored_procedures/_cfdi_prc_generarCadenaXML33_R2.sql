@@ -146,7 +146,12 @@ FROM (
 		,(
 			SELECT
 				cc.rfc_receptor AS '@Rfc'
-				,receptor_rfc.cfd_nombre AS '@Nombre'
+				,(
+					CASE 
+						WHEN LEN(receptor_rfc.cfd_nombre) = 0 THEN NULL 
+						ELSE receptor_rfc.cfd_nombre 
+					END
+				) AS '@Nombre'
 				,NULL AS '@ResidenciaFiscal' --ISNULL(csat_p.c_pais, 'MEX')
 				,cc.cfd_uso AS '@UsoCFDI'
 			FOR XML PATH('cfdi:Receptor'), TYPE

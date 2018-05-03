@@ -23,6 +23,8 @@ ALTER PROCEDURE [dbo].[_ven_prc_articuloDatos]
 	,@idcliente AS INT = 0
 	,@credito AS BIT = 0
 	,@cantidad AS DECIMAL(18,6) = 0
+
+	,@precio_actual AS DECIMAL(18,6) = 0
 AS
 
 SET NOCOUNT ON
@@ -56,6 +58,14 @@ DECLARE
 
 DECLARE
 	@codarticulo_linea AS VARCHAR(30)
+	,@nomarticulo_linea AS VARCHAR(100)
+	,@errormsg VARCHAR(300)
+	,@idum_venta SMALLINT
+	,@nom_um VARCHAR(50)
+
+	,@calculo TINYINT = CONVERT(TINYINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_CALCULO'), 0))
+
+SELECT @precio_actual = 0
 
 CREATE TABLE #_tmp_articuloDatos (
 	[id] INT IDENTITY
@@ -65,6 +75,7 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[descripcion] VARCHAR(500) NOT NULL DEFAULT ''
 	,[nombre_corto] VARCHAR(100) NOT NULL DEFAULT ''
 	,[marca] VARCHAR(100) NOT NULL DEFAULT ''
+	,[clasif_SAT] VARCHAR(50) NOT NULL DEFAULT ''
 	,[idum] INT NOT NULL DEFAULT 0
 	,[maneja_lote] BIT NOT NULL DEFAULT 0
 	,[autorizable] BIT NOT NULL DEFAULT 0
@@ -101,6 +112,7 @@ CREATE TABLE #_tmp_articuloDatos (
 	,[descuento1] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento2] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[descuento3] DECIMAL(18,6) NOT NULL DEFAULT 0
+	,[costo_ultimo] DECIMAL(18,6) NOT NULL DEFAULT 0
 	,[objlevel] INT NOT NULL DEFAULT 0
 )
 
@@ -133,6 +145,9 @@ BEGIN
 		 @idarticulo = a.idarticulo
 		,@idum = (CASE WHEN @idum = (-1) THEN a.idum_venta ELSE @idum END)
 		,@idimpuesto1 = a.idimpuesto1
+
+		,@nomarticulo_linea = a.nombre
+		,@idum_venta = a.idum_venta
 	FROM 
 		ew_articulos a 
 	WHERE 
@@ -147,6 +162,31 @@ BEGIN
 		RAISERROR('Error: Articulo inexistente o inactivo...', 16, 1)
 		RETURN
 	END
+
+	-- VALIDAR QUE EL ARTICULO TENGA CLASIFICACION DEL SAT
+	IF EXISTS(SELECT * FROM ew_articulos WHERE idarticulo = @idarticulo AND idclasificacion_sat=0)
+	BEGIN
+		CLOSE cur_articulosDatos
+		DEALLOCATE cur_articulosDatos
+
+		SELECT @errormsg='El artículo "' + @codarticulo_linea + ' - ' + @nomarticulo_linea + '" no tiene clasificación del SAT. Vaya al Catálogo de Artículos y haga la corrección o consulte al encargado.'
+		RAISERROR(@errormsg, 16, 1)
+		RETURN
+	END
+
+	-- VALIDAR QUE LA UNIDAD DE MEDIDA DEL ARTICULO TENGA CLASIFICACION DEL SAT
+	IF EXISTS(SELECT * FROM ew_cat_unidadesmedida WHERE idum = @idum_venta AND RTRIM(sat_unidad_clave) IN('','00'))
+	BEGIN
+		CLOSE cur_articulosDatos
+		DEALLOCATE cur_articulosDatos
+
+		SELECT @nom_um=RTRIM(nombre) FROM ew_cat_unidadesmedida WHERE idum=@idum_venta
+		SELECT @errormsg='La Unidad de Medida (' + @nom_um + ') asignada al artículo "' + @codarticulo_linea + ' - ' + @nomarticulo_linea + '" no tiene clasificación del SAT. Vaya al Catálogo de Presentaciones y haga la corrección o consulte al encargado.'
+
+		RAISERROR(@errormsg, 16, 1)
+		RETURN
+	END
+
 
 	-------------------------------------------------------
 	-- Seleccionamos la Lista de Precios 
@@ -166,6 +206,9 @@ BEGIN
 				ELSE (CASE WHEN idlista = @idlista2 THEN 2 ELSE 3 END)
 			END
 		)
+	
+	PRINT 'l'
+	PRINT @lista
 
 	SELECT @tc = ISNULL(dbo.fn_ban_tipocambio(@idmoneda, 0),1)	
 	SELECT @tc2 = ISNULL(dbo.fn_ban_tipocambio(@idmoneda2, 0),1)	
@@ -216,6 +259,7 @@ BEGIN
 		,[descripcion]
 		,[nombre_corto]
 		,[marca]
+		,[clasif_SAT]
 		,[idum]
 		,[maneja_lote]
 		,[autorizable]
@@ -251,6 +295,7 @@ BEGIN
 		,[descuento1]
 		,[descuento2]
 		,[descuento3]
+		,[costo_ultimo]
 		,[objlevel]
 	)
 
@@ -261,6 +306,7 @@ BEGIN
 		,[descripcion] = a.nombre
 		,[nombre_corto] = a.nombre_corto
 		,[marca] = ISNULL(m.nombre, '')
+		,[clasif_SAT] = CASE WHEN a.idclasificacion_SAT=0 THEN '-Sin Clasif.-' ELSE ISNULL(csat.clave,'-Sin Clasif.-') END
 		,[idum] = um.idum
 		,[maneja_lote] = a.lotes
 		,[autorizable] = a.autorizable
@@ -297,7 +343,9 @@ BEGIN
 			* (CASE WHEN vlm.idmoneda = @idmoneda THEN 1 ELSE bm.tipoCambio / @tipocambio END)
 		)
 
-		,[precio_minimo] = (
+		,[precio_minimo] = 
+		CASE WHEN @calculo = 0 THEN
+		(
 			(
 				sucar.costo_base
 				*(
@@ -311,7 +359,23 @@ BEGIN
 				)
 			)
 		)
-	
+
+		ELSE
+		(
+			(
+				sucar.costo_base
+				/(
+					1
+					-(
+						CASE 
+							WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
+							ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
+						END
+					)
+				)
+			)
+		)
+		END
 		,[existencia] = (
 			dbo.fn_inv_existenciaReal(a.idarticulo, @idalmacen)
 			-dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
@@ -517,6 +581,7 @@ BEGIN
 		,[descuento1] = @descuento1
 		,[descuento2] = @descuento2
 		,[descuento3] = @descuento3
+		,[costo_ultimo] = ISNULL(aa.costo_promedio,0)
 		,[objlevel] = (CASE WHEN a.kit = 1 THEN 1 ELSE 0 END)
 	FROM 
 		ew_articulos AS a
@@ -553,6 +618,9 @@ BEGIN
 
 		LEFT JOIN ew_articulos_niveles subl 
 			ON subl.codigo=a.nivel3
+
+		LEFT JOIN ew_cfd_sat_clasificaciones csat
+			ON csat.idclasificacion = a.idclasificacion_sat
 	WHERE
 		a.idarticulo = @idarticulo
 
@@ -596,6 +664,7 @@ BEGIN
 				,[descripcion]
 				,[nombre_corto]
 				,[marca]
+				,[clasif_SAT]
 				,[idum]
 				,[maneja_lote]
 				,[autorizable]
@@ -627,6 +696,7 @@ BEGIN
 				,[descripcion] = a.nombre
 				,a.nombre_corto
 				,[marca] = ISNULL(m.nombre,'')
+				,[clasif_SAT] = CASE WHEN a.idclasificacion_SAT=0 THEN '-Sin Clasif.-' ELSE ISNULL(csat.clave,'-Sin Clasif.-') END
 				,[idum] = um.idum
 				,[maneja_lote] = a.lotes
 				,a.autorizable
@@ -690,6 +760,9 @@ BEGIN
 
 				LEFT JOIN ew_articulos_niveles subl 
 					ON subl.codigo=a.nivel3
+
+				LEFT JOIN ew_cfd_sat_clasificaciones csat
+					ON csat.idclasificacion = a.idclasificacion_sat
 			WHERE
 				vpa.idpromocion = @idpromocion
 		
@@ -709,6 +782,7 @@ BEGIN
 		,[descripcion]
 		,[nombre_corto]
 		,[marca]
+		,[clasif_SAT]
 		,[idum]
 		,[maneja_lote]
 		,[autorizable]
@@ -723,6 +797,7 @@ BEGIN
 		,[precio_unitario_m2]
 		,[precio_minimo]
 		,[existencia]
+		,[costo_ultimo]
 		,[objlevel]
 	)
 	SELECT
@@ -732,6 +807,7 @@ BEGIN
 		,[descripcion] = a.nombre
 		,[nombre_corto] = a.nombre_corto
 		,[marca] = ISNULL(m.nombre, '')
+		,[clasif_SAT] = CASE WHEN a.idclasificacion_SAT=0 THEN '-Sin Clasif.-' ELSE ISNULL(csat.clave,'-Sin Clasif.-') END
 		,[idum] = a.idum_venta
 		,[maneja_lote] = 0
 		,[autorizable] = a.autorizable
@@ -746,6 +822,7 @@ BEGIN
 		,[precio_unitario_m2] = 0
 		,[precio_minimo] = 0
 		,[existencia] = ISNULL(aa.existencia, 0)
+		,[costo_ultimo] = ISNULL(aa.costo_ultimo,0)
 		,[objlevel] = 2
 	FROM
 		ew_articulos_insumos AS ai
@@ -758,6 +835,8 @@ BEGIN
 		LEFT JOIN ew_articulos_almacenes AS aa 
 			ON aa.idarticulo = a.idarticulo
 			AND aa.idalmacen = @idalmacen
+		LEFT JOIN ew_cfd_sat_clasificaciones csat
+			ON csat.idclasificacion = a.idclasificacion_sat
 	WHERE
 		ai.idarticulo_superior = @idarticulo
 
@@ -775,6 +854,7 @@ SELECT
 	,[descripcion] = tad.descripcion
 	,[nombre_corto] = tad.nombre_corto
 	,[marca] = tad.marca
+	,[clasif_SAT] = tad.clasif_SAT
 	,[idum] = tad.idum
 	,[maneja_lote] = tad.maneja_lote
 	,[autorizable] = tad.autorizable
@@ -786,7 +866,7 @@ SELECT
 	,[inventariable] = tad.inventariable
 	,[cantidad_ordenada] = tad.cantidad_facturada
 	,[cantidad_facturada] = tad.cantidad_facturada
-	,[precio_unitario_m] = tad.precio_unitario_m
+	,[precio_unitario_m] = (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_unitario_m END)
 	,[precio_unitario_m2] = tad.precio_unitario_m2
 	,[precio_minimo] = (
 		CASE
@@ -817,6 +897,7 @@ SELECT
 	,[descuento1] = 0
 	,[descuento2] = tad.descuento2
 	,[descuento3] = tad.descuento3
+	,[costo_ultimo] = tad.costo_ultimo
 	,[objlevel] = tad.objlevel
 FROM 
 	#_tmp_articuloDatos AS tad
