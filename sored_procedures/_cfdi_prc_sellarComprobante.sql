@@ -75,6 +75,9 @@ DECLARE
 DECLARE
 	@error_xml AS XML
 	,@error_fatal AS BIT = 1
+
+DECLARE
+	@transaccion AS VARCHAR(5)
 	
 IF NOT EXISTS(SELECT idtran FROM ew_cfd_comprobantes WHERE idtran = @idtran)
 BEGIN
@@ -82,6 +85,13 @@ BEGIN
 
 	GOTO ERROR_HANDLING
 END
+
+SELECT
+	@transaccion = transaccion
+FROM
+	ew_sys_transacciones 
+WHERE 
+	idtran = @idtran
 
 SELECT
 	@rfc_emisor = c.rfc_emisor
@@ -141,7 +151,17 @@ SELECT @comprobante = ''
 SELECT @cadena = ''
 SELECT @sello = ''
 
-EXEC [dbo].[_cfdi_prc_generarCadenaXML33_R2] @idtran, @comprobante OUTPUT
+IF @transaccion LIKE 'NFA%'
+BEGIN
+	-- NOMINA
+	EXEC [dbo].[_cfdi_prc_generarCadenaXML33_NOM] @idtran, @comprobante OUTPUT
+END
+	ELSE
+BEGIN
+	-- VENTA
+	EXEC [dbo].[_cfdi_prc_generarCadenaXML33_R2] @idtran, @comprobante OUTPUT
+END
+
 SELECT @OutXML = @comprobante
 
 BEGIN TRY
@@ -198,7 +218,7 @@ BEGIN TRY
 	SELECT @bin_xml = NULL
 	SELECT @error_fatal = 0
 	SELECT @msg = @mensaje
-			
+	
 	IF @uuid IS NULL OR LEN(@UUID) = 0
 	BEGIN
 		GOTO ERROR_HANDLING
@@ -296,17 +316,20 @@ BEGIN TRY
 	BEGIN
 		DELETE FROM ew_cfd_comprobantes_xml WHERE uuid = @UUID
 	END
-
-	INSERT INTO ew_cfd_comprobantes_xml (
-		uuid
-		,xml_base64
-		,xml_cfdi
-	)
-	VALUES (
-		@UUID
-		,@xmlBase64
-		,@str_xml
-	)
+	
+	IF @transaccion NOT IN ('NFA1')
+	BEGIN
+		INSERT INTO ew_cfd_comprobantes_xml (
+			uuid
+			,xml_base64
+			,xml_cfdi
+		)
+		VALUES (
+			@UUID
+			,@xmlBase64
+			,@str_xml
+		)
+	END
 
 	------------ NUEVO POR VLADIMIR -------------------------------------------------------
 	-- Actualizar tabla ew_cfd_timbres para sumar el timbre
@@ -370,6 +393,8 @@ BEGIN
 		+ 'por favor realice el intento en unos minutos. '
 		+ 'Si la situacion persiste, reportar a Evoluware. '
 		+ 'Gracias.'
+		+ CHAR(13)
+		+ @mensaje
 	)
 END
 

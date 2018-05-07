@@ -34,7 +34,7 @@ DECLARE
 
 IF @regenerar = 1
 BEGIN
-	EXEC _ct_prc_transaccionAnularCT @idtran, 1
+	EXEC _ct_prc_transaccionAnularCT @idtran2, 1
 END
 
 SELECT

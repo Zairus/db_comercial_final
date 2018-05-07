@@ -187,19 +187,12 @@ WHERE
 
 SELECT @comando = ISNULL(@comando, '')
 
-IF @cfd_version = '3.2'
-BEGIN
-	SELECT @comando = REPLACE(@comando, '{idtran}', RTRIM(CONVERT(VARCHAR(8),@idtran)))
-	SELECT @comando = REPLACE(@comando, '{cfd_idfolio}', RTRIM(CONVERT(VARCHAR(3),@cfd_idfolio)))
-	SELECT @comando = REPLACE(@comando, '{cfd_folio}', @cfd_folio)
-	SELECT @comando = REPLACE(@comando, '{tipo}', @tipo)
+SELECT @comando = REPLACE(@comando, '{idtran}', RTRIM(CONVERT(VARCHAR(8),@idtran)))
+SELECT @comando = REPLACE(@comando, '{cfd_idfolio}', RTRIM(CONVERT(VARCHAR(3),@cfd_idfolio)))
+SELECT @comando = REPLACE(@comando, '{cfd_folio}', @cfd_folio)
+SELECT @comando = REPLACE(@comando, '{tipo}', @tipo)
 
-	EXEC(@comando)
-END
-	ELSE
-BEGIN
-	EXEC [dbo].[_cfdi_prc_insertarComprobanteCXC] @idtran
-END
+EXEC(@comando)
 
 INSERT INTO dbo.ew_sys_transacciones2 (
 	idtran

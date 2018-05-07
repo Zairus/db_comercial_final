@@ -155,12 +155,18 @@ FROM
 			,pm.referencia
 			,pm.cargos
 			,pm.abonos
-			,pm.concepto
+			,[concepto] = (
+				ISNULL(ste.entidad, '')
+				+ ' - '
+				+ pm.concepto
+			)
 			,pm.idtran
 		FROM 
 			ew_ct_poliza_mov AS pm
 			LEFT JOIN ew_ct_poliza AS pol 
 				ON pol.idtran = pm.idtran
+			LEFT JOIN [dbo].[ew_sys_transaccionesEntidades] AS ste
+				ON ste.idtran = pm.idtran2
 		WHERE
 			pol.fecha BETWEEN @fecha1 AND @fecha2
 			AND pol.origen = (CASE @origen WHEN -1 THEN pol.origen ELSE @origen END)
