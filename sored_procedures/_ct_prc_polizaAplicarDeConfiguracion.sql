@@ -59,6 +59,11 @@ FROM
 WHERE
 	st.idtran = @idtran
 	
+IF @idsucursal = 0
+BEGIN
+	EXEC _sys_prc_obtenerSucursal @idtran, @idsucursal OUTPUT
+END
+
 SELECT
 	@idtipo = pc.idtipo
 	,@cuadrar = pc.cuadrar

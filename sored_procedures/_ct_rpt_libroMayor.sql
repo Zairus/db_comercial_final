@@ -8,8 +8,8 @@ GO
 ALTER PROCEDURE [dbo].[_ct_rpt_libroMayor]
 	@cuenta1 AS VARCHAR(20)
 	,@cuenta2 AS VARCHAR(20)
-	,@f1 VARCHAR(8)
-	,@f2 VARCHAR(8)
+	,@f1 SMALLDATETIME
+	,@f2 SMALLDATETIME
 	,@origen AS SMALLINT
 AS
 
@@ -39,8 +39,8 @@ DECLARE
 
 --------------------------------------------------------------------------------
 -- INICIALIZAR VARIABLES #######################################################
-SELECT @fecha1 = CONVERT(SMALLDATETIME, @f1, 3) + ' 00:00'
-SELECT @fecha2 = CONVERT(SMALLDATETIME, @f2, 3) + ' 23:59'
+SELECT @fecha1 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), @f1, 3) + ' 00:00')
+SELECT @fecha2 = cONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), @f2, 3) + ' 23:59')
 
 SELECT @dia1 = DAY(@fecha1)
 SELECT @periodo1 = MONTH(@fecha1)
