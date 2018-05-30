@@ -205,12 +205,7 @@ FROM (
 											ELSE
 												CONVERT(DECIMAL(15,2), 
 													cmi.importe
-													/ (
-														CASE 
-															WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
-															ELSE ci.valor 
-														END
-													)
+													/ ISNULL(cit.tasa, ci.valor)
 												)
 										END
 									)
@@ -219,13 +214,7 @@ FROM (
 								,ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 								,'Tasa' AS '@TipoFactor'
 								,dbo._sys_fnc_decimales(
-									(
-										CASE 
-											WHEN cmi.importe = 0 THEN 0
-											WHEN vtm.idimpuesto2_valor > 0 THEN vtm.idimpuesto2_valor 
-											ELSE ISNULL(cit.tasa, ci.valor)
-										END
-									)
+									ISNULL(cit.tasa, ci.valor)
 									, 6
 								) AS '@TasaOCuota'
 								,dbo._sys_fnc_decimales(cmi.importe, csm.decimales) AS '@Importe'

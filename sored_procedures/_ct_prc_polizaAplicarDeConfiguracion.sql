@@ -44,14 +44,18 @@ SELECT
 	,@objeto_codigo = ISNULL(@objeto_codigo, st.transaccion)
 
 	,@fecha = st.fecha
-	,@idu = (
+	,@idu = ISNULL((
 		SELECT TOP 1 st2.idu 
-		FROM ew_sys_transacciones2 AS st2 
+		FROM 
+			ew_sys_transacciones2 AS st2 
+			LEFT JOIN evoluware_usuarios AS u
+				ON u.idu = st2.idu
 		WHERE 
 			st2.idu > 0
+			AND u.activo = 1
 			AND st2.idtran = st.idtran 
 		ORDER BY st2.id
-	)
+	), 1)
 FROM
 	ew_sys_transacciones AS st
 	LEFT JOIN objetos AS o

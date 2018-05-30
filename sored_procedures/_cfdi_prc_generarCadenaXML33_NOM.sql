@@ -324,6 +324,19 @@ FROM (
 										,nc.nombre AS '@Concepto'
 										,CONVERT(DECIMAL(18,2), ntm.importe_gravado) AS '@ImporteGravado'
 										,CONVERT(DECIMAL(18,2), ntm.importe_exento) AS '@ImporteExento'
+										,(
+											SELECT
+												1 AS '@Dias'
+												,'01' AS '@TipoHoras'
+												,1 AS '@HorasExtra'
+												,(
+													CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
+													+CONVERT(DECIMAL(18,2), ntm.importe_exento)
+												) AS '@ImportePagado'
+											WHERE
+												nct.clave IN ('019')
+											FOR XML PATH('nomina12:HorasExtra'), TYPE
+										)
 									FROM 
 										ew_nom_transacciones_mov AS ntm
 										LEFT JOIN ew_nom_conceptos AS nc
