@@ -134,5 +134,7 @@ END
 
 EXEC _ven_prc_facturaPagos @idtran
 
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, 'EFA6', @idtran
+
 SELECT costo = ISNULL(SUM(costo),0) FROM ew_ven_transacciones_mov WHERE idtran = @idtran
 GO

@@ -29,11 +29,14 @@ DECLARE
 	,@precio_fijo AS DECIMAL(18,6) = 0
 
 DECLARE
-	 @idpromocion AS INT
+	@idpromocion AS INT
 	,@cantidad_minima AS DECIMAL(18,6)
+	,@no_incluir_iva INT = 0
 
 DECLARE
-	 @i AS TINYINT
+	@i AS TINYINT
+
+SELECT @no_incluir_iva = CONVERT(INT, ISNULL(dbo.fn_sys_parametro('NOTAS_VENTA_SIN_IVA'), '0'))
 
 IF LEN(@llave) = 0
 BEGIN
@@ -151,7 +154,7 @@ SELECT
 	--########################################################
 	,[idimpuesto1] = ISNULL((
 		SELECT TOP 1
-			cit.idimpuesto
+			(CASE WHEN @no_incluir_iva = 1 THEN 0 ELSE cit.idimpuesto END)
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
 			LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -165,7 +168,7 @@ SELECT
 	), ci.idimpuesto)
 	,[idimpuesto1_valor] = ISNULL((
 		SELECT TOP 1
-			cit.tasa
+			(CASE WHEN @no_incluir_iva = 1 THEN 0 ELSE cit.tasa END)
 		FROM 
 			ew_articulos_impuestos_tasas AS ait
 			LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -345,7 +348,7 @@ BEGIN
 			--########################################################
 			,[idimpuesto1] = ISNULL((
 				SELECT
-					cit.idimpuesto
+					(CASE WHEN @no_incluir_iva = 1 THEN 0 ELSE cit.idimpuesto END)
 				FROM 
 					ew_articulos_impuestos_tasas AS ait
 					LEFT JOIN ew_cat_impuestos_tasas AS cit
@@ -359,7 +362,7 @@ BEGIN
 			), ci.idimpuesto)
 			,[idimpuesto1_valor] = ISNULL((
 				SELECT
-					cit.tasa
+					CASE WHEN @no_incluir_iva = 1 THEN 0 ELSE cit.tasa END
 				FROM 
 					ew_articulos_impuestos_tasas AS ait
 					LEFT JOIN ew_cat_impuestos_tasas AS cit

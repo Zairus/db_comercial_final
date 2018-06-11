@@ -18,6 +18,8 @@ SET NOCOUNT ON
 
 DECLARE
 	@costo_unitario AS DECIMAL(18,6)
+	,@idimpuestox AS SMALLINT = -1
+	,@mensaje VARCHAR(100) = ''
 
 --Seleccionar sucursal, en caso de que no se le haya enviado
 IF @idsucursal = 0
@@ -55,11 +57,12 @@ SELECT
 	,[existencia] = ISNULL(aa.existencia, 0)
 	,[idsucursal] = s.idsucursal
 	,[idalmacen] = aa.idalmacen
-
+	
 	--########################################################
 	,[idimpuesto1] = (
 		CASE
 			WHEN @idimpuesto > -1 THEN @idimpuesto
+			WHEN p.extranjero = 1 THEN 0
 			ELSE (
 				ISNULL((
 					SELECT TOP 1
@@ -83,6 +86,7 @@ SELECT
 			WHEN @idimpuesto > -1 THEN (
 				SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = @idimpuesto
 			)
+			WHEN p.extranjero = 1 THEN 0
 			ELSE (
 				ISNULL((
 					SELECT TOP 1
@@ -113,6 +117,7 @@ SELECT
 		WHERE
 			ci.grupo = 'IEPS'
 			AND cit.tipo = 1
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2)
 	,[idimpuesto2_valor] = ISNULL((
@@ -127,6 +132,7 @@ SELECT
 		WHERE 
 			ci.grupo = 'IEPS'
 			AND cit.tipo = 1
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2), 0))
 	,[idimpuesto1_ret] = ISNULL((
@@ -141,6 +147,7 @@ SELECT
 		WHERE 
 			ci.grupo = 'IVA'
 			AND cit.tipo = 2
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto1_ret)
 	,[idimpuesto1_ret_valor] = ISNULL((
@@ -155,6 +162,7 @@ SELECT
 		WHERE 
 			ci.grupo = 'IVA'
 			AND cit.tipo = 2
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto1_ret), 0))
 	,[idimpuesto2_ret] = ISNULL((
@@ -169,6 +177,7 @@ SELECT
 		WHERE 
 			ci.grupo = 'ISR'
 			AND cit.tipo = 2
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), a.idimpuesto2_ret)
 	,[idimpuesto2_ret_valor] = ISNULL((
@@ -183,6 +192,7 @@ SELECT
 		WHERE 
 			ci.grupo = 'ISR'
 			AND cit.tipo = 2
+			AND p.extranjero = 0
 			AND ait.idarticulo = a.idarticulo
 	), ISNULL((SELECT ci1.valor FROM ew_cat_impuestos AS ci1 WHERE ci1.idimpuesto = a.idimpuesto2_ret), 0))
 
@@ -200,17 +210,18 @@ FROM
 		ON s.idarticulo = a.idarticulo
 		AND s.idsucursal = @idsucursal
 	LEFT JOIN ew_articulos_proveedores ap
-		ON ap.idarticulo=a.idarticulo
-		AND ap.idproveedor=@idproveedor
+		ON ap.idarticulo = a.idarticulo
+		AND ap.idproveedor = @idproveedor
 	LEFT JOIN ew_cat_marcas m
-		ON a.idmarca=m.idmarca
-
+		ON a.idmarca = m.idmarca
 	LEFT JOIN ew_cat_impuestos AS imp2
 		ON imp2.idimpuesto = a.idimpuesto2
 	LEFT JOIN ew_cat_impuestos AS impr2
 		ON impr2.idimpuesto = a.idimpuesto2_ret
 	LEFT JOIN ew_sys_sucursales AS suc
 		ON suc.idsucursal = @idsucursal
+	LEFT JOIN ew_proveedores AS p
+		ON p.idproveedor = @idproveedor
 WHERE
 	a.activo = 1
 	AND a.codigo IN (
@@ -221,7 +232,7 @@ WHERE
 
 IF @@ROWCOUNT = 0
 BEGIN
-	RAISERROR('Error: Articulo inexistente o inactivo...', 16, 1)
+	RAISERROR('Error: Articulo inexistente o inactivo.', 16, 1)
 	RETURN
 END
 GO

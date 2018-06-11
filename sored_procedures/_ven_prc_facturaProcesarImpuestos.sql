@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -49,6 +49,45 @@ WHERE
 			ew_ct_impuestos_transacciones AS citrn 
 		WHERE 
 			citrn.idtran = @idtran
+	)
+	AND (
+		vom.idimpuesto1 > 0
+		OR vom.idimpuesto2 > 0
+		OR vom.idimpuesto1_ret > 0
+		OR vom.idimpuesto2_ret > 0
+	)
+	AND vom.idtran = @idtran
+
+INSERT INTO ew_ct_impuestos_transacciones (
+	idtran
+	,idmov
+	,idmov2
+	,idtasa
+	,base
+	,importe
+)
+SELECT
+	[idtran] = vom.idtran
+	,[idmov] = vom.idmov
+	,[idmov2] = vom.idmov2
+	,[idtasa] = 0
+	,[base] = CONVERT(DECIMAL(18,2), vom.importe)
+	,[importe] = 0
+FROM
+	ew_ven_transacciones_mov AS vom
+WHERE
+	vom.idmov NOT IN (
+		SELECT citrn.idmov 
+		FROM 
+			ew_ct_impuestos_transacciones AS citrn 
+		WHERE 
+			citrn.idtran = @idtran
+	)
+	AND (
+		vom.idimpuesto1 = 0
+		ANd vom.idimpuesto2 = 0
+		AND vom.idimpuesto1_ret = 0
+		AND vom.idimpuesto2_ret = 0
 	)
 	AND vom.idtran = @idtran
 

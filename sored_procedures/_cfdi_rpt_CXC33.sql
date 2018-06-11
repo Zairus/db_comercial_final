@@ -11,9 +11,14 @@ AS
 
 SET NOCOUNT ON
 
+DECLARE @concat_nom_corto_articulo VARCHAR(1)=''
+
+SELECT @concat_nom_corto_articulo=ISNULL(dbo.fn_sys_parametro('PDF_CONCAT_NOM_CORTO_ARTICULO'),'0')
+
 SELECT
 	[idsucursal] = cc.idsucursal
 	,[sucursal] = s.nombre
+	,[transaccion] = o.codigo
 	,[documento] = (
 		o.nombre
 		/*CASE
@@ -159,7 +164,7 @@ SELECT
 	,[concepto_claveSAT] = ccm.concepto_claveSAT
 	,[concepto_cantidad] = ccm.concepto_cantidad
 	,[concepto_unidad] = ccm.concepto_unidad
-	,[concepto_descripcion] = ccm.concepto_descripcion
+	,[concepto_descripcion] = ccm.concepto_descripcion 
 	,[concepto_precio_unitario] = ccm.concepto_precio_unitario
 	,[concepto_importe] = ccm.concepto_importe
 
@@ -222,12 +227,25 @@ FROM
 		SELECT
 			[idtran] = ccm1.idtran
 			,[concepto_consecutivo] = ccm1.consecutivo
+			,[concepto_ordenamiento] = ccm1.consecutivo
 			,[concepto_idarticulo] = ccm1.idarticulo
 			,[concepto_codarticulo] = a.codigo
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = ccm1.cfd_descripcion + CASE WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2))>0 THEN ' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) ELSE '' END
+			,[concepto_descripcion] = (
+				CASE 
+					WHEN @concat_nom_corto_articulo = 1 THEN 
+						a.nombre_corto + ' - ' + ccm1.cfd_descripcion 
+					ELSE ccm1.cfd_descripcion 
+				END
+			) + (
+				CASE 
+					WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2)) > 0 THEN 
+						' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) 
+					ELSE '' 
+				END
+			)
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -245,6 +263,7 @@ FROM
 		SELECT
 			[idtran] = ctm1.idtran
 			,[concepto_consecutivo] = ccm1.consecutivo
+			,[concepto_ordenamiento] = ccm1.consecutivo
 			,[concepto_idarticulo] = ccm1.idarticulo
 			,[concepto_codarticulo] = a.codigo
 			,[concepto_claveSAT] = csc.clave
@@ -283,6 +302,7 @@ FROM
 			[idtran] = ccm1.idtran
 
 			,[concepto_consecutivo] = ccm1.consecutivo
+			,[concepto_ordenamiento] = ccm1.consecutivo
 			,[concepto_idarticulo] = ccm1.idarticulo
 			,[concepto_codarticulo] = ccm1.cfd_noIdentificacion
 			,[concepto_claveSAT] = csc.clave
@@ -301,6 +321,49 @@ FROM
 				ON csc.idclasificacion = a.idclasificacion_sat
 		WHERE
 			ct.transaccion IN ('EFA4')
+
+		UNION ALL
+
+		SELECT
+			[idtran] = vtms.idtran
+			,[concepto_consecutivo] = ISNULL(ccm1.consecutivo, 0) + 10
+			,[concepto_ordenamiento] = ISNULL(ccm1.consecutivo, 0)
+			,[concepto_idarticulo] = ISNULL(ccm1.idarticulo, 0)
+			,[concepto_codarticulo] = ''
+			,[concepto_claveSAT] = ''
+			,[concepto_cantidad] = NULL
+			,[concepto_unidad] = ''
+			,[concepto_descripcion] = (
+				csp.plan_descripcion 
+				+ ' [' + vtms.plan_codigo + '], equipos: '
+				+ (
+					SELECT
+						se.serie + ' '
+					FROM
+						ew_clientes_servicio_equipos AS cse
+						LEFT JOIN ew_ser_equipos AS se
+							ON se.idequipo = cse.idequipo
+					WHERE
+						cse.idcliente = vt.idcliente
+						AND cse.plan_codigo = csp.plan_codigo
+					FOR XML PATH('')
+				)
+			)
+			,[concepto_precio_unitario] = NULL
+			,[concepto_importe] = NULL
+		FROM
+			ew_ven_transacciones_mov_servicio AS vtms
+			LEFT JOIN ew_cfd_comprobantes_mov AS ccm1
+				ON ccm1.idmov2 = vtms.idmov
+			LEFT JOIN ew_articulos AS a
+				ON a.idarticulo = ccm1.idarticulo
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_clasificaciones AS csc
+				ON csc.idclasificacion = a.idclasificacion_sat
+			LEFT JOIN ew_ven_transacciones AS vt
+				ON vt.idtran = vtms.idtran
+			LEFT JOIN ew_clientes_servicio_planes AS csp
+				ON csp.idcliente = vt.idcliente
+				AND csp.plan_codigo = vtms.plan_codigo
 	) AS ccm
 		ON ccm.idtran = cc.idtran
 
@@ -323,4 +386,6 @@ FROM
 		ON csm.c_moneda = bm.codigo
 WHERE
 	cc.idtran = @idtran
+ORDER BY
+	ccm.concepto_ordenamiento
 GO

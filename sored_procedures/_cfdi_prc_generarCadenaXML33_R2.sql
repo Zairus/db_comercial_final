@@ -265,7 +265,7 @@ FROM (
 								AND ccmi.idmov2 = ccm.idmov2
 								AND (
 									ccmi.importe > 0
-									OR ct.transaccion NOT IN ('FDA2')
+									OR ct.transaccion NOT IN ('FDA2', 'EDE1')
 								)
 						) > 0
 					FOR XML PATH ('cfdi:Impuestos'), TYPE
@@ -393,6 +393,16 @@ FROM (
 				) AS 'cfdi:Traslados'
 			WHERE 
 				cc.cfd_tipoDeComprobante NOT IN ('P')
+				AND (
+					SELECT COUNT(*)
+					FROM
+						ew_cfd_comprobantes_impuesto AS cci 
+							LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_impuesto AS csi
+								ON csi.descripcion = cci.cfd_impuesto
+						WHERE
+							cci.cfd_ambito = 0
+							AND cci.idtran = cc.idtran
+				) > 0
 			FOR XML PATH ('cfdi:Impuestos'), TYPE
 		) AS '*'
 		

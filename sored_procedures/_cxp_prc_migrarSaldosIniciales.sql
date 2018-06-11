@@ -97,6 +97,7 @@ BEGIN
 		,impuesto1_ret
 		,impuesto2_ret
 		,saldo
+		,tipo_cargo
 		,idu
 		,comentario
 	)
@@ -140,6 +141,7 @@ BEGIN
 		,[impuesto1_ret] = cm.saldo * (cm.impuesto1_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
 		,[impuesto2_ret] = cm.saldo * (cm.impuesto2_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
 		,[saldo] = 0
+		,[tipo_cargo] = cm.tipo_cargo
 		,[idu] = 1
 		,[comentario] = 'De carga automatica'
 	FROM
