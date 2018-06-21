@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -146,6 +146,16 @@ SELECT
 	,[marca] = m.nombre
 	,ew_ven_transacciones_mov.idum
 	,[maneja_lote] = a.lotes
+	,[mostrar_lote] = ISNULL(SUBSTRING((
+		SELECT
+			', ' + vtml.lote AS [text()]
+		FROM
+			ew_ven_transacciones_mov_lotes AS vtml
+		WHERE
+			vtml.idtran = ew_ven_transacciones_mov.idtran
+			AND vtml.idarticulo = ew_ven_transacciones_mov.idarticulo
+		FOR XML PATH('')
+	), 2, 1000), '')
 	,ic.lote
 	,ic.fecha_caducidad
 	,ew_ven_transacciones_mov.idcapa
@@ -492,4 +502,22 @@ SELECT
 	*
 FROM
 	fn_sys_tracking(@idtran)
+
+----------------------------------------------------
+-- 8)  Lotes por articulo
+----------------------------------------------------
+SELECT
+	vtml.consecutivo
+	,vtml.lote
+	,[codarticulo] = a.codigo
+	,[nombre] = a.nombre
+	,vtml.idarticulo
+	,vtml.cantidad
+	,vtml.comentario
+FROM 
+	ew_ven_transacciones_mov_lotes AS vtml
+	LEFT JOIN ew_articulos AS a
+		ON a.idarticulo = vtml.idarticulo
+WHERE
+	vtml.idtran = @idtran
 GO

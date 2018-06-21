@@ -5,7 +5,7 @@ GO
 -- Create date: 20180310
 -- Description:	Referencia de orden de venta a factura
 -- =============================================
-ALTER PROCEDURE _ven_prc_ordenReferenciaDetalle
+ALTER PROCEDURE [dbo].[_ven_prc_ordenReferenciaDetalle]
 	@referencia_encabezado AS VARCHAR(15)
 	,@referencia_detalle AS VARCHAR(15)
 	,@idsucursal AS INT
@@ -25,7 +25,7 @@ SELECT
 	,[descripcion] = a.nombre
 	,[idum] = om.idum
 	,[existencia] = ISNULL(aa.existencia, 0) --(Febrero 28, 2018)
-	,precio_minimo= 0
+	,[precio_minimo] = 0
 	,[cantidad_porFacturar]= cantidad_porFacturar
 	,[cantidad_porSurtir]= cantidad_porSurtir
 	,[cantidad_ordenada] = om.cantidad_ordenada
@@ -40,14 +40,15 @@ SELECT
 	,[precio_unitario] = om.precio_unitario
 	,[descuento1] = om.descuento1
 	,[descuento2] = om.descuento2
-	,om.descuento_pp1
-	,om.descuento_pp2
-	,om.descuento_pp3
+	,[descuento_pp1] = om.descuento_pp1
+	,[descuento_pp2] = om.descuento_pp2
+	,[descuento_pp3] = om.descuento_pp3
 	,[comentario] = om.comentario
 	,[serie]= a.series
-	,a.inventariable
-	,[idalmacen]=doc.idalmacen
-	,cuenta_sublinea=subl.contabilidad
+	,[lotes] = a.lotes
+	,[inventariable] = a.inventariable
+	,[idalmacen] = doc.idalmacen
+	,[cuenta_sublinea] = subl.contabilidad
 	
 	,[idimpuesto1] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 1, a.idarticulo), a.idimpuesto1)
 	,[idimpuesto1_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 1, a.idarticulo), 0.16)
@@ -62,7 +63,7 @@ SELECT
 	,[idimpuesto2_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('ISR', 2, a.idarticulo), 0.0)
 	,[idimpuesto2_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('ISR', 2, a.idarticulo, 1), '')
 	,[ingresos_cuenta] = ISNULL([dbo].[_ct_fnc_articuloIngresosCuenta](a.idarticulo), '4100001000')
-	,om.objlevel
+	,[objlevel] = om.objlevel
 FROM 
 	ew_ven_ordenes_mov AS om
 	LEFT JOIN ew_articulos AS a 
@@ -81,7 +82,7 @@ FROM
 	LEFT JOIN ew_articulos_almacenes AS aa 
 		ON aa.idarticulo = a.idarticulo AND aa.idalmacen = doc.idalmacen
 WHERE
-	doc.transaccion = 'EOR1'
+	doc.transaccion IN('EOR1','EOR2')
 	AND doc.idsucursal = @idsucursal
 	AND doc.folio IN (
 		SELECT r.valor 

@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -199,6 +199,7 @@ SELECT
 			AND ccu.idtran = cc.idtran
 	)
 	,[observaciones] = CASE WHEN doc.transaccion IN('EFA1','EFA6') THEN (CONVERT(VARCHAR(MAX),doc.comentario) + ISNULL(dbo.fn_sys_parametro('VEN_MENSAJE_COMENTARIO'),'')) ELSE doc.comentario END
+	,[cancelado] = ISNULL(vt2.cancelado,0)
 FROM 
 	ew_cfd_comprobantes AS cc
 	LEFT JOIN ew_cfd_comprobantes_cancelados AS ccc
@@ -244,6 +245,37 @@ FROM
 					WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2)) > 0 THEN 
 						' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) 
 					ELSE '' 
+				END
+			)
+			+ (
+				CASE
+					WHEN a.lotes > 0 THEN
+						ISNULL(SUBSTRING(CHAR(13) + CHAR(10) + (
+							SELECT
+								(
+									CONVERT(VARCHAR(20), vtml.cantidad)
+									+ ', Lote: ' + vtml.lote
+									+ ', Cad.: '
+									+ ISNULL(CONVERT(VARCHAR(8), (
+										SELECT
+											MAX(ic.fecha_caducidad)
+										FROM
+											ew_inv_capas AS ic
+										WHERE
+											ic.fecha_caducidad IS NOT NULL
+											AND ic.lote = vtml.lote
+									), 3), '')
+									+ '; '
+								) AS [text()]
+							FROM
+								ew_ven_transacciones_mov_lotes AS vtml
+							WHERE
+								vtml.cantidad > 0
+								AND vtml.idtran = ccm1.idtran
+								AND vtml.idarticulo = ccm1.idarticulo
+							FOR XML PATH('')
+						), 2, 1000), '')
+					ELSE ''
 				END
 			)
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario

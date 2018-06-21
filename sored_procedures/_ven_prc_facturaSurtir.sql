@@ -23,6 +23,9 @@ DECLARE
 	,@folio AS VARCHAR(15)
 	,@tipo AS SMALLINT
 
+DECLARE
+	@error_mensaje AS VARCHAR(1500)
+
 SELECT
 	@usuario = u.usuario
 	,@password = u.[password]
@@ -37,6 +40,48 @@ WHERE
 	vt.idtran = @idtran
 
 SELECT @transaccion = (CASE WHEN @tipo = 2 THEN 'GDA1' ELSE 'GDC1' END)
+
+SELECT TOP 1
+	@error_mensaje = (
+		'Error: '
+		+ 'Para el producto "[' + a.codigo + '] ' + a.nombre + '", '
+		+ 'no se ha indicado la cantidad por lote correctamente. '
+		+ 'Cantidad esperada: ' + CONVERT(VARCHAR(20), vtm.cantidad_facturada) + ', '
+		+ 'Cantidad capturada: '
+		+ CONVERT(VARCHAR(20), ISNULL((
+			SELECT SUM(vtml.cantidad) 
+			FROM 
+				ew_ven_transacciones_mov_lotes AS vtml 
+			WHERE 
+				vtml.idtran = vtm.idtran 
+				AND vtml.idarticulo = vtm.idarticulo
+		), 0))
+		+ '.'
+	)
+FROM
+	ew_ven_transacciones_mov AS vtm
+	LEFT JOIN ew_articulos AS a
+		ON a.idarticulo = vtm.idarticulo
+WHERE
+	vtm.idtran = @idtran
+	AND a.lotes > 0
+	AND (
+		vtm.cantidad_facturada
+		<> ISNULL((
+			SELECT SUM(vtml.cantidad) 
+			FROM 
+				ew_ven_transacciones_mov_lotes AS vtml 
+			WHERE 
+				vtml.idtran = vtm.idtran 
+				AND vtml.idarticulo = vtm.idarticulo
+		), 0)
+	)
+
+IF @error_mensaje IS NOT NULL
+BEGIN
+	RAISERROR(@error_mensaje, 16, 1)
+	RETURN
+END
 
 IF EXISTS(
 	SELECT	
@@ -88,6 +133,7 @@ BEGIN
 		, referencia
 		, comentario
 		, idconcepto
+		, idu
 	)
 	SELECT
 		[idtran] = @inv_idtran
@@ -100,6 +146,7 @@ BEGIN
 		, [referencia] = vt.transaccion + ' - ' + vt.folio
 		, [comentario] = vt.comentario
 		, [idconcepto] = 19
+		, idu
 	FROM
 		ew_ven_transacciones AS vt
 	WHERE
@@ -132,11 +179,11 @@ BEGIN
 		, [idalmacen] = @idalmacen
 		, [idarticulo] = vtm.idarticulo
 		, [series] = vtm.series
-		, [lote] = ISNULL(ic.lote, '')
-		, [fecha_caducidad] = NULL
-		, [idcapa] = vtm.idcapa
+		, [lote] = ISNULL(ISNULL(vtml.lote, ic.lote), '')
+		, [fecha_caducidad] = ISNULL(icl.fecha_caducidad, ic.fecha_caducidad)
+		, [idcapa] = ISNULL(icl.idcapa, vtm.idcapa)
 		, [idum] = vtm.idum
-		, [cantidad] = (vtm.cantidad_surtida * um.factor)
+		, [cantidad] = (ISNULL(vtml.cantidad, vtm.cantidad_surtida) * um.factor)
 		, [costo] = (CASE WHEN @tipo = 2 THEN 0 ELSE vtm.costo END)
 		, [afectainv] = 1
 		, [comentario] = vtm.comentario
@@ -149,24 +196,38 @@ BEGIN
 		LEFT JOIN ew_inv_capas AS ic 
 			ON vtm.idcapa = ic.idcapa 
 			AND vtm.idarticulo = ic.idarticulo
+			
+		LEFT JOIN ew_ven_transacciones_mov_lotes AS vtml
+			ON vtml.idtran = vtm.idtran
+			AND vtml.idarticulo = vtm.idarticulo
+		LEFT JOIN ew_inv_capas AS icl
+			ON ic.idarticulo = vtm.idarticulo
+			AND icl.lote = vtml.lote
 	WHERE
-		vtm.cantidad_facturada != 0
-		AND vtm.cantidad_surtida != 0
+		(ISNULL(vtml.cantidad, vtm.cantidad_surtida) * um.factor) != 0
 		AND a.inventariable = 1
 		AND vtm.idtran = @idtran
 
-	UPDATE fcd SET
-		fcd.costo = ISNULL(itm.costo, 0)
-	FROM 
-		ew_ven_transacciones_mov AS fcd
-		LEFT JOIN ew_inv_transacciones_mov AS itm 
-			ON itm.idmov2 = fcd.idmov 
-			AND itm.tipo = 2
-		LEFT JOIN ew_inv_transacciones AS it ON 
-			it.idtran = itm.idtran
-	WHERE
-		fcd.idtran = @idtran
-		AND it.idtran2 = @idtran
+	IF @tipo = 2
+	BEGIN
+		UPDATE fcd SET
+			fcd.costo = ISNULL((
+				SELECT
+					SUM(itm.costo)
+				FROM
+					ew_inv_transacciones AS it
+					LEFT JOIN ew_inv_transacciones_mov AS itm
+						ON itm.tipo = 2
+						AND itm.idtran = it.idtran
+						AND itm.idmov2 = fcd.idmov
+				WHERE
+					it.idtran2 = @idtran
+			), 0)
+		FROM 
+			ew_ven_transacciones_mov AS fcd
+		WHERE
+			fcd.idtran = @idtran
+	END
 		
 	--------------------------------------------------------------------
 	-- Referenciando en el Tracking la salida de almacen

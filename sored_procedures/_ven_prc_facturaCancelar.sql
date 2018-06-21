@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
@@ -53,63 +53,17 @@ BEGIN
 	RETURN
 END
 
+SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
+
 -- cancelamos el cargo en CXC
 EXEC _cxc_prc_cancelarTransaccion @idtran, @fecha, @idu
 
 --------------------------------------------------------------------
 -- Afectamos el inventario
 --------------------------------------------------------------------
-SELECT TOP 1 
-	@idtran2 = ISNULL(idtran,0) 
-FROM 
-	ew_inv_transacciones 
-WHERE 
-	idtran2 = @idtran 
-	AND idconcepto = 19
-
-IF @idtran2 > 0
+IF @surtir = 1
 BEGIN
-	IF EXISTS(
-		SELECT fm.idarticulo 
-		FROM 
-			ew_inv_transacciones_mov AS fm
-		WHERE 
-			fm.cantidad > 0 
-			AND fm.idtran = @idtran2
-	)
-	BEGIN
-		SELECT @sql = '', @idtran_inv = 0
-
-		SELECT @sql = 'SELECT idmov AS [idmov2],idpedimento,[idcapa]=0,idarticulo,series,lote=ISNULL(lote,''''),fecha_caducidad,idum
-	,cantidad=cantidad,costo,costo2, [afectaref]=1
-FROM
-	ew_inv_transacciones_mov fm
-WHERE
-	(idtran=' + CONVERT(VARCHAR(8),@idtran2) + ') 
-		'
-
-		SELECT @comentario2 = RTRIM(@transaccion) + ': ' + RTRIM(@folio) + ' - Cancelación Ventas'
-
-		EXEC _inv_prc_insertarTransaccion2
-			@idtran
-			, 1019
-			, @codalm
-			, @fecha
-			, 1
-			, @usuario
-			, @password
-			, ''
-			, @comentario2
-			, @sql
-			, @idtran_inv OUTPUT 
-
-		IF @idtran_inv IS NULL OR @idtran_inv = 0
-		BEGIN
-			SELECT @msg='Error. Al cancelar la factura en el inventario ...'
-			RAISERROR(@msg, 16, 1)
-			RETURN
-		END 
-	END
+	EXEC [dbo].[_ven_prc_facturaSurtir] @idtran, 1
 END
 
 --------------------------------------------------------------------

@@ -1041,8 +1041,8 @@ GROUP BY
 	, ISNULL(cit.tipo, ci.tipo)
 	, ci.grupo
 	, CONVERT(DECIMAL(18,6), ABS(ISNULL(cit.tasa, ci.valor) * 100))
-HAVING
-	ABS(SUM(ccmi.importe)) > 0
+--HAVING
+	--ABS(SUM(ccmi.importe)) > 0
 
 -----------------------------------------------------------------------
 -- Generar XML y Sellar

@@ -10,6 +10,7 @@ GO
 ALTER PROCEDURE [dbo].[_xac_EOR1_cargarDoc]
 	@idtran AS INT
 AS
+
 SET NOCOUNT ON
  
 ----------------------------------------------------
@@ -65,9 +66,9 @@ Tel: ' + c.telefono1 + ' ' + c.telefono2  + '
 Fax: ' + c.fax
 	,xcredito=ISNULL(p.nombre,'') + '
 ' + CASE WHEN ct.credito=1 THEN 'CREDITO' + (CASE WHEN ct.credito_suspendido=1 THEN ' SUSPENDIDO' ELSE '' END) ELSE 'CONTADO'  END + '
-Saldo Actual: ' + CONVERT(VARCHAR(15),CSA.saldo) + '
-Límite: ' + CONVERT(VARCHAR(15),ct.credito_limite) + '
-Disponible: ' + CONVERT(VARCHAR(15),ct.credito_limite-CSA.saldo)
+Saldo Actual: ' + CONVERT(VARCHAR(50),CSA.saldo) + '
+Límite: ' + CONVERT(VARCHAR(50),ct.credito_limite) + '
+Disponible: ' + CONVERT(VARCHAR(50),ct.credito_limite-CSA.saldo)
 
 ,	xcontacto=ISNULL(RTRIM(con.nombre),'') + ISNULL( ' ' + con.apellido,'') + ' 
 Horario: ' + ISNULL(cc.horario,'') + '
@@ -89,11 +90,11 @@ ISNULL(RTRIM(u.nombre),'') + '
 ' + ISNULL(u.direccion1,'') + ' ' + ISNULL(u.direccion2,'')  + ' 
 ' + ISNULL(u.colonia,'') + '  ' + ISNULL(u.codpostal,'') + '
 ' + dbo.fn_sys_localidad(u.idciudad)
-	,idrelacion =4
+	,idrelacion = 4
 	,entidad_codigo = c.codigo
 	,entidad_nombre = c.nombre
 	,identidad = c.idcliente
-	,politica=ISNULL(p.nombre,'Sin Asignación')
+	,politica = ISNULL(p.nombre,'Sin Asignación')
 	,faut=[dbo].[fn_sys_obtenerDato]('GLOBAL', 'VENTA_FACT_AUT')
 
 	,[cliente_orden] = EW_VEN_ORDENES.cliente_orden
