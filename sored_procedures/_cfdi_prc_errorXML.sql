@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -9,6 +9,7 @@ ALTER PROCEDURE [dbo].[_cfdi_prc_errorXML]
 	@idtran AS INT
 	,@msg AS VARCHAR(MAX)
 	,@error_xml AS XML OUTPUT
+	,@tipo AS VARCHAR(50) = 'emision'
 AS
 
 SET NOCOUNT ON
@@ -17,7 +18,9 @@ SELECT
 	@error_xml = g.XML
 FROM (
 	SELECT
-		(
+		'1.1' AS '@Version'
+		,@tipo AS '@Tipo'
+		,(
 			SELECT
 				DB_NAME() AS '@BaseDatos'
 			FOR XML PATH('Empresa'), TYPE

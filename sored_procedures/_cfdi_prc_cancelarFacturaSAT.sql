@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -27,6 +27,11 @@ DECLARE
 	, @fechaCancelacion NVARCHAR (MAX)
 	, @mensaje NVARCHAR (MAX)
 
+DECLARE
+	@error_xml AS XML
+	, @ruta AS VARCHAR(200)
+	, @msg AS VARCHAR(4000)
+
 SELECT 
 	@idtran = c.idtran
 	,@idcertificado = ec.idcertificado
@@ -42,7 +47,7 @@ FROM
 	LEFT JOIN ew_cfd_comprobantes_sello AS ccs
 			ON ccs.idtran = c.idtran
 WHERE
-	t.idestado = 255
+	t.idestado = t.idestado -- 255
 	AND (ct.cfdi_UUID IS NOT NULL OR ct.cfdi_UUID <> '')
 	AND c.idtran = @idtran
 ORDER BY
@@ -87,7 +92,7 @@ BEGIN
 			, @xmlRespuesta OUTPUT
 			, @fechaCancelacion OUTPUT
 			, @mensaje OUTPUT
-
+			
 			IF NOT EXISTS (SELECT * FROM ew_cfd_comprobantes_cancelados WHERE idtran = @idtran)
 			BEGIN
 				INSERT INTO ew_cfd_comprobantes_cancelados (
@@ -108,11 +113,43 @@ BEGIN
 				WHERE
 					idtran = @idtran
 			END
+
+			IF @xmlRespuesta IS NULL OR @xmlRespuesta = ''
+			BEGIN
+				SELECT @mensaje = 'Error: No se ha recibido respuesta del PAC, favor de solicitar cancelacion al SAT de nuevo.'
+				GOTO ERROR_HANDLING
+			END
 	END TRY
 	BEGIN CATCH
 		SELECT @mensaje = CONVERT(VARCHAR(MAX), ERROR_MESSAGE())
-		RAISERROR(@mensaje, 16, 1)
-		RETURN
+		GOTO ERROR_HANDLING
 	END CATCH
 END
+
+RETURN
+
+ERROR_HANDLING:
+
+EXEC [dbo].[_cfdi_prc_errorXML] @idtran, @mensaje, @error_xml OUTPUT, 'cancelacion'
+
+SELECT @ruta = 'F:\Clientes\_ErrorTimbrado\'
+
+SELECT
+	@ruta = (
+		@ruta 
+		+ 'Err_'
+		+ DB_NAME()
+		+ '_'
+		+ CONVERT(VARCHAR(MAX), st.uuidtran)
+		+ '_C.xml'
+	)
+FROM
+	ew_sys_transacciones AS st
+WHERE
+	st.idtran = @idtran
+
+SELECT @msg = [dbEVOLUWARE].[dbo].[txt_save](CONVERT(VARCHAR(MAX), @error_xml), @ruta)
+
+RAISERROR(@mensaje, 16, 1)
+RETURN
 GO

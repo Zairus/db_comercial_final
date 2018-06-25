@@ -127,7 +127,7 @@ UPDATE ct SET
 	ct.saldo = (
 		ct.total 
 		- ISNULL((
-			SELECT SUM(t.total) 
+			SELECT SUM(t.total - t.redondeo) 
 			FROM 
 				ew_cxc_transacciones_rel AS ctr 
 				LEFT JOIN ew_cxc_transacciones AS t
