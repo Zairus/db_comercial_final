@@ -1035,7 +1035,8 @@ FROM
 	LEFT JOIN ew_cat_impuestos AS ci
 		ON ci.idimpuesto = ccmi.idimpuesto
 WHERE
-	ccmi.idtran = @idtran
+	ci.grupo IS NOT NULL
+	AND ccmi.idtran = @idtran
 GROUP BY
 	ccmi.idtran
 	, ISNULL(cit.tipo, ci.tipo)

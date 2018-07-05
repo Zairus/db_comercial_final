@@ -8,7 +8,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_inv_prc_traspasoProcesar]
 	@idtran AS INT
-	,@idu AS INT
+	,@idu AS INT = 0
 AS
 
 SET NOCOUNT ON
@@ -68,27 +68,29 @@ END
 
 SELECT @sql='INSERT INTO ew_inv_transacciones (
 	idtran
-	, idtran2
-	, idsucursal
-	, idalmacen
-	, fecha
-	, folio
-	, transaccion
-	, referencia
-	, comentario
-	, idconcepto
+	,idtran2
+	,idsucursal
+	,idalmacen
+	,fecha
+	,folio
+	,transaccion
+	,referencia
+	,comentario
+	,idconcepto
+	,idu
 )
 SELECT
 	{idtran}
-	, idtran
-	, idsucursal
-	, idalmacen
-	, fecha
-	, [folio] = ''{folio}''
-	, [transaccion] = ''GDA1''
-	, referencia
-	, comentario
-	, idconcepto
+	,idtran
+	,idsucursal
+	,idalmacen
+	,fecha
+	,[folio] = ''{folio}''
+	,[transaccion] = ''GDA1''
+	,referencia
+	,comentario
+	,idconcepto
+	,' + CONVERT(VARCHAR(10),@idu) + '
 FROM 
 	ew_inv_documentos
 WHERE
@@ -213,18 +215,30 @@ DEALLOCATE cur_mov
 -- INSERTAR ARTICULOS LOTE DE FABRICACION
 DECLARE cur_mov CURSOR FOR
 	SELECT 
-		idr
-		, idarticulo
-		, lote
-		, idcapa
-		, fecha_caducidad
-		, cantidad
+		idm.idr
+		, idm.idarticulo
+		, idm.lote
+		, [idcapa] = ISNULL((
+			SELECT TOP 1
+				ice.idcapa
+			FROM
+				ew_inv_capas_existencia AS ice
+				LEFT JOIN ew_inv_capas As ic
+					ON ic.idcapa = ice.idcapa
+			WHERE
+				ic.lote = idm.lote
+				AND ic.idarticulo = idm.idarticulo
+				AND ice.existencia >= idm.cantidad
+				ANd ice.idalmacen = idm.idalmacen
+		), 0)
+		, idm.fecha_caducidad
+		, idm.cantidad
 	FROM
 		ew_inv_documentos_mov AS idm
 	WHERE
 		idm.idtran = @idtran
-		AND LEN(idm.lote)>0
-
+		AND LEN(idm.lote) > 0
+		
 OPEN cur_mov
 
 FETCH NEXT FROM cur_mov INTO 
@@ -276,7 +290,7 @@ END
 
 CLOSE cur_mov
 DEALLOCATE cur_mov
------------------------------------------------------
+
 INSERT INTO ew_inv_transacciones_mov (
 	idtran
 	, idtran2
@@ -325,28 +339,30 @@ SELECT @sql = ''
 
 SELECT @sql='INSERT INTO ew_inv_transacciones (
 	idtran
-	, idtran2
-	, idsucursal
-	, idalmacen
-	, fecha
-	, folio
-	, transaccion
-	, referencia
-	, comentario
-	, idconcepto
+	,idtran2
+	,idsucursal
+	,idalmacen
+	,fecha
+	,folio
+	,transaccion
+	,referencia
+	,comentario
+	,idconcepto
+	,idu
 )
 SELECT
 	{idtran}
-	, idtran
-	, idsucursal_destino
-	, idalmacen_destino
-	, fecha
-	, [folio] = ''{folio}''
-	, [transaccion] = ''GDC1''
-	, referencia
-	, comentario
-	, idconcepto
-FROM 
+	,idtran
+	,idsucursal_destino
+	,idalmacen_destino
+	,fecha
+	,[folio] = ''{folio}''
+	,[transaccion] = ''GDC1''
+	,referencia
+	,comentario
+	,idconcepto
+	,' + CONVERT(VARCHAR(10),@idu) + '
+FROM
 	ew_inv_documentos
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran)
@@ -404,7 +420,7 @@ FROM
 	ew_inv_transacciones_mov AS itm
 WHERE
 	itm.idtran = @salida_idtran	
-
+	
 --------------------------------------------------------------------------------
 -- ACTUALIZAR COSTO EN EL TRASPASO #############################################
 

@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -14,6 +14,7 @@ SET NOCOUNT ON
 DECLARE
 	@idcertificado AS SMALLINT = 0
 	,@xml_path AS NVARCHAR(MAX)
+	,@xml_path_c AS NVARCHAR(MAX)
 
 DECLARE
 	@pac NVARCHAR (MAX)
@@ -34,8 +35,8 @@ DECLARE
 
 SELECT 
 	@idtran = c.idtran
-	,@idcertificado = ec.idcertificado
-	,@xml_path = ccs.archivoXML
+	, @idcertificado = ec.idcertificado
+	, @xml_path = ccs.archivoXML
 FROM 
 	dbo.ew_cfd_comprobantes AS c
 	LEFT JOIN dbo.ew_cfd_comprobantes_timbre AS ct 
@@ -45,11 +46,14 @@ FROM
 	LEFT JOIN dbo.ew_sys_transacciones AS t 
 		ON t.idtran = c.idtran
 	LEFT JOIN ew_cfd_comprobantes_sello AS ccs
-			ON ccs.idtran = c.idtran
+		ON ccs.idtran = c.idtran
+
+	LEFT JOIN ew_cxc_transacciones cxc
+		ON c.idtran = cxc.idtran
 WHERE
-	t.idestado = t.idestado -- 255
+	c.idtran = @idtran
+	AND cxc.cancelado=1
 	AND (ct.cfdi_UUID IS NOT NULL OR ct.cfdi_UUID <> '')
-	AND c.idtran = @idtran
 ORDER BY
 	t.idtran
 	
@@ -57,11 +61,11 @@ IF @@ROWCOUNT > 0
 BEGIN
 	SELECT
 		@pac = pac.codigo
-		,@prueba = cc.prueba
-		,@contrato = pac.contrato
-		,@usr = cpc.usuario
-		,@pwd = cpc.clave_acceso
-		,@opciones = (
+		, @prueba = cc.prueba
+		, @contrato = pac.contrato
+		, @usr = cpc.usuario
+		, @pwd = cpc.clave_acceso
+		, @opciones = (
 			'{'
 			+ '"Cert_path": "' + REPLACE(cc.certificado, '\', '\\') + '"'
 			+ ',"Key_path": "' + REPLACE(cc.firma, '\', '\\') + '"'
@@ -97,13 +101,13 @@ BEGIN
 			BEGIN
 				INSERT INTO ew_cfd_comprobantes_cancelados (
 					idtran
-					,pac
-					,acuse
+					, pac
+					, acuse
 				)
 				VALUES (
 					@idtran
-					,@pac
-					,@xmlRespuesta
+					, @pac
+					, @xmlRespuesta
 				)
 			END
 				ELSE
@@ -119,6 +123,9 @@ BEGIN
 				SELECT @mensaje = 'Error: No se ha recibido respuesta del PAC, favor de solicitar cancelacion al SAT de nuevo.'
 				GOTO ERROR_HANDLING
 			END
+
+			SELECT @xml_path_c = REPLACE(@xml_path, '.xml', '_Acuse.xml')
+			SELECT @msg = [dbEVOLUWARE].[dbo].[txt_save](@xmlRespuesta, @xml_path_c)
 	END TRY
 	BEGIN CATCH
 		SELECT @mensaje = CONVERT(VARCHAR(MAX), ERROR_MESSAGE())
