@@ -32,6 +32,7 @@ SELECT
 	,[ref_total] = ct.total
 	,[ref_saldo] = ct.saldo
 	,[idtran2] = ct.idtran
+	,[objidtran] = ct.idtran
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN objetos AS o

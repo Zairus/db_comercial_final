@@ -124,7 +124,7 @@ BEGIN
 		,[idimpuesto1_ret_valor] = 0
 		,[idimpuesto2_ret] = 0
 		,[idimpuesto2_ret_valor] = 0
-		,[subtotal] = (
+		,[subtotal] = ABS(
 			cm.saldo
 			-(cm.saldo * (cm.impuesto1 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
 			-(cm.saldo * (cm.impuesto2 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
@@ -133,12 +133,12 @@ BEGIN
 			+(cm.saldo * (cm.impuesto1_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
 			+(cm.saldo * (cm.impuesto2_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
 		)
-		,[impuesto1] = cm.saldo * (cm.impuesto1 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
-		,[impuesto2] = cm.saldo * (cm.impuesto2 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
-		,[impuesto3] = cm.saldo * (cm.impuesto3 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
-		,[impuesto4] = cm.saldo * (cm.impuesto4 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
-		,[impuesto1_ret] = cm.saldo * (cm.impuesto1_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
-		,[impuesto2_ret] = cm.saldo * (cm.impuesto2_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret))
+		,[impuesto1] = ABS(cm.saldo * (cm.impuesto1 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
+		,[impuesto2] = ABS(cm.saldo * (cm.impuesto2 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
+		,[impuesto3] = ABS(cm.saldo * (cm.impuesto3 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
+		,[impuesto4] = ABS(cm.saldo * (cm.impuesto4 / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
+		,[impuesto1_ret] = ABS(cm.saldo * (cm.impuesto1_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
+		,[impuesto2_ret] = ABS(cm.saldo * (cm.impuesto2_ret / (cm.importe + cm.impuesto1 + cm.impuesto2 + cm.impuesto3 + cm.impuesto4 - cm.impuesto1_ret - cm.impuesto2_ret)))
 		,[saldo] = 0
 		,[idu] = 1
 		,[comentario] = 'De carga automatica'
@@ -147,6 +147,8 @@ BEGIN
 	WHERE
 		cm.idr = @idr
 	
+	PRINT 'idr >> ' + LTRIM(RTRIM(STR(@idr)))
+
 	FETCH NEXT FROM cur_cxcMigracion INTO
 		@idr
 		,@transaccion

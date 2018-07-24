@@ -7,6 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_inv_prc_migrarExistencia]
 	@prueba AS BIT = 1
+	,@fecha_entrada AS DATETIME = NULL
 AS
 
 SET NOCOUNT ON
@@ -23,6 +24,16 @@ DECLARE
 	,@serie AS VARCHAR(3) = ''
 	,@carga_idtran AS INT
 	,@folio AS VARCHAR(15)
+
+DECLARE
+	@afolio AS VARCHAR(10) = ''
+	,@afecha AS VARCHAR(20) = CONVERT(VARCHAR(8), @fecha_entrada, 3)
+
+IF @fecha_entrada IS NULL
+BEGIN
+	RAISERROR('Error: No se indico fecha para entrada.', 16, 1)
+	RETURN
+END
 
 INSERT INTO ew_articulos (
 	idarticulo
@@ -146,6 +157,8 @@ BEGIN
 		,'' --SQL
 		,6 --foliolen
 		,@carga_idtran OUTPUT
+		,@afolio
+		,@afecha
 
 	SELECT
 		@folio = folio
@@ -171,7 +184,7 @@ BEGIN
 		,[idconcepto] = @idconcepto
 		,[idsucursal] = @idsucursal
 		,[idalmacen] = @idalmacen
-		,[fecha] = GETDATE()
+		,[fecha] = @fecha_entrada
 		,[folio] = @folio
 		,[transaccion] = @transaccion
 		,[referencia] = 'INI'

@@ -1,4 +1,4 @@
- USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -7,8 +7,9 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ct_prc_cierreR2]
 	@ejercicio AS INT
-	,@cuenta AS VARCHAR(20)
-	,@idu AS INT
+	, @cuenta AS VARCHAR(20)
+	, @idu AS INT
+	, @mostrar_resultado AS BIT = 1
 AS
 
 SET NOCOUNT ON
@@ -49,7 +50,7 @@ INSERT INTO ew_ct_poliza_mov (
 SELECT
 	[idtran] = @poliza_idtran_i
 	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY csg.cuenta)
-	,[idsucursal] = @idsucursal
+	,[idsucursal] = csg.idsucursal
 	,[cuenta] = csg.cuenta
 	,[tipomov] = 0
 	,[referencia] = @referencia
@@ -62,9 +63,10 @@ FROM
 	LEFT JOIN ew_ct_cuentas AS cc
 		ON cc.cuenta = csg.cuenta
 WHERE
-	cc.tipo = 4
+	cc.naturaleza = 1
+	AND cc.tipo IN (4,5)
 	AND cc.afectable = 1
-	AND csg.idsucursal = 1
+	AND csg.idsucursal > 0
 	AND csg.periodo = 14
 	AND csg.saldo_final <> 0
 
@@ -96,7 +98,7 @@ INSERT INTO ew_ct_poliza_mov (
 SELECT
 	[idtran] = @poliza_idtran_e
 	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY csg.cuenta)
-	,[idsucursal] = @idsucursal
+	,[idsucursal] = csg.idsucursal
 	,[cuenta] = csg.cuenta
 	,[tipomov] = 1
 	,[referencia] = @referencia
@@ -109,9 +111,10 @@ FROM
 	LEFT JOIN ew_ct_cuentas AS cc
 		ON cc.cuenta = csg.cuenta
 WHERE
-	cc.tipo = 5
+	cc.naturaleza = 0
+	AND cc.tipo IN (4,5)
 	AND cc.afectable = 1
-	AND csg.idsucursal = 1
+	AND csg.idsucursal > 0
 	AND csg.periodo = 14
 	AND csg.saldo_final <> 0
 
@@ -119,17 +122,15 @@ WHERE
 
 EXEC _ct_prc_polizaCuadrar @poliza_idtran_e, @cuenta, @referencia
 
-SELECT * 
-FROM 
-	ew_ct_polizaDetalle 
-WHERE 
-	idtran IN (@poliza_idtran_i, @poliza_idtran_e)
-ORDER BY
-	idtran
-	,consecutivo
+IF @mostrar_resultado = 1
+BEGIN
+	SELECT * 
+	FROM 
+		ew_ct_polizaDetalle 
+	WHERE 
+		idtran IN (@poliza_idtran_i, @poliza_idtran_e)
+	ORDER BY
+		idtran
+		,consecutivo
+END
 GO
-BEGIN TRAN
-
-EXEC [dbo].[_ct_prc_cierreR2] 2015, '3130001000', 1
-
-ROLLBACK TRAN

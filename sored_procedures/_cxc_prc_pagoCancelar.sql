@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -39,6 +39,23 @@ WHERE
 IF @codigo_referencia = 'BDC3' AND @forzar = 0
 BEGIN
 	RAISERROR('Error: No se puede cancelar pago que se incluye en ficha de deposito.', 16, 1)
+	RETURN
+END
+
+IF EXISTS (
+	SELECT p.idr
+	FROM
+		ew_cxc_transacciones AS p
+	WHERE
+		DAY(GETDATE()) > 10
+		AND (
+			MONTH(p.fecha) < MONTH(GETDATE())
+			OR YEAR(p.fecha) < YEAR(GETDATE())
+		)
+		AND p.idtran = @idtran
+)
+BEGIN
+	RAISERROR('Error: No es permitid por el SAT, cancelar un REP cuyo pago afecta documentos de meses anteriores, cuando ya ha pasado eldia 10 del mes en curso.', 16, 1)
 	RETURN
 END
 

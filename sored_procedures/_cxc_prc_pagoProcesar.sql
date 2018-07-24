@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -15,6 +15,7 @@ SET NOCOUNT ON
 DECLARE
 	@cfd_version AS VARCHAR(10) = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
 
+/*
 IF @cfd_version <> '3.2'
 BEGIN
 	IF EXISTS (
@@ -30,6 +31,7 @@ BEGIN
 		RETURN
 	END
 END
+*/
 
 EXEC [dbo].[_ct_prc_contabilizarBDC2] @idtran
 
@@ -48,6 +50,15 @@ FROM
 		ON f.idtran = ctm.idtran2
 WHERE
 	f.saldo = 0
-	AND (SELECT COUNT(*) FROM ew_sys_transacciones2 AS st2 WHERE st2.idestado = 50 AND st2.idtran = f.idtran) = 0
 	AND ctm.idtran = @idtran
+
+UPDATE cep SET
+	cep.aplicado = 1
+FROM
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_cfd_cep AS cep
+		ON cep.idcomprobante = ct.idcomprobante
+WHERE
+	ct.idcomprobante > 0
+	AND ct.idtran = @idtran
 GO
