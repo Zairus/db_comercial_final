@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Fernanda Corona
@@ -71,7 +71,6 @@ SELECT
 	,[forma_moneda] = c.idmoneda
 	,[forma_tipoCambio] = dbo.fn_ban_tipocambio (c.idmoneda,0)	
 	,[email]=cf.email
-	,idrelacion = 4
 	,entidad_codigo = c.codigo
 	,entidad_nombre = c.nombre
 	,identidad = c.idcliente

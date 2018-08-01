@@ -21,7 +21,7 @@ EXEC [dbEVOLUWARE].[dbo].[_sys_prc_procesarErrores]
 ----------------------------------------------------
 SELECT
 	[transaccion] = ew_ven_transacciones.transaccion
-	,[referencia] = ISNULL(vd.folio, '')
+	,[referencia] = ISNULL(vd.folio, ISNULL(vref.folio, ''))
 	,[idtran2] = ew_ven_transacciones.idtran2
 	,[idsucursal] = ew_ven_transacciones.idsucursal
 	,ew_ven_transacciones.idalmacen
@@ -66,7 +66,6 @@ SELECT
 	,ew_ven_transacciones.impuesto2
 	,ew_ven_transacciones.total
 	,ew_ven_transacciones.comentario
-	,idrelacion = 4
 	,entidad_codigo = c.codigo
 	,entidad_nombre = c.nombre
 	,identidad = c.idcliente
@@ -83,16 +82,30 @@ SELECT
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM 
 	ew_ven_transacciones
-	LEFT JOIN ew_ven_ordenes AS vd ON vd.idtran = ew_ven_transacciones.idtran2
-	LEFT JOIN ew_clientes AS c ON c.idcliente = ew_ven_transacciones.idcliente
-	LEFT JOIN ew_clientes_contactos AS ecc ON ecc.idcliente = c.idcliente
-	LEFT JOIN ew_cat_contactos AS cc ON cc.idcontacto = ecc.idcontacto
-	LEFT JOIN ew_clientes_facturacion AS cf ON cf.idcliente=ew_ven_transacciones.idcliente AND cf.idfacturacion = ew_ven_transacciones.idfacturacion
-	LEFT JOIN ew_clientes_terminos AS ct ON ct.idcliente = c.idcliente
-	LEFT JOIN ew_sys_ciudades fac ON fac.idciudad = cf.idciudad 
-	LEFT JOIN dbo.ew_proveedores AS p ON p.idproveedor=ew_ven_transacciones.idproveedor
-	LEFT JOIN ew_cfd_comprobantes_timbre timbres ON timbres.idtran = ew_ven_transacciones.idtran
-	LEFT JOIN ew_cfd_comprobantes_ubicacion u ON u.idtran=ew_ven_transacciones.idtran AND u.idtipo=2
+	LEFT JOIN ew_ven_ordenes AS vd 
+		ON vd.idtran = ew_ven_transacciones.idtran2
+	LEFT JOIN ew_ven_transacciones AS vref
+		ON vref.idtran = ew_ven_transacciones.idtran2
+	LEFT JOIN ew_clientes AS c 
+		ON c.idcliente = ew_ven_transacciones.idcliente
+	LEFT JOIN ew_clientes_contactos AS ecc 
+		ON ecc.idcliente = c.idcliente
+	LEFT JOIN ew_cat_contactos AS cc 
+		ON cc.idcontacto = ecc.idcontacto
+	LEFT JOIN ew_clientes_facturacion AS cf 
+		ON cf.idcliente = ew_ven_transacciones.idcliente 
+		AND cf.idfacturacion = ew_ven_transacciones.idfacturacion
+	LEFT JOIN ew_clientes_terminos AS ct 
+		ON ct.idcliente = c.idcliente
+	LEFT JOIN ew_sys_ciudades AS fac 
+		ON fac.idciudad = cf.idciudad 
+	LEFT JOIN dbo.ew_proveedores AS p 
+		ON p.idproveedor = ew_ven_transacciones.idproveedor
+	LEFT JOIN ew_cfd_comprobantes_timbre AS timbres 
+		ON timbres.idtran = ew_ven_transacciones.idtran
+	LEFT JOIN ew_cfd_comprobantes_ubicacion AS u 
+		ON u.idtran = ew_ven_transacciones.idtran 
+		AND u.idtipo = 2
 WHERE  
 	ew_ven_transacciones.idtran=@idtran 
 
@@ -124,6 +137,7 @@ SELECT
 	,ew_cxc_transacciones.idforma
 	,ew_cxc_transacciones.idmetodo
 	,ew_cxc_transacciones.cfd_iduso
+	,ew_cxc_transacciones.idrelacion
 FROM 
 	ew_cxc_transacciones
 	LEFT JOIN ew_cxc_saldos_actual csa 

@@ -100,4 +100,13 @@ UPDATE ew_cxc_transacciones SET
 	,cancelado_fecha = @cancelado_fecha
 WHERE
 	idtran = @idtran
+
+UPDATE cep SET
+	cep.aplicado = 0
+FROM
+	ew_cxc_transacciones AS p
+	LEFT JOIN ew_cfd_cep AS cep
+		ON cep.idcomprobante = p.idcomprobante
+WHERE
+	p.idtran = @idtran
 GO
