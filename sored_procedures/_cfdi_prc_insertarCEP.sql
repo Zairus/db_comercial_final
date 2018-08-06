@@ -7,6 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cfdi_prc_insertarCEP]
 	@xml AS VARCHAR(MAX)
+	, @xml_route AS VARCHAR(MAX) = ''
 AS
 
 SET NOCOUNT ON
@@ -102,6 +103,7 @@ INSERT INTO ew_cfd_cep (
 	,emisor_rfc
 	,cep_archivo
 	,cep_xml
+	,cep_client_path
 )
 SELECT
 	[idcomprobante] = @idcomprobante
@@ -122,6 +124,7 @@ SELECT
 	, [emisor_rfc] = @cliente_rfc
 	, [cep_archivo] = ''
 	, [cep_xml] = @cep_xml
+	, [cep_client_path] = @xml_route
 
 SELECT [importado] = CONVERT(BIT, 1)
 GO
