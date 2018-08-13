@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -33,7 +33,7 @@ DECLARE
 	,@comprobante AS VARCHAR(MAX)
 	,@cadena AS VARCHAR(MAX)
 	,@tmp AS VARCHAR(200)
-	,@OutXML AS VARCHAR(MAX)
+	,@xmlCFDi AS VARCHAR(MAX)
 	,@idpac AS INT
 	,@pac_codigo AS VARCHAR(50)
 
@@ -58,11 +58,14 @@ DECLARE
 	,@noCertificadoSAT AS VARCHAR(MAX)
 	,@selloSAT AS VARCHAR(MAX)
 	,@xmlBase64 AS VARCHAR(MAX)
-	,@respuestaXml AS VARCHAR(MAX)
 	,@cadena_original_timbrado AS VARCHAR(MAX)
 
-	,@xmlSellado64 NVARCHAR (MAX)
-	,@xmlTimbrado64 NVARCHAR (MAX)
+	,@xmlSellado AS NVARCHAR(MAX)
+	,@xmlSellado64 AS NVARCHAR (MAX)
+	,@xmlTimbrado AS NVARCHAR(MAX)
+	,@xmlTimbrado64 AS NVARCHAR (MAX)
+	,@soapXml AS NVARCHAR(MAX)
+	,@soapXmlResponse AS NVARCHAR(MAX)
 
 DECLARE
 	@bin_xml AS VARBINARY(MAX)
@@ -162,7 +165,7 @@ BEGIN
 	EXEC [dbo].[_cfdi_prc_generarCadenaXML33_R2] @idtran, @comprobante OUTPUT
 END
 
-SELECT @OutXML = @comprobante
+SELECT @xmlCFDi = @comprobante
 
 BEGIN TRY
 	IF @rfc_emisor IS NULL OR LTRIM(RTRIM(@rfc_emisor)) = ''
@@ -190,13 +193,13 @@ BEGIN TRY
 		, @pac_contrato
 		, @pac_usr
 		, @pac_pwd
-		, @OutXML
+		, @xmlCFDi
 		, '' --Opciones
 		, @xslt
 		, @firma
-		, @OutXML OUTPUT -- XMLSellado
+		, @xmlSellado OUTPUT -- XMLSellado
 		, @xmlSellado64 OUTPUT -- XMLSellado64
-		, @respuestaXml OUTPUT --XMLTimbrado
+		, @xmlTimbrado OUTPUT --XMLTimbrado
 		, @xmlTimbrado64 OUTPUT --XMLTimbrado64
 		, @cadena OUTPUT
 		, @cadena_original_timbrado OUTPUT
@@ -208,7 +211,9 @@ BEGIN TRY
 		, @selloSAT OUTPUT
 		, @UUID OUTPUT
 		, @mensaje OUTPUT
-			
+		, @soapXml OUTPUT
+		, @soapXmlResponse OUTPUT
+
 	SELECT @mensaje = ISNULL(@mensaje, '')
 	SELECT @xmlBase64 = @xmlTimbrado64
 	
@@ -365,7 +370,13 @@ RETURN
 
 ERROR_HANDLING:
 
-EXEC [dbo].[_cfdi_prc_errorXML] @idtran, @msg, @error_xml OUTPUT
+SELECT @soapXml = ISNULL(@soapXml, '')
+SELECT @soapXmlResponse = ISNULL(@soapXmlResponse, '')
+
+SELECT @soapXml = [dbEVOLUWARE].[dbo].[conv_to_base64](CAST(@soapXml AS NTEXT))
+SELECT @soapXmlResponse = [dbEVOLUWARE].[dbo].[conv_to_base64](CAST(@soapXmlResponse AS NTEXT))
+
+EXEC [dbo].[_cfdi_prc_errorXML] @idtran, @msg, @error_xml OUTPUT, 'emision', @pac_codigo, @soapXml, @soapXmlResponse
 
 SELECT @ruta = 'F:\Clientes\_ErrorTimbrado\'
 
@@ -386,13 +397,25 @@ WHERE
 SELECT @mensaje = @msg
 SELECT @msg = [dbEVOLUWARE].[dbo].[txt_save](CONVERT(VARCHAR(MAX), @error_xml), @ruta)
 
+DECLARE
+	@err_codigo AS VARCHAR(50)
+	,@err_mensaje AS VARCHAR(MAX)
+	,@err_descripcion AS VARCHAR(MAX)
+
+EXEC [db_comercial].[dbo].[CFDI_ErrorTimbrado] 
+	@pac_codigo
+	, @mensaje
+	, @soapXmlResponse
+	, @err_codigo OUTPUT
+	, @err_mensaje OUTPUT
+	, @err_descripcion OUTPUT
+
 IF @error_fatal = 0
 BEGIN
 	SELECT @mensaje = (
-		'ERROR: Ha ocurrido un problema al intentar procesar el timbrado de comprobante, '
-		+ 'por favor realice el intento en unos minutos. '
-		+ 'Si la situacion persiste, reportar a Evoluware. '
-		+ 'Gracias.'
+		'[' + @err_codigo + ']'
+		+ CHAR(13)
+		+ '------------------------'
 		+ CHAR(13)
 		+ @mensaje
 	)

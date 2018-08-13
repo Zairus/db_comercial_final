@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -29,6 +29,7 @@ DECLARE
 	,@bancos_folio AS VARCHAR(15)
 	,@afolio AS VARCHAR(15) = ''
 	,@afecha AS VARCHAR(15) = ''
+	,@concepto_cuenta AS VARCHAR(50)
 
 SELECT
 	@idu = ct.idu
@@ -39,6 +40,7 @@ SELECT
 	,@usuario = u.usuario
 	,@password = u.[password]
 	,@idsucursal = ct.idsucursal
+	,@concepto_cuenta = ISNULL(oc.contabilidad, '')
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN objetos AS o
@@ -173,6 +175,9 @@ BEGIN
 END
 	ELSE
 BEGIN
-	EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1_A', @idtran
+	IF LEN(@concepto_cuenta) > 0
+	BEGIN
+		EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'FDC1_A', @idtran
+	END
 END
 GO
