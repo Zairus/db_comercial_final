@@ -22,8 +22,11 @@ IF EXISTS (
 		inserted AS ctm
 		LEFT JOIN ew_sys_transacciones AS st
 			ON st.idtran = ctm.idtran2
+		LEFT JOIN ew_cxc_transacciones AS ct
+			ON ct.idtran = ctm.idtran
 	WHERE
-		st.transaccion IN (
+		ct.transaccion NOT IN ('EDE1')
+		AND st.transaccion IN (
 			SELECT DISTINCT
 				o.codigo 
 			FROM 

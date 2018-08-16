@@ -24,6 +24,8 @@ DECLARE
 
 SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
 
+EXEC _cxc_prc_validarTimbreAplicacion @idtran
+
 --------------------------------------------------------------------------------
 -- SURTIR MERCANCIA 
 
