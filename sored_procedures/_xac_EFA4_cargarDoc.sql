@@ -127,7 +127,12 @@ SELECT
 	,[impuesto1] = ct.impuesto1
 	,[impuesto2] = ct.impuesto2
 	,[total] = ct.total
+	,[saldo] = ct.saldo
 	,[comentario] = ct.comentario
+
+	,[idforma] = (SELECT TOP 1 bf.idforma FROM ew_ban_formas AS bf WHERE bf.activo = 1 AND bf.codigo = '99')
+	,[idmetodo] = (SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PUE')
+	,[cfd_iduso] = (SELECT csu.id FROM db_comercial.dbo.evoluware_cfd_sat_uso AS csu WHERE csu.c_usocfdi = 'P01')
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN ew_clientes AS c
@@ -195,22 +200,4 @@ FROM
 	bitacora AS b
 WHERE
 	b.idtran = @idtran
-
-/*
-SELECT
-	[cmd] = ',[' + oc.codigo + '] = '''''
-FROM 
-	objetos AS o
-	LEFT JOIN objetos_grids AS og
-		ON og.objeto = o.objeto
-	LEFT JOIN objetos_columnas AS oc
-		ON oc.objeto = o.objeto
-		AND oc.grid = og.codigo
-WHERE 
-	o.objeto = 1384
-	AND og.[tables] LIKE '%bitacora%'
-ORDER BY
-	og.orden
-	,oc.orden
-*/
 GO

@@ -981,6 +981,8 @@ WHERE
 GROUP BY
 	tvd.idmov
 	,tvd.idimpuesto1
+HAVING
+	ABS(SUM(tvd.impuesto1)) <> 0
 
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran

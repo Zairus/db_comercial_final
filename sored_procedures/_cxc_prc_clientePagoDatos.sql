@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -13,8 +13,6 @@ SET NOCOUNT ON
 
 SELECT 
 	[codcliente] = c.codigo
-	,[idforma] = c.idforma
-	,[referencia] = c.cfd_NumCtaPago
 	,[cliente_nombre] = c.nombre
 	,[cliente_rfc] = c.rfc
 	,[cliente_cuenta] = c.contabilidad 

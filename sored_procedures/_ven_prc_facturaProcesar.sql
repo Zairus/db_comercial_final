@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -30,8 +30,11 @@ SELECT
 	,@idu = vt.idu
 	,@idcliente = vt.idcliente
 	,@idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = vt.idcliente)
+	,@surtir = (CASE WHEN @surtir = 0 THEN 0 ELSE (CASE WHEN ISNULL(vo.remisionar, 0) = 1 THEN 0 ELSE @surtir END) END)
 FROM 
 	ew_ven_transacciones AS vt
+	LEFT JOIN ew_ven_ordenes AS vo
+		ON vo.idtran = vt.idtran2
 WHERE
 	vt.idtran = @idtran
 
@@ -83,6 +86,7 @@ FROM
 WHERE 
 	m.cantidad_surtida > 0
 	AND a.inventariable = 1
+	AND @surtir = 1
 	AND idtran = @idtran
 
 --------------------------------------------------------------------
