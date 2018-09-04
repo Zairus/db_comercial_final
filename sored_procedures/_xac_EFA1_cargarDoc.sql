@@ -78,6 +78,8 @@ SELECT
 	,UUID=ISNULL(timbres.cfdi_UUID,'')
 
 	,ew_ven_transacciones.idvendedor
+	,ew_ven_transacciones.no_orden
+	,ew_ven_transacciones.no_recepcion
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM 

@@ -169,6 +169,12 @@ BEGIN
 	END
 END
 
+UPDATE ew_cfd_transacciones SET
+	idcomando = 4
+WHERE
+	idcomando = 0
+	AND idtran = @idtran
+
 /*
 Obtenemos el comando que utilizaremos para timbrar
 */
@@ -194,14 +200,17 @@ SELECT @comando = REPLACE(@comando, '{tipo}', @tipo)
 
 EXEC(@comando)
 
-INSERT INTO dbo.ew_sys_transacciones2 (
-	idtran
-	, idestado
-	, idu
-)
-VALUES (
-	@idtran
-	, 23
-	, @idu
-)
+IF LEN(@comando) > 0
+BEGIN
+	INSERT INTO dbo.ew_sys_transacciones2 (
+		idtran
+		, idestado
+		, idu
+	)
+	VALUES (
+		@idtran
+		, 23
+		, @idu
+	)
+END
 GO

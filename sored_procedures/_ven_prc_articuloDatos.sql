@@ -65,8 +65,6 @@ DECLARE
 
 	,@calculo TINYINT = CONVERT(TINYINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_CALCULO'), 0))
 
-SELECT @precio_actual = 0
-
 CREATE TABLE #_tmp_articuloDatos (
 	[id] INT IDENTITY
 	,[codarticulo] VARCHAR(30) NOT NULL DEFAULT ''
@@ -867,11 +865,11 @@ SELECT
 	,[cantidad_ordenada] = tad.cantidad_facturada
 	,[cantidad_facturada] = tad.cantidad_facturada
 	,[precio_unitario_m] = (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_unitario_m END)
-	,[precio_unitario_m2] = tad.precio_unitario_m2
+	,[precio_unitario_m2] = (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_unitario_m2 END)
 	,[precio_minimo] = (
 		CASE
-			WHEN @bajo_costo = 0 THEN tad.precio_minimo / (1 - (tad.descuento1 / 100)) / (1 - (tad.descuento2 / 100))
-			ELSE tad.precio_minimo
+			WHEN @bajo_costo = 0 THEN (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_minimo END) / (1 - (tad.descuento1 / 100)) / (1 - (tad.descuento2 / 100))
+			ELSE (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_minimo END)
 		END
 	)
 	,[existencia] = (CASE WHEN tad.inventariable = 0 THEN 0 ELSE tad.existencia END)
