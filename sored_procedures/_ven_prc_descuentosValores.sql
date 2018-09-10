@@ -151,6 +151,8 @@ IF LEN(@codigos) > 0
 
 SELECT @descuento2 = 100.0 - @articulos_descuento_valor
 
+SELECT @iddescuento = ISNULL(@iddescuento, 0)
+
 SELECT
 	@descuento2 = 0
 	,@precio = vda.precio
@@ -158,6 +160,7 @@ FROM
 	ew_ven_descuentos_articulos AS vda
 WHERE
 	vda.precio > 0
+	AND @iddescuento > 0
 	AND vda.iddescuento = @iddescuento
 	AND vda.codigo = @articulo_codigo
 

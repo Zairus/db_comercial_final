@@ -48,29 +48,36 @@ INSERT INTO ew_articulos (
 	,caduca
 	,comentario
 )
-SELECT DISTINCT
+SELECT 
 	[idarticulo] = (
-		ROW_NUMBER() OVER (ORDER BY eac.codigo)
-		+ISNULL((SELECT MAX(a.idarticulo) FROM ew_articulos AS a), 0) + 1
+		ROW_NUMBER() OVER (ORDER BY ta.codigo)
+		+ ISNULL((SELECT MAX(a.idarticulo) FROM ew_articulos AS a), 0)
 	)
-	,[codigo] = eac.codigo
-	,[nombre] = eac.nombre
-	,[nombre_corto] = LEFT(eac.nombre, 10)
-	,[idtipo] = 1
-	,[activo] = 1
-	,[inventariable] = 1
-	,[series] = (CASE WHEN LEN(eac.serie) > 0 THEN 1 ELSE 0 END)
-	,[lotes] = (CASE WHEN LEN(eac.lote) > 0 THEN 1 ELSE 0 END)
-	,[caduca] = (CASE WHEN LEN(eac.lote) > 0 THEN 1 ELSE 0 END)
-	,[comentario] = 'Carga de existencias iniciales'
-FROM
-	ew_articulos_existencia_carga AS eac
-WHERE
-	eac.codigo NOT IN (
-		SELECT a.codigo 
-		FROM ew_articulos AS a
-	)
-	AND eac.idalmacen = (SELECT TOP 1 eac1.idalmacen FROM ew_articulos_existencia_carga AS eac1 ORDER BY eac1.idalmacen)
+	,ta.* 
+FROM 
+	(
+		SELECT DISTINCT
+			[codigo] = eac.codigo
+			,[nombre] = eac.nombre
+			,[nombre_corto] = LEFT(eac.nombre, 10)
+			,[idtipo] = 1
+			,[activo] = 1
+			,[inventariable] = 1
+			,[series] = (CASE WHEN LEN(eac.serie) > 0 THEN 1 ELSE 0 END)
+			,[lotes] = (CASE WHEN LEN(eac.lote) > 0 THEN 1 ELSE 0 END)
+			,[caduca] = (CASE WHEN LEN(eac.lote) > 0 THEN 1 ELSE 0 END)
+			,[comentario] = 'Carga de existencias iniciales'
+		FROM
+			ew_articulos_existencia_carga AS eac
+		WHERE
+			eac.codigo NOT IN (
+				SELECT a.codigo 
+				FROM ew_articulos AS a
+			)
+			AND eac.idalmacen = (SELECT TOP 1 eac1.idalmacen FROM ew_articulos_existencia_carga AS eac1 ORDER BY eac1.idalmacen)
+	) AS ta
+ORDER BY
+	ta.codigo
 	
 UPDATE a SET
 	a.nombre = aec.nombre

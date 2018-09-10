@@ -185,7 +185,6 @@ BEGIN
 		RETURN
 	END
 
-
 	-------------------------------------------------------
 	-- Seleccionamos la Lista de Precios 
 	-------------------------------------------------------
@@ -205,9 +204,6 @@ BEGIN
 			END
 		)
 	
-	PRINT 'l'
-	PRINT @lista
-
 	SELECT @tc = ISNULL(dbo.fn_ban_tipocambio(@idmoneda, 0),1)	
 	SELECT @tc2 = ISNULL(dbo.fn_ban_tipocambio(@idmoneda2, 0),1)	
 
@@ -249,7 +245,7 @@ BEGIN
 		,@descuentos_codigos OUTPUT
 		,@precio_fijo OUTPUT
 		,@bajo_costo OUTPUT
-
+		
 	INSERT INTO #_tmp_articuloDatos (
 		[codarticulo]
 		,[idlista]
@@ -341,39 +337,39 @@ BEGIN
 			* (CASE WHEN vlm.idmoneda = @idmoneda THEN 1 ELSE bm.tipoCambio / @tipocambio END)
 		)
 
-		,[precio_minimo] = 
-		CASE WHEN @calculo = 0 THEN
-		(
-			(
-				sucar.costo_base
-				*(
-					1
-					+(
-						CASE 
-							WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
-							ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
-						END
+		,[precio_minimo] = (
+			CASE WHEN @calculo = 0 THEN
+				(
+					(
+						sucar.costo_base
+						*(
+							1
+							+(
+								CASE 
+									WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
+									ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
+								END
+							)
+						)
 					)
 				)
-			)
-		)
-
-		ELSE
-		(
-			(
-				sucar.costo_base
-				/(
-					1
-					-(
-						CASE 
-							WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
-							ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
-						END
+			ELSE
+				(
+					(
+						sucar.costo_base
+						/(
+							1
+							-(
+								CASE 
+									WHEN sucar.margen_minimo > 0 THEN sucar.margen_minimo
+									ELSE (SELECT TOP 1 CONVERT(DECIMAL(18,6), valor) FROM ew_sys_parametros AS sp WHERE sp.codigo = 'LISTAPRECIOS_MARGENMINIMO')
+								END
+							)
+						)
 					)
 				)
-			)
+			END
 		)
-		END
 		,[existencia] = (
 			dbo.fn_inv_existenciaReal(a.idarticulo, @idalmacen)
 			-dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
@@ -621,7 +617,7 @@ BEGIN
 			ON csat.idclasificacion = a.idclasificacion_sat
 	WHERE
 		a.idarticulo = @idarticulo
-
+		
 	UPDATE #_tmp_articuloDatos SET
 		precio_unitario_m = (CASE WHEN @precio_fijo = 0 THEN precio_unitario_m ELSE @precio_fijo END)
 		,precio_unitario_m2 = (CASE WHEN @precio_fijo = 0 THEN precio_unitario_m2 ELSE @precio_fijo END)
@@ -652,7 +648,7 @@ BEGIN
 		FETCH NEXT FROM cur_promociones INTO
 			 @idpromocion
 			,@cantidad_minima
-	
+
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
 			INSERT INTO #_tmp_articuloDatos (
@@ -772,7 +768,7 @@ BEGIN
 		CLOSE cur_promociones
 		DEALLOCATE cur_promociones
 	END
-
+	
 	INSERT INTO #_tmp_articuloDatos (
 		[codarticulo]
 		,[idlista]
@@ -865,11 +861,11 @@ SELECT
 	,[cantidad_ordenada] = tad.cantidad_facturada
 	,[cantidad_facturada] = tad.cantidad_facturada
 	,[precio_unitario_m] = (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_unitario_m END)
-	,[precio_unitario_m2] = (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_unitario_m2 END)
+	,[precio_unitario_m2] = tad.precio_unitario_m2
 	,[precio_minimo] = (
 		CASE
-			WHEN @bajo_costo = 0 THEN (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_minimo END) / (1 - (tad.descuento1 / 100)) / (1 - (tad.descuento2 / 100))
-			ELSE (CASE WHEN @precio_actual > 0 THEN @precio_actual ELSE tad.precio_minimo END)
+			WHEN @bajo_costo = 0 THEN tad.precio_minimo / (1 - (tad.descuento1 / 100)) / (1 - (tad.descuento2 / 100))
+			ELSE tad.precio_minimo
 		END
 	)
 	,[existencia] = (CASE WHEN tad.inventariable = 0 THEN 0 ELSE tad.existencia END)
@@ -892,7 +888,7 @@ SELECT
 	,[max_descuento2] = tad.descuento2
 	,[objerrmsg] = tad.objerrmsg
 	,[cuenta_sublinea] = tad.cuenta_sublinea
-	,[descuento1] = 0
+	,[descuento1] = tad.descuento1
 	,[descuento2] = tad.descuento2
 	,[descuento3] = tad.descuento3
 	,[costo_ultimo] = tad.costo_ultimo
