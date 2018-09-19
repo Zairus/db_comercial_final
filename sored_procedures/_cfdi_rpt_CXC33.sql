@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -11,9 +11,9 @@ AS
 
 SET NOCOUNT ON
 
-DECLARE @concat_nom_corto_articulo VARCHAR(1)=''
+DECLARE @concat_nom_corto_articulo VARCHAR(1) = ''
 
-SELECT @concat_nom_corto_articulo=ISNULL(dbo.fn_sys_parametro('PDF_CONCAT_NOM_CORTO_ARTICULO'),'0')
+SELECT @concat_nom_corto_articulo = ISNULL(dbo.fn_sys_parametro('PDF_CONCAT_NOM_CORTO_ARTICULO'),'0')
 
 SELECT
 	[idsucursal] = cc.idsucursal
@@ -21,10 +21,6 @@ SELECT
 	,[transaccion] = o.codigo
 	,[documento] = (
 		o.nombre
-		/*CASE
-			WHEN o.codigo LIKE 'EFA%' THEN 'Factura de Venta'
-			ELSE o.nombre
-		END*/
 	)
 	,[documento_tipo] = vt.tipo
 	,[fecha] = cc.cfd_fecha
@@ -81,6 +77,14 @@ SELECT
 			scd.idciudad = s.idciudad
 	)
 	
+	,[emisor_codigopostal] = (
+		SELECT
+			s.codpostal
+		FROM
+			ew_sys_ciudades AS scd
+		WHERE
+			scd.idciudad = s.idciudad
+	)
 	,[receptor_no_orden] = ISNULL(vt2.no_orden,'') --ORDEN DE COMPRA DEL CLIENTE
 	,[receptor_codigo] = c.codigo
 	,[receptor_nombre] = cf.razon_social
@@ -240,7 +244,16 @@ FROM
 						a.nombre_corto + ' - ' + ccm1.cfd_descripcion 
 					ELSE ccm1.cfd_descripcion 
 				END
-			) + (
+			) 
+			+ (
+				CASE
+					WHEN LEN(CONVERT(VARCHAR(MAX), vtm.comentario)) > 0 THEN
+						' '
+						+ CONVERT(VARCHAR(MAX), vtm.comentario)
+					ELSE ''
+				END
+			)
+			+ (
 				CASE 
 					WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2)) > 0 THEN 
 						' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) 
@@ -286,6 +299,8 @@ FROM
 				ON a.idarticulo = ccm1.idarticulo
 			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_clasificaciones AS csc
 				ON csc.idclasificacion = a.idclasificacion_sat
+			LEFT JOIN ew_ven_transacciones_mov AS vtm
+				ON vtm.idmov = ccm1.idmov2
 		WHERE
 			ccm1.cfd_unidad <> 'ACT'
 			AND ccm1.consecutivo_padre = 0

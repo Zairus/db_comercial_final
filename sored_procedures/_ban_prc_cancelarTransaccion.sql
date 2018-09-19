@@ -113,11 +113,11 @@ WHERE
 --------------------------------------------------------------------------------
 -- Cancelamos el movimiento en Contabilidad
 --------------------------------------------------------------------------------
-EXEC [dbo].[_ct_prc_cancelarPoliza2]
+EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad]
 	 @idtran
+	,1
+	,@fecha
 	,@idu
-	,@password
-	,@cancelado_fecha
 
 --------------------------------------------------------------------------------
 -- Cancelamos el movimiento en Cuentas por Pagar

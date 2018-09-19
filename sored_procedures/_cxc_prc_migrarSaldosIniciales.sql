@@ -149,6 +149,11 @@ BEGIN
 	
 	PRINT 'idr >> ' + LTRIM(RTRIM(STR(@idr)))
 
+	UPDATE ew_cxc_migracion SET
+		idtran = @carga_idtran
+	WHERE
+		idr = @idr
+
 	FETCH NEXT FROM cur_cxcMigracion INTO
 		@idr
 		,@transaccion

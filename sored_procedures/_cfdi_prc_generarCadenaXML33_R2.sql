@@ -24,7 +24,16 @@ CREATE TABLE #_tmp_ns (
 	codigo VARCHAR(50)
 )
 
-INSERT INTO #_tmp_ns (codigo) VALUES ('xsi'), ('cfdi')--, ('pago10')
+INSERT INTO #_tmp_ns (codigo) VALUES ('xsi'), ('cfdi')
+
+INSERT INTO #_tmp_ns (codigo) 
+SELECT
+	[codigo] = 'pago10'
+FROM
+	ew_cfd_comprobantes AS ccp
+WHERE
+	ccp.cfd_tipoDeComprobante = 'P'
+	AND ccp.idtran = @idtran
 
 SELECT
 	@cfd_fecha = cc.cfd_fecha
@@ -109,14 +118,32 @@ FROM (
 				csto.c_tiporelacion AS '@TipoRelacion'
 				,(
 					SELECT
-						cc1.cfdi_UUID AS '@UUID'
+						cfdi_r.cfdi_UUID AS '@UUID'
 					FROM
-						ew_cxc_transacciones_mov AS ctm 
-						LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-							ON cc1.idtran = ctm.idtran2
-					WHERE 
-						cc1.idr IS NOT NULL
-						AND ctm.idtran = cc.idtran
+						(
+							SELECT
+							cc1.cfdi_UUID --AS '@UUID'
+						FROM
+							ew_cxc_transacciones_mov AS ctm 
+							LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+								ON cc1.idtran = ctm.idtran2
+						WHERE 
+							cc1.idr IS NOT NULL
+							AND ctm.idtran = cc.idtran
+
+						UNION ALL
+
+						SELECT
+							cc1.cfdi_UUID --AS '@UUID'
+						FROM
+							ew_cxc_transacciones AS rf1
+							LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+								ON cc1.idtran = rf1.idtran2
+						WHERE
+							rf1.transaccion = 'EFA7'
+							AND rf1.idtran = cc.idtran
+						) AS cfdi_r
+
 					FOR XML PATH('cfdi:CfdiRelacionado'), TYPE
 				)
 			WHERE
@@ -176,8 +203,8 @@ FROM (
 				) AS '@NoIdentificacion'
 				,(
 					CASE
-						WHEN cc.cfd_tipoDeComprobante = 'P' THEN 1
-						ELSE ccm.cfd_cantidad
+						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '1'
+						ELSE CONVERT(VARCHAR(20), ccm.cfd_cantidad)
 					END
 				) AS '@Cantidad'
 				,ISNULL(um.sat_unidad_clave, 'EA') AS '@ClaveUnidad'
@@ -421,9 +448,20 @@ FROM (
 								,(CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
 								,NULL AS '@RfcEmisorCtaOrd'
 								,(CASE WHEN ccb.extranjero = 1 THEN cbb.nombre ELSE NULL END) AS '@NomBancoOrdExt'
-								,p.clabe_origen AS '@CtaOrdenante'
+								,(
+									CASE 
+										WHEN LEN(p.clabe_origen) = 0 THEN NULL 
+										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
+										ELSE p.clabe_origen 
+									END
+								) AS '@CtaOrdenante'
 								,cbb.rfc AS '@RfcEmisorCtaBen'
-								,bc.clabe AS '@CtaBeneficiario'
+								,(	
+									CASE
+										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
+										ELSE bc.clabe
+									END
+								) AS '@CtaBeneficiario'
 								,NULL AS '@TipoCadPago'
 								,NULL AS '@CertPago'
 								,NULL AS '@CadPago'
@@ -438,7 +476,7 @@ FROM (
 										,'PUE' AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
 										,(SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS np WHERE np.idtran2 = ctm.idtran2 AND np.idtran <= ctm.idtran) AS '@NumParcialidad'
 										,NULL AS '@ImpSaldoAnt'
-										,ctm.importe AS '@ImpPagado'
+										,dbo._sys_fnc_decimales(ctm.importe, csm.decimales) AS '@ImpPagado'
 										,NULL AS '@ImpSaldoInsoluto'
 									FROM
 										ew_cxc_transacciones_mov AS ctm
@@ -523,6 +561,8 @@ FROM (
 							AND ccb.clabe = p.clabe_origen
 						LEFT JOIN ew_ban_bancos AS cbb
 							ON cbb.idbanco = ccb.idbanco
+						LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csfpp
+							ON csfpp.c_formapago = ccp.cfd_metodoDePago
 					WHERE
 						ccp.cfd_tipoDeComprobante IN ('P')
 						AND ccp.idtran = cc.idtran

@@ -44,6 +44,7 @@ BEGIN
 			WHERE
 				cc.nivel > 2
 		)
+		AND emc.editar = 0
 
 	IF @idmodulo IS NOT NULL
 	BEGIN

@@ -1,6 +1,6 @@
 USE db_comercial_final
 GO
-CREATE VIEW ew_ban_conceptos_egreso
+ALTER VIEW [dbo].[ew_ban_conceptos_egreso]
 AS
 SELECT
 	[idconcepto] = a.idarticulo
@@ -21,6 +21,9 @@ SELECT DISTINCT
 	, [concepto_cuenta] = oc.contabilidad 
 FROM 
 	objetos_conceptos AS oc
+	LEFT JOIN objetos AS o
+		ON o.objeto = oc.objeto
 WHERE
 	oc.contabilidad <> ''
+	AND o.codigo LIKE 'BDA%'
 GO

@@ -31,7 +31,7 @@ SELECT
 	,[cantidad_ordenada] = om.cantidad_ordenada
 	,[cantidad_autorizada] = om.cantidad_autorizada
 	,[cantidad_recibida] = om.cantidad_porSurtir
-	,[cantidad_facturada] =  om.cantidad_porFacturar
+	,[cantidad_facturada] =  om.cantidad_autorizada
 	,[cantidad_devuelta] = om.cantidad_devuelta
 	,[idmoneda_m]=ISNULL(vlm.idmoneda,0)
 	,[tipocambio_m]=ISNULL(dbo.fn_ban_tipocambio(vlm.idmoneda,0),1)
