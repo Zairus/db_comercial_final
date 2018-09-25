@@ -155,7 +155,19 @@ UPDATE tc SET
 FROM
 	#_tmp_cartera AS tc
 
-SELECT * FROM #_tmp_cartera
+SELECT
+	*
+	, [reporte_fecha_impresion] = GETDATE()
+	, [reporte_titulo] = (
+		'Resumen de Movimientos de Cliente'
+		+ CHAR(13) + CHAR(10)
+		+ 'Del '
+		+ CONVERT(VARCHAR(8), @fecha1, 3)
+		+ ' al '
+		+ CONVERT(VARCHAR(8), @fecha2, 3)
+	)
+FROM 
+	#_tmp_cartera
 
 DROP TABLE #_tmp_cartera
 GO

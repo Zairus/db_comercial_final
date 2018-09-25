@@ -20,10 +20,6 @@ SELECT
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 	,[idcliente] = c.idcliente
 	,[identidad] = c.idcliente
-	
-	,[clabe_origen] = ISNULL(ccb.clabe, '')
-	,[cliente_banco] = ISNULL(ccb.nombre, '')
-	,[cliente_banco_rfc] = ISNULL(ccb.rfc, '')
 FROM 
 	vew_clientes AS c
 	LEFT JOIN ew_clientes_facturacion AS cfa

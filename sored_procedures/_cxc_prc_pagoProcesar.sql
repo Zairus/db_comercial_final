@@ -19,37 +19,75 @@ DECLARE
 
 SELECT @rep_auto = dbo._sys_fnc_parametroActivo('CFDI_REP_AUTOMATICO')
 
-IF @rep_auto = 1 AND EXISTS (
-	SELECT
-		*
-	FROM
-		ew_cxc_transacciones AS ct
-		LEFT JOIN ew_ban_formas_aplica AS bfa
-			ON bfa.idforma = ct.idforma
-		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
-			ON csf.c_formapago = bfa.codigo
-	WHERE
-		ct.idtran = @idtran
-		AND ISNULL(csf.bancarizado, 0) = 1
-		AND LEN(ct.clabe_origen) = 0
-)
+IF @rep_auto = 1
 BEGIN
-	SELECT 
-		@mensaje = (
-			'Error: Se indico como forma de pago: '
-			+ ISNULL(bfa.descripcion, '-No seleccionada-')
-			+ ', la cual es bancarizada y requiere de cuenta bancaria del Ordenante del pago.'
-			+ ' Verifique que el cliente tiene capturadas sus cuentas bancarias y seleccione la correspondiente.'
-		)
-	FROM
-		ew_cxc_transacciones AS ct
-		LEFT JOIN ew_ban_formas_aplica AS bfa
-			ON bfa.idforma = ct.idforma
-	WHERE
-		ct.idtran = @idtran
+	IF EXISTS (
+		SELECT
+			*
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_formas_aplica AS bfa
+				ON bfa.idforma = ct.idforma
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+				ON csf.c_formapago = bfa.codigo
+		WHERE
+			ct.idtran = @idtran
+			AND ISNULL(csf.bancarizado, 0) = 1
+			AND LEN(ct.clabe_origen) = 0
+	)
+	BEGIN
+		SELECT 
+			@mensaje = (
+				'Error: Se indico como forma de pago: '
+				+ ISNULL(bfa.descripcion, '-No seleccionada-')
+				+ ', la cual es bancarizada y requiere de cuenta bancaria del Ordenante del pago.'
+				+ ' Verifique que el cliente tiene capturadas sus cuentas bancarias y seleccione la correspondiente.'
+			)
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_formas_aplica AS bfa
+				ON bfa.idforma = ct.idforma
+		WHERE
+			ct.idtran = @idtran
 		
-	RAISERROR(@mensaje, 16, 1)
-	RETURN
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+
+	IF EXISTS (
+		SELECT *
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_cuentas AS bc
+				ON bc.idcuenta = ct.idcuenta
+			LEFT JOIN ew_ban_bancos AS bb
+				ON bb.idbanco = bc.idbanco
+		WHERE
+			LEN(ISNULL(bb.rfc, '')) = 0
+			AND ct.idtran = @idtran
+	)
+	BEGIN
+		SELECT
+			@mensaje = (
+				'Error: El banco de la empresa ['
+				+ ISNULL(bb.nombre, '-Sin Especificar-')
+				+ '], '
+				+ 'no tiene RFC en su registro. '
+				+ 'Corregir en Bancos / Catalogos / Bancos y cuentas.'
+			)
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_cuentas AS bc
+				ON bc.idcuenta = ct.idcuenta
+			LEFT JOIN ew_ban_bancos AS bb
+				ON bb.idbanco = bc.idbanco
+		WHERE
+			LEN(ISNULL(bb.rfc, '')) = 0
+			AND ct.idtran = @idtran
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
 END
 
 EXEC [dbo].[_ct_prc_contabilizarBDC2] @idtran

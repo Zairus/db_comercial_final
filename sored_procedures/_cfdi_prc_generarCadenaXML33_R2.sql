@@ -455,7 +455,12 @@ FROM (
 										ELSE p.clabe_origen 
 									END
 								) AS '@CtaOrdenante'
-								,cbb.rfc AS '@RfcEmisorCtaBen'
+								,(
+									CASE
+										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
+										ELSE cbb_e.rfc
+									END
+								) AS '@RfcEmisorCtaBen'
 								,(	
 									CASE
 										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
@@ -556,6 +561,8 @@ FROM (
 							ON p.idtran = ccp.idtran
 						LEFT JOIN ew_ban_cuentas AS bc
 							ON bc.idcuenta = p.idcuenta
+						LEFT JOIN ew_ban_bancos AS cbb_e
+							ON cbb_e.idbanco = bc.idbanco
 						LEFT JOIN ew_clientes_cuentas_bancarias AS ccb
 							ON ccb.idcliente = p.idcliente
 							AND ccb.clabe = p.clabe_origen
