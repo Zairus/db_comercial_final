@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -38,6 +38,8 @@ BEGIN
 		) = 0
 		AND vom.idarticulo = @idarticulo
 		AND vo.idalmacen = @idalmacen
+
+		AND dbo._sys_fnc_parametroActivo('INV_COMPROMETER_EN_PEDIDOS') = 1
 
 	SELECT @comprometida = ISNULL(@comprometida, 0)
 

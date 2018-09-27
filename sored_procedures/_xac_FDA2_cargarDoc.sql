@@ -63,6 +63,7 @@ SELECT
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 
 	,ct.cfd_iduso
+	,ct.cfd_idrelacion
 	,ct.idforma
 	,ct.idmetodo
 FROM

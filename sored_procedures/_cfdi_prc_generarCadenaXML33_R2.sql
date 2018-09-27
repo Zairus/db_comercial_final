@@ -115,7 +115,7 @@ FROM (
 		--CfdiRelacionados
 		,(
 			SELECT
-				csto.c_tiporelacion AS '@TipoRelacion'
+				ISNULL(cst.c_tiporelacion, csto.c_tiporelacion) AS '@TipoRelacion'
 				,(
 					SELECT
 						cfdi_r.cfdi_UUID AS '@UUID'
@@ -443,7 +443,7 @@ FROM (
 								CONVERT(VARCHAR(19), ccp.cfd_fecha, 126) AS '@FechaPago'
 								,ccp.cfd_metodoDePago AS '@FormaDePagoP'
 								,ccp.cfd_moneda AS '@MonedaP'
-								,NULL AS '@TipoCambioP'
+								,(CASE WHEN ccp.cfd_moneda = 'XXX' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
 								,dbo._sys_fnc_decimales(ccp.cfd_total, csm.decimales) AS '@Monto'
 								,(CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
 								,NULL AS '@RfcEmisorCtaOrd'
@@ -592,6 +592,8 @@ FROM (
 			ON ct.idtran = cc.idtran
 		LEFT JOIN objetos AS o
 			ON o.codigo = ct.transaccion
+		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS cst
+			ON cst.idr = ct.cfd_idrelacion
 		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion_objetos AS csto
 			ON csto.objeto = o.objeto
 		LEFT JOIN ew_clientes_facturacion AS cf

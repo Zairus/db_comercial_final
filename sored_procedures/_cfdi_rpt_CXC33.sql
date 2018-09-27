@@ -144,6 +144,7 @@ SELECT
 
 	,[cfd_version] = cc.cfd_version
 	,[cfd_uso] = csu.descripcion + ' [' + cc.cfd_uso + ']'
+	,[cfd_tiporelacion] = ISNULL(ISNULL('[' + cst.c_tiporelacion + '] ' + cst.descripcion, '[' + csto_cst.c_tiporelacion + '] ' + csto_cst.descripcion), '')
 	,[cfd_noCertificado] = cc.cfd_noCertificado
 	,[cfd_tipoDeComprobante] = cc.cfd_tipoDeComprobante
 	,[cfd_cadenaOriginal] = ccs.cadenaOriginal
@@ -237,7 +238,7 @@ FROM
 			,[concepto_codarticulo] = a.codigo
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
-			,[concepto_unidad] = ccm1.cfd_unidad
+			,[concepto_unidad] = ISNULL(cum1.sat_unidad_clave, 'EA') + '-' + ccm1.cfd_unidad
 			,[concepto_descripcion] = (
 				CASE 
 					WHEN @concat_nom_corto_articulo = 1 THEN 
@@ -246,17 +247,10 @@ FROM
 				END
 			) 
 			+ (
-				CASE
-					WHEN LEN(CONVERT(VARCHAR(MAX), vtm.comentario)) > 0 THEN
-						' '
-						+ CONVERT(VARCHAR(MAX), vtm.comentario)
-					ELSE ''
-				END
-			)
-			+ (
 				CASE 
-					WHEN LEN(dbo.fn_ven_articuloSeries(ccm1.idmov2)) > 0 THEN 
-						' SERIES: ' + dbo.fn_ven_articuloSeries(ccm1.idmov2) 
+					WHEN LEN(vtm.series) > 0 THEN 
+						CHAR(13) + CHAR(10)
+						+ ' SERIES: ' + REPLACE(vtm.series, CHAR(9), CHAR(13) + CHAR(10))
 					ELSE '' 
 				END
 			)
@@ -301,6 +295,8 @@ FROM
 				ON csc.idclasificacion = a.idclasificacion_sat
 			LEFT JOIN ew_ven_transacciones_mov AS vtm
 				ON vtm.idmov = ccm1.idmov2
+			LEFT JOIN ew_cat_unidadesMedida AS cum1
+				ON cum1.idum = a.idum_venta
 		WHERE
 			ccm1.cfd_unidad <> 'ACT'
 			AND ccm1.consecutivo_padre = 0
@@ -431,6 +427,13 @@ FROM
 		ON csmp.c_metodopago = cc.cfd_formaDePago
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_monedas AS csm
 		ON csm.c_moneda = bm.codigo
+		
+	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS cst
+		ON cst.idr = doc.cfd_idrelacion
+	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion_objetos AS csto
+		ON csto.objeto = o.objeto
+	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS csto_cst
+		ON csto_cst.c_tiporelacion = csto.c_tiporelacion
 WHERE
 	cc.idtran = @idtran
 ORDER BY
