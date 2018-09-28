@@ -17,6 +17,10 @@ DECLARE
 	,@mensaje AS VARCHAR(1000) = ''
 	,@rep_auto AS BIT
 
+DECLARE
+	@total_timbrados AS INT
+	, @total_relacionados AS INT
+
 SELECT @rep_auto = dbo._sys_fnc_parametroActivo('CFDI_REP_AUTOMATICO')
 
 IF @rep_auto = 1
@@ -55,6 +59,40 @@ BEGIN
 	END
 
 	IF EXISTS (
+		SELECT
+			*
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_formas_aplica AS bfa
+				ON bfa.idforma = ct.idforma
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+				ON csf.c_formapago = bfa.codigo
+		WHERE
+			ct.idtran = @idtran
+			AND ISNULL(csf.bancarizado, 0) = 1
+			AND [dbEVOLUWARE].[dbo].[regex_match](ct.clabe_origen, csf.cuenta_ordenante_patron) = 0
+	)
+	BEGIN
+		SELECT
+			@mensaje = (
+				'Error: La cuenta del cliente [' + ct.clabe_origen + '], '
+				+ 'no cumple con el patron indicado por el SAT para la forma de pago '
+				+ csf.descripcion
+			)
+		FROM
+			ew_cxc_transacciones AS ct
+			LEFT JOIN ew_ban_formas_aplica AS bfa
+				ON bfa.idforma = ct.idforma
+			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
+				ON csf.c_formapago = bfa.codigo
+		WHERE
+			ct.idtran = @idtran
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+
+	IF EXISTS (
 		SELECT *
 		FROM
 			ew_cxc_transacciones AS ct
@@ -84,6 +122,27 @@ BEGIN
 		WHERE
 			LEN(ISNULL(bb.rfc, '')) = 0
 			AND ct.idtran = @idtran
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+
+	SELECT
+		@total_timbrados = SUM(CASE WHEN LEN(ISNULL(cct.cfdi_uuid, '')) > 0 THEN 1 ELSE 0 END)
+		, @total_relacionados = SUM(CASE WHEN LEN(ISNULL(cct.cfdi_uuid, '')) > 0 THEN 0 ELSE 1 END)
+	FROM
+		ew_cxc_transacciones_mov AS ctm
+		LEFT JOIN ew_cfd_comprobantes_timbre AS cct
+			ON cct.idtran = ctm.idtran2
+	WHERE
+		ctm.idtran = @idtran
+
+	SELECT @total_timbrados = ISNULL(@total_timbrados, 0)
+	SELECT @total_relacionados = ISNULL(@total_relacionados, 0)
+
+	IF @total_timbrados > 0 AND @total_relacionados > 0
+	BEGIN
+		SELECT @mensaje = 'Error: No se pueden mezclar documentos timbrados y no timbrados en un pago.'
 
 		RAISERROR(@mensaje, 16, 1)
 		RETURN

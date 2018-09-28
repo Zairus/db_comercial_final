@@ -118,33 +118,6 @@ WHERE
 	p.tipo = 2
 	AND ctm.idtran2 = @idtran
 
-/*
-IF EXISTS (
-	SELECT * 
-	FROM ew_ven_transacciones_pagos 
-	WHERE idtran = @idtran
-)
-BEGIN
-	IF EXISTS (
-		SELECT * 
-		FROM 
-			ew_ven_transacciones_pagos  AS vtp
-			LEFT JOIN ew_ban_formas AS bf
-				ON bf.idforma = vtp.idforma
-			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
-				ON csf.c_formapago = bf.codigo
-		WHERE 
-			vtp.clabe_origen = ''
-			AND csf.bancarizado = 1
-			AND vtp.idtran = @idtran
-	)
-	BEGIN
-		RAISERROR('Error: Se ha seleccionado una forma de pago bancarizada sin CLABE interbancaria de cliente.', 16, 1)
-		RETURN
-	END
-END
-*/
-
 IF @formas_pago = ''
 BEGIN
 	SELECT @formas_pago = NULL
@@ -610,7 +583,16 @@ SELECT
 	,[cantidad] = (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END)
 	,[unidad] = um.nombre
 	,[codigo] = a.codigo
-	,[descripcion] = a.nombre
+	,[descripcion] = (
+		a.nombre
+		+ (
+			CASE
+				WHEN LEN(CONVERT(VARCHAR(MAX), m.comentario)) > 0 THEN
+					' ' + CONVERT(VARCHAR(MAX), m.comentario)
+				ELSE ''
+			END
+		)
+	)
 	,[precio_unitario] = (m.importe / (CASE WHEN vt.transaccion = 'EDE1' THEN m.cantidad ELSE m.cantidad_facturada END))
 	,[importe] = m.importe
 	,[idimpuesto1] = m.idimpuesto1

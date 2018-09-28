@@ -443,7 +443,7 @@ FROM (
 								CONVERT(VARCHAR(19), ccp.cfd_fecha, 126) AS '@FechaPago'
 								,ccp.cfd_metodoDePago AS '@FormaDePagoP'
 								,ccp.cfd_moneda AS '@MonedaP'
-								,(CASE WHEN ccp.cfd_moneda = 'XXX' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
+								,(CASE WHEN ccp.cfd_moneda = 'MXN' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
 								,dbo._sys_fnc_decimales(ccp.cfd_total, csm.decimales) AS '@Monto'
 								,(CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
 								,NULL AS '@RfcEmisorCtaOrd'
@@ -478,17 +478,19 @@ FROM (
 										,ccf.cfd_folio AS '@Folio'
 										,ccf.cfd_moneda AS '@MonedaDR'
 										,NULL AS '@TipoCambioDR' --ccf.cfd_tipoCambio
-										,'PUE' AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
+										,ccf.cfd_formaDePago AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
 										,(SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS np WHERE np.idtran2 = ctm.idtran2 AND np.idtran <= ctm.idtran) AS '@NumParcialidad'
-										,NULL AS '@ImpSaldoAnt'
+										,(dbo._sys_fnc_decimales(f.saldo + ctm.importe, csm.decimales)) AS '@ImpSaldoAnt'
 										,dbo._sys_fnc_decimales(ctm.importe, csm.decimales) AS '@ImpPagado'
-										,NULL AS '@ImpSaldoInsoluto'
+										,(dbo._sys_fnc_decimales(f.saldo, csm.decimales)) AS '@ImpSaldoInsoluto'
 									FROM
 										ew_cxc_transacciones_mov AS ctm
 										LEFT JOIN ew_cfd_comprobantes AS ccf
 											ON ccf.idtran = ctm.idtran2
 										LEFT JOIN ew_cfd_comprobantes_timbre AS ccft
 											ON ccft.idtran = ccf.idtran
+										LEFT JOIN ew_cxc_transacciones AS f
+											ON f.idtran = ctm.idtran2
 									WHERE
 										ctm.idtran = cc.idtran
 									FOR XML PATH('pago10:DoctoRelacionado'), TYPE
