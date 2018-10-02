@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -265,20 +265,14 @@ BEGIN
 		[idr] = @idr
 		, [idarticulo] = @idarticulo
 		, [serie] = ''
-		, c.lote
-		, c.idcapa
-		, c.fecha_caducidad
-		, [cantidad] = @cantidad
-		, ce.costo
-	FROM 
-		ew_inv_capas AS c
-		LEFT JOIN ew_inv_capas_existencia AS ce 
-			ON ce.idcapa = c.idcapa 
-			AND ce.idalmacen = @idalmacen_origen
-	WHERE 
-		c.idarticulo = @idarticulo 
-		AND c.idcapa = @idcapa
-		
+		, [lote] = @lote
+		, [idcapa] = ls.idcapa
+		, [fecha_caducidad] = ls.fecha_caducidad
+		, [cantidad] = ls.cantidad
+		, [costo] = ls.costo
+	FROM
+		[dbo].[_inv_fnc_lotesSalida](@idalmacen_origen, @idarticulo, @lote, @cantidad) AS ls
+			
 	FETCH NEXT FROM cur_mov INTO 
 		@idr
 		, @idarticulo
