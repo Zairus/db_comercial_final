@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -100,7 +100,7 @@ BEGIN
 	-- Aplicando en Cuentas por Pagar
 	IF @idtran2 > 0
 	BEGIN
-		IF EXISTS(SELECT idtran FROM ew_cxc_transacciones WHERE idtran = @idtran2)
+		IF EXISTS(SELECT idtran FROM ew_cxc_transacciones WHERE cancelado = 0 AND idtran = @idtran2)
 		BEGIN
 			EXEC _cxc_prc_aplicarTransaccion @idtran2, @aplicado_fecha, @idu
 
@@ -109,7 +109,7 @@ BEGIN
 			EXEC _sys_prc_transaccionEstado @idtran2, @idestado, @idu
 		END
 
-		IF EXISTS(SELECT idtran FROM ew_cxp_transacciones WHERE idtran = @idtran2)
+		IF EXISTS(SELECT idtran FROM ew_cxp_transacciones WHERE cancelado = 0 AND idtran = @idtran2)
 		BEGIN
 			EXEC _cxp_prc_aplicarTransaccion @idtran2, @aplicado_fecha, @idu
 

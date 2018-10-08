@@ -1,4 +1,4 @@
-USE db_innova_datos2
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -7,27 +7,29 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ser_prc_facturacionDeServicio]
 	@periodo AS INT
-	,@dia AS INT
-	,@idcliente AS INT
-	,@plan_codigo AS VARCHAR(10)
-	,@no_orden AS VARCHAR(50)
-	,@idu AS INT
+	, @dia AS INT
+	, @idcliente AS INT
+	, @plan_codigo AS VARCHAR(MAX)
+	, @no_orden AS VARCHAR(50)
+	, @idu AS INT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@transaccion AS VARCHAR(5) = 'EFA1'
-	,@idsucursal AS INT
-	,@serie AS VARCHAR(1) = 'A'
-	,@foliolen AS SMALLINT = 6
-	,@factura_idtran AS INT
-	,@afolio AS VARCHAR(15) = ''
-	,@afecha AS VARCHAR(20) = ''
-	,@idalmacen AS INT
-	,@fecha AS DATETIME = GETDATE()
+	, @password AS VARCHAR(20)
+	, @transaccion AS VARCHAR(5) = 'EFA1'
+	, @idsucursal AS INT
+	, @serie AS VARCHAR(1) = 'A'
+	, @foliolen AS SMALLINT = 6
+	, @factura_idtran AS INT
+	, @afolio AS VARCHAR(15) = ''
+	, @afecha AS VARCHAR(20) = ''
+	, @idalmacen AS INT
+	, @fecha AS DATETIME = GETDATE()
+	, @importe AS DECIMAL(18, 6)
+	, @impuesto AS DECIMAL(18, 6)
 
 SELECT
 	@usuario = u.usuario
@@ -65,6 +67,43 @@ FROM
 WHERE 
 	alm.tipo = 1 
 	AND alm.idsucursal = @idsucursal
+
+UPDATE ew_clientes_terminos SET
+	autorizacion = 1
+WHERE
+	idcliente = @idcliente
+
+SELECT @plan_codigo = REPLACE(LTRIM(RTRIM(@plan_codigo)), CHAR(9), ',')
+
+SELECT
+	[consecutivo] = ROW_NUMBER() OVER (ORDER BY csp.plan_codigo)
+	, [idarticulo] = a.idarticulo
+	, [idum] = a.idum_venta
+	, [precio_unitario] = csp.costo
+	, [idimpuesto1] = ci.idimpuesto
+	, [idimpuesto1_valor] = ci.valor
+	, [precio_venta] = csp.costo
+	, [importe] = csp.costo
+	, [impuesto1] = ROUND((csp.costo * ci.valor), 2)
+	, [plan_codigo] = csp.plan_codigo
+INTO #_tmp_detalle_ser
+FROM
+	ew_clientes AS c
+	LEFT JOIN ew_articulos AS a
+		ON a.codigo = dbo._sys_fnc_parametroTexto('SER_CONCEPTORENTA')
+	LEFT JOIN ew_clientes_servicio_planes AS csp
+			ON csp.idcliente = c.idcliente
+			AND csp.plan_codigo IN (SELECT p.valor FROM [dbo].[_sys_fnc_separarMultilinea](@plan_codigo, ',') AS p)
+	LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = 1
+WHERE
+	c.idcliente = @idcliente
+
+SELECT
+	@importe = SUM(importe)
+	, @impuesto = SUM(impuesto1)
+FROM
+	#_tmp_detalle_ser
 
 EXEC _sys_prc_insertarTransaccion
 	@usuario
@@ -116,8 +155,8 @@ BEGIN
 		,[credito] = ctr.credito
 		,[credito_plazo] = ctr.credito_plazo
 		,[idmoneda] = 0
-		,[subtotal] = csp.costo
-		,[impuesto1] = ROUND((csp.costo * ci.valor), 2)
+		,[subtotal] = @importe
+		,[impuesto1] = @impuesto
 		,[impuesto2] = 0
 		,[redondeo] = 0
 		,[idu] = @idu
@@ -129,11 +168,6 @@ BEGIN
 			ON c.idcliente = @idcliente
 		LEFT JOIN ew_clientes_terminos AS ctr
 			ON ctr.idcliente = c.idcliente
-		LEFT JOIN ew_clientes_servicio_planes As csp
-			ON csp.idcliente = c.idcliente
-			AND csp.plan_codigo = @plan_codigo
-		LEFT JOIN ew_cat_impuestos AS ci
-			ON ci.idimpuesto = 1
 	WHERE
 		st.idtran = @factura_idtran
 
@@ -176,8 +210,8 @@ BEGIN
 		,[idimpuesto1_valor] = ci.valor
 		,[idimpuesto2] = 0
 		,[idimpuesto2_valor] = 0
-		,[subtotal] = csp.costo
-		,[impuesto1] = ROUND((csp.costo * ci.valor), 2)
+		,[subtotal] = @importe
+		,[impuesto1] = @impuesto
 		,[impuesto2] = 0
 		,[redondeo] = 0
 		,[idu] = @idu
@@ -188,9 +222,6 @@ BEGIN
 			ON c.idcliente = @idcliente
 		LEFT JOIN ew_clientes_terminos AS ctr
 			ON ctr.idcliente = c.idcliente
-		LEFT JOIN ew_clientes_servicio_planes As csp
-			ON csp.idcliente = c.idcliente
-			AND csp.plan_codigo = @plan_codigo
 		LEFT JOIN ew_cat_impuestos AS ci
 			ON ci.idimpuesto = 1
 	WHERE
@@ -221,9 +252,9 @@ BEGIN
 	SELECT
 		[idtran] = st.idtran
 		,[idtran2] = 0
-		,[consecutivo] = 1
-		,[idarticulo] = a.idarticulo
-		,[idum] = a.idum_venta
+		,[consecutivo] = tds.consecutivo
+		,[idarticulo] = tds.idarticulo
+		,[idum] = tds.idum
 		,[idalmacen] = @idalmacen
 		,[tipo] = 0
 		,[cantidad_ordenada] = 1
@@ -231,27 +262,20 @@ BEGIN
 		,[cantidad_surtida] = 1
 		,[cantidad_facturada] = 1
 		,[cantidad] = 1
-		,[precio_unitario] = csp.costo
+		,[precio_unitario] = tds.precio_venta
 		,[idimpuesto1] = ci.idimpuesto
 		,[idimpuesto1_valor] = ci.valor
-		,[precio_venta] = csp.costo
-		,[importe] = csp.costo
-		,[impuesto1] = ROUND((csp.costo * ci.valor), 2)
+		,[precio_venta] = tds.precio_venta
+		,[importe] = tds.importe
+		,[impuesto1] = tds.impuesto
 		,[comentario] = 'Facturacion automatica'
 		,[no_orden] = @no_orden
 	FROM
-		ew_sys_transacciones AS st
-		LEFT JOIN ew_clientes AS c
-			ON c.idcliente = @idcliente
-		LEFT JOIN ew_clientes_servicio_planes As csp
-			ON csp.idcliente = c.idcliente
-			AND csp.plan_codigo = @plan_codigo
+		#_tmp_detalle_ser AS tds
+		LEFT JOIN ew_sys_transacciones AS st
+			ON st.idtran = @factura_idtran
 		LEFT JOIN ew_cat_impuestos AS ci
 			ON ci.idimpuesto = 1
-		LEFT JOIN ew_articulos AS a
-			ON a.codigo = dbo._sys_fnc_parametroTexto('SER_CONCEPTORENTA')
-	WHERE
-		st.idtran = @factura_idtran
 
 	INSERT INTO ew_ven_transacciones_mov_servicio (
 		idtran
@@ -263,14 +287,18 @@ BEGIN
 	SELECT
 		[idtran] = vtm.idtran
 		, [idmov] = vtm.idmov
-		, [plan_codigo] = @plan_codigo
+		, [plan_codigo] = tds.plan_codigo
 		, [ejercicio] = YEAR(GETDATE())
 		, [periodo] = @periodo
 	FROM
 		ew_ven_transacciones_mov AS vtm
+		LEFT JOIN #_tmp_detalle_ser AS tds
+			ON tds.consecutivo = vtm.consecutivo
 	WHERE
 		vtm.idtran = @factura_idtran
 END
+
+DROP TABLE #_tmp_detalle_ser
 
 EXEC _cxc_prc_aplicarTransaccion @factura_idtran, @fecha, @idu
 

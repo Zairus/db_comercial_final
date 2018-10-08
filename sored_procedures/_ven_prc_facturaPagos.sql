@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -377,17 +377,17 @@ BEGIN
 		, @comentario
 		, @pago_referencia
 END
+CLOSE cur_pagos
+DEALLOCATE cur_pagos
+
 --------------------------------------------------------------------------------
 -- PRESENTAR MENSAJES ##########################################################
-
+--------------------------------------------------------------------------------
 IF @error = 1
 BEGIN
 	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
-
-CLOSE cur_pagos
-DEALLOCATE cur_pagos
 
 IF EXISTS (
 	SELECT * 
@@ -398,7 +398,7 @@ BEGIN
 	SELECT @idforma = NULL
 
 	SELECT TOP 1 
-		@idforma = ISNULL(bfa.idforma, bfa.idforma)
+		@idforma = ISNULL(bfa.idforma, vtp.idforma)
 	FROM 
 		ew_ven_transacciones_pagos AS vtp
 		LEFT JOIN ew_cxc_transacciones AS ct
@@ -428,6 +428,7 @@ BEGIN
 		idtran = @idtran
 END
 
+/*
 UPDATE ct SET
 	ct.idmetodo = (
 		CASE
@@ -441,4 +442,5 @@ FROM
 	ew_cxc_transacciones AS ct
 WHERE
 	ct.idtran = @idtran
+*/
 GO

@@ -69,7 +69,7 @@ FROM (
 		,CONVERT(VARCHAR(19), @cfd_fecha, 126) AS '@Fecha'
 		,cer.noCertificado AS '@NoCertificado'
 		,REPLACE(REPLACE(cc.cfd_tipoDeComprobante, 'ingreso', 'I'), 'egreso', 'E') AS '@TipoDeComprobante'
-		,(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END) AS '@CondicionesDePago'
+		,NULL AS '@CondicionesDePago' --(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END)
 		,ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
 		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) END) AS '@TipoCambio'
@@ -122,26 +122,30 @@ FROM (
 					FROM
 						(
 							SELECT
-							cc1.cfdi_UUID --AS '@UUID'
-						FROM
-							ew_cxc_transacciones_mov AS ctm 
-							LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-								ON cc1.idtran = ctm.idtran2
-						WHERE 
-							cc1.idr IS NOT NULL
-							AND ctm.idtran = cc.idtran
+								cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones_mov AS ctm
+								LEFT JOIN ew_cxc_transacciones AS ct
+									ON ct.idtran = ctm.idtran 
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = ctm.idtran2
+							WHERE 
+								cc1.idr IS NOT NULL
+								AND ct.transaccion NOT IN ('BDC2')
+								AND ctm.idtran = cc.idtran
 
-						UNION ALL
+							UNION ALL
 
-						SELECT
-							cc1.cfdi_UUID --AS '@UUID'
-						FROM
-							ew_cxc_transacciones AS rf1
-							LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-								ON cc1.idtran = rf1.idtran2
-						WHERE
-							rf1.transaccion = 'EFA7'
-							AND rf1.idtran = cc.idtran
+							SELECT
+								cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones AS rf1
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = rf1.idtran2
+							WHERE
+								rf1.idtran2 > 0
+								AND rf1.transaccion IN ('EFA7', 'BDC2')
+								AND rf1.idtran = cc.idtran
 						) AS cfdi_r
 
 					FOR XML PATH('cfdi:CfdiRelacionado'), TYPE
@@ -150,12 +154,33 @@ FROM (
 				(
 					SELECT COUNT(*) 
 					FROM 
-						ew_cxc_transacciones_mov AS ctm
-						LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-							ON cc1.idtran = ctm.idtran2
-					WHERE 
-						cc1.idr IS NOT NULL
-						AND ctm.idtran = cc.idtran
+						(
+							SELECT
+								cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones_mov AS ctm
+								LEFT JOIN ew_cxc_transacciones AS ct
+									ON ct.idtran = ctm.idtran  
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = ctm.idtran2
+							WHERE 
+								cc1.idr IS NOT NULL
+								AND ct.transaccion NOT IN ('BDC2')
+								AND ctm.idtran = cc.idtran
+
+							UNION ALL
+
+							SELECT
+								cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones AS rf1
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = rf1.idtran2
+							WHERE
+								rf1.idtran2 > 0
+								AND rf1.transaccion IN ('EFA7', 'BDC2')
+								AND rf1.idtran = cc.idtran
+						) AS cfdi_r1
 				) > 0
 			FOR XML PATH('cfdi:CfdiRelacionados'), TYPE
 		) AS '*'

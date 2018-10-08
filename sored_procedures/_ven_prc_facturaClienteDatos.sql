@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -71,6 +71,7 @@ SELECT
 	,[email] = cf.email
 	,[idfacturacion] = c.idfacturacion
 	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
+	,[referencia] = RTRIM(c.cfd_NumCtaPago)
 	,[modificar] = c.modificar
 	,[modifica_precio_neg] = 0
 	,[clasificacion] = ''
@@ -78,6 +79,7 @@ SELECT
 	,[idmoneda] = c.idmoneda
 	,[tipocambio] = bm.tipocambio
 	,[idforma] = c.idforma
+	,[cfd_iduso] = c.cfd_iduso
 	,[suspender] = ct.credito_suspendido
 	,[credito] = ct.credito
 	,[c_mensaje] = (
@@ -112,11 +114,14 @@ SELECT
 	,[ciudad_ubicacion] = cu.ciudad_ubicacion
 	,[cp_ubicacion] = cu.cp_ubicacion
 	,[telefono_ubicacion] = cu.telefono_ubicacion
+
+	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
+	,[idmetodo] = (CASE WHEN ct.credito = 1 THEN 2 ELSE 1 END)
 FROM
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_facturacion AS cf
 		ON cf.idcliente = c.idcliente
-		AND cf.idfacturacion = c.idfacturacion
+		AND cf.idfacturacion = cf.idfacturacion
 	LEFT JOIN ew_sys_ciudades AS fac 
 		ON fac.idciudad = cf.idciudad
 	LEFT JOIN ew_ban_monedas AS bm

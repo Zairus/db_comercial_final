@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -26,8 +26,39 @@ SELECT @rep_auto = dbo._sys_fnc_parametroActivo('CFDI_REP_AUTOMATICO')
 IF @rep_auto = 1
 BEGIN
 	IF EXISTS (
-		SELECT
-			*
+		SELECT *
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS f
+				ON f.idtran = ctm.idtran2
+		WHERE
+			ctm.idtran = @idtran
+			AND f.total <> ctm.importe2
+			AND f.idmetodo = 1
+	)
+	BEGIN
+		SELECT 
+			@mensaje = (
+				'Error: LA factura ' + f.folio
+				+ ', esta generada con metodo de pago '
+				+ 'PUE: Pago en una sola exhibicion. '
+				+ 'Y no se esta pagando completamente, se debe pagar en una sola exhibicion.'
+			)
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS f
+				ON f.idtran = ctm.idtran2
+		WHERE
+			ctm.idtran = @idtran
+			AND f.total <> ctm.importe2
+			AND f.idmetodo = 1
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+	
+	IF EXISTS (
+		SELECT *
 		FROM
 			ew_cxc_transacciones AS ct
 			LEFT JOIN ew_ban_formas_aplica AS bfa
@@ -143,6 +174,48 @@ BEGIN
 	IF @total_timbrados > 0 AND @total_relacionados > 0
 	BEGIN
 		SELECT @mensaje = 'Error: No se pueden mezclar documentos timbrados y no timbrados en un pago.'
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+
+	IF EXISTS(
+		SELECT *
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS ct
+				ON ct.idtran = ctm.idtran
+			LEFT JOIN ew_cxc_transacciones_mov AS ctmc
+				ON ctmc.idtran2 = ctm.idtran2
+			LEFT JOIN ew_cxc_transacciones AS ctc
+				ON ctc.idtran = ctmc.idtran
+		WHERE
+			ctc.cancelado = 1
+			AND ct.idtran2 = 0
+			AND ctm.idtran = @idtran
+	)
+	BEGIN
+		SELECT
+			@mensaje = (
+				'Error: Se esta aplicando pago a la factura '
+				+ ct.folio
+				+ ', que tieneun pago previo cancelado (' + ctc.folio + '). '
+				+ 'Y no seesta indicando un documentorelacionado para reemplazar el CFDi.'
+			)
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS ct
+				ON ct.idtran = ctm.idtran
+			LEFT JOIN ew_cxc_transacciones_mov AS ctmc
+				ON ctmc.idtran2 = ctm.idtran2
+			LEFT JOIN ew_cxc_transacciones AS ctc
+				ON ctc.idtran = ctmc.idtran
+			LEFT JOIN ew_cxc_transacciones AS f
+				ON f.idtran = ctm.idtran2
+		WHERE
+			ctc.cancelado = 1
+			AND ct.idtran2 = 0
+			AND ctm.idtran = @idtran
 
 		RAISERROR(@mensaje, 16, 1)
 		RETURN

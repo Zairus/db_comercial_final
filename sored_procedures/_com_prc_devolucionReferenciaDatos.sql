@@ -19,6 +19,7 @@ SELECT
 	,[idmov2] = com.idmov
 	,[objidtran] = com.idtran
 	,[idarticulo] = com.idarticulo
+	,[serie] = a.series
 	,[codarticulo] = a.codigo
 	,[descripcion] = a.nombre
 	,[idalmacen] = co.idalmacen

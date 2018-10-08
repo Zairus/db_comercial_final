@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -63,13 +63,6 @@ WHERE
 IF @@rowcount = 0
 BEGIN
 	SELECT @msg = 'Error 1: BAN_TRANSACCIONES, no se logró cancelar la transaccion.'
-	RAISERROR (@msg, 16, 1)
-	RETURN
-END
-
-IF (DATEPART(YEAR, @fecha) != DATEPART(YEAR, @cancelado_fecha)) OR (DATEPART(MONTH, @fecha) != DATEPART(MONTH, @cancelado_fecha))
-BEGIN
-	SELECT @msg = 'Error 2: BAN_TRANSACCIONES, La fecha de cancelación no es válida.'
 	RAISERROR (@msg, 16, 1)
 	RETURN
 END
