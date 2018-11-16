@@ -240,8 +240,18 @@ FROM (
 					END
 				) AS '@Unidad'
 				,ccm.cfd_descripcion AS '@Descripcion'
-				,dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 6) AS '@ValorUnitario'
-				,dbo._sys_fnc_decimales(ccm.cfd_importe, csm.decimales) AS '@Importe'
+				,(
+					CASE
+						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0'
+						ELSE dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 6)
+					END
+				) AS '@ValorUnitario'
+				,(
+					CASE
+						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0'
+						ELSE dbo._sys_fnc_decimales(ccm.cfd_importe, csm.decimales)
+					END
+				) AS '@Importe'
 				--,ccm.cfd_descuento AS '@Descuento'
 				
 				--Impuestos por conceptos
@@ -465,7 +475,7 @@ FROM (
 						'1.0' AS '@Version'
 						,(
 							SELECT
-								CONVERT(VARCHAR(19), ccp.cfd_fecha, 126) AS '@FechaPago'
+								CONVERT(VARCHAR(19), p.fecha_operacion, 126) AS '@FechaPago'
 								,ccp.cfd_metodoDePago AS '@FormaDePagoP'
 								,ccp.cfd_moneda AS '@MonedaP'
 								,(CASE WHEN ccp.cfd_moneda = 'MXN' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
@@ -502,11 +512,12 @@ FROM (
 										,ccf.cfd_serie AS '@Serie'
 										,ccf.cfd_folio AS '@Folio'
 										,ccf.cfd_moneda AS '@MonedaDR'
-										,NULL AS '@TipoCambioDR' --ccf.cfd_tipoCambio
+										,(CASE WHEN ccp.cfd_moneda = ccf.cfd_moneda THEN NULL ELSE ccf.cfd_tipoCambio END) AS '@TipoCambioDR'
+										--,(CASE WHEN ccf.cfd_moneda IN ('MXN', 'XXX') THEN NULL ELSE ccf.cfd_tipoCambio END) AS '@TipoCambioDR'
 										,ccf.cfd_formaDePago AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
 										,(SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS np WHERE np.idtran2 = ctm.idtran2 AND np.idtran <= ctm.idtran) AS '@NumParcialidad'
-										,(dbo._sys_fnc_decimales(f.saldo + ctm.importe, csm.decimales)) AS '@ImpSaldoAnt'
-										,dbo._sys_fnc_decimales(ctm.importe, csm.decimales) AS '@ImpPagado'
+										,(dbo._sys_fnc_decimales(f.saldo + ctm.importe2, csm.decimales)) AS '@ImpSaldoAnt'
+										,dbo._sys_fnc_decimales(ctm.importe2, csm.decimales) AS '@ImpPagado'
 										,(dbo._sys_fnc_decimales(f.saldo, csm.decimales)) AS '@ImpSaldoInsoluto'
 									FROM
 										ew_cxc_transacciones_mov AS ctm

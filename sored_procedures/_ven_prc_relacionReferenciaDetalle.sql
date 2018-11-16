@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -36,7 +36,7 @@ SELECT
 	,[idmoneda_m] = ISNULL(vlm.idmoneda,0)
 	,[tipocambio_m] = ISNULL(dbo.fn_ban_tipocambio(vlm.idmoneda,0),1)
 	,[precio_congelado]= om.precio_unitario
-	,[precio_unitario_m] = (om.precio_unitario / ISNULL(dbo.fn_ban_tipocambio(vlm.idmoneda, 0), 1)) / (1 / (ISNULL(dbo.fn_ban_tipocambio(doc.idmoneda, 0), 1)))
+	,[precio_unitario_m] = om.precio_unitario --(om.precio_unitario / ISNULL(dbo.fn_ban_tipocambio(vlm.idmoneda, 0), 1)) / (1 / (ISNULL(dbo.fn_ban_tipocambio(doc.idmoneda, 0), 1)))
 	,[precio_unitario] = om.precio_unitario
 	,[descuento1] = om.descuento1
 	,[descuento2] = om.descuento2
@@ -50,19 +50,26 @@ SELECT
 	,[idalmacen] = doc.idalmacen
 	,[cuenta_sublinea] = subl.contabilidad
 	
-	,[idimpuesto1] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 1, a.idarticulo), a.idimpuesto1)
-	,[idimpuesto1_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 1, a.idarticulo), 0.16)
+	,[idimpuesto1] = om.idimpuesto1
+	,[idimpuesto1_valor] = om.idimpuesto1_valor
 	,[idimpuesto1_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 1, a.idarticulo, 1), '2130001002')
-	,[idimpuesto2] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IEPS', 1, a.idarticulo), a.idimpuesto2)
-	,[idimpuesto2_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IEPS', 1, a.idarticulo), 0.0)
+	,[idimpuesto2] = om.idimpuesto2
+	,[idimpuesto2_valor] = om.idimpuesto2_valor
 	,[idimpuesto2_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IEPS', 1, a.idarticulo, 1), '')
-	,[idimpuesto1_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 2, a.idarticulo), a.idimpuesto1_ret)
-	,[idimpuesto1_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 2, a.idarticulo), 0.0)
+	,[idimpuesto1_ret] = om.idimpuesto1_ret
+	,[idimpuesto1_ret_valor] = om.idimpuesto1_ret_valor
 	,[idimpuesto1_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 2, a.idarticulo, 1), '')
-	,[idimpuesto2_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('ISR', 2, a.idarticulo), a.idimpuesto2_ret)
-	,[idimpuesto2_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('ISR', 2, a.idarticulo), 0.0)
+	,[idimpuesto2_ret] = om.idimpuesto2_ret
+	,[idimpuesto2_ret_valor] = om.idimpuesto2_ret_valor
 	,[idimpuesto2_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('ISR', 2, a.idarticulo, 1), '')
 	,[ingresos_cuenta] = ISNULL([dbo].[_ct_fnc_articuloIngresosCuenta](a.idarticulo), '4100001000')
+
+	,[importe] = om.importe
+	,[impuesto1] = om.impuesto1
+	,[impuesto2] = om.impuesto2
+	,[impuesto1_ret] = om.impuesto1_ret
+	,[impuesto2_ret] = om.impuesto2_ret
+
 	,[objlevel] = om.objlevel
 FROM 
 	ew_ven_transacciones_mov AS om
@@ -76,7 +83,8 @@ FROM
 	LEFT JOIN ew_articulos_niveles AS subl 
 		ON subl.codigo=a.nivel3
 	LEFT JOIN ew_articulos_almacenes AS aa 
-		ON aa.idarticulo = a.idarticulo AND aa.idalmacen = doc.idalmacen
+		ON aa.idarticulo = a.idarticulo 
+		AND aa.idalmacen = doc.idalmacen
 WHERE
 	doc.transaccion LIKE 'EFA%'
 	AND doc.idsucursal = @idsucursal

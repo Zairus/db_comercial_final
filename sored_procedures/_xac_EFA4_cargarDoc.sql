@@ -75,6 +75,8 @@ SELECT
 
 	,[sys_cuenta] = dbo.fn_sys_obtenerDato('GLOBAL', 'EVOLUWARE_CUENTA')
 	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
+
+	,[tipocambio] = vt.tipocambio
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_clientes AS c
@@ -130,7 +132,26 @@ SELECT
 	,[saldo] = ct.saldo
 	,[comentario] = ct.comentario
 
-	,[idforma] = (SELECT TOP 1 bf.idforma FROM ew_ban_formas AS bf WHERE bf.activo = 1 AND bf.codigo = '99')
+	,[idforma] = ISNULL(
+		(
+			SELECT TOP 1 bf.idforma
+			FROM ew_ban_formas AS bf
+			WHERE
+				bf.codigo = cc.cfd_metodoDePago
+		)
+		, (
+			CASE
+				WHEN ct.idforma > 0 THEN ct.idforma
+				ELSE (
+					SELECT TOP 1 bf.idforma 
+					FROM ew_ban_formas AS bf 
+					WHERE 
+						bf.activo = 1 
+						AND bf.codigo = '99'
+				)
+			END
+		)
+	)
 	,[idmetodo] = (SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PUE')
 	,[cfd_iduso] = (SELECT csu.id FROM db_comercial.dbo.evoluware_cfd_sat_uso AS csu WHERE csu.c_usocfdi = 'P01')
 FROM
@@ -142,6 +163,8 @@ FROM
 		AND cfa.idfacturacion = ct.idfacturacion
 	LEFT JOIN ew_sys_ciudades AS cd
 		ON cd.idciudad = cfa.idciudad
+	LEFT JOIN ew_cfd_comprobantes AS cc
+		ON cc.idtran = ct.idtran
 WHERE
 	ct.idtran = @idtran
 

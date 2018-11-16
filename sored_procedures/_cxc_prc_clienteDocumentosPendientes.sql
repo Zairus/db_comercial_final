@@ -5,7 +5,7 @@ GO
 -- Create date: 20151118
 -- Description:	Documentos pendientes de pago por cliente
 -- =============================================
-ALTER PROCEDURE _cxc_prc_clienteDocumentosPendientes
+ALTER PROCEDURE [dbo].[_cxc_prc_clienteDocumentosPendientes]
 	@idcliente AS INT
 AS
 
@@ -46,5 +46,8 @@ WHERE
 	ct.cancelado = 0
 	AND ct.tipo = 1
 	AND ct.saldo > 0
+	AND ct.aplicado = 1
 	AND ct.idcliente = @idcliente
+ORDER BY
+	ct.fecha
 GO

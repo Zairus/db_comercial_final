@@ -59,6 +59,20 @@ BEGIN
 	RETURN
 END
 
+IF EXISTS(
+	SELECT *
+	FROM
+		ew_sys_turnos
+	WHERE
+		idcuenta = @idcuenta2
+		AND fecha_fin IS NULL
+		AND idu <> @idu
+)
+BEGIN
+	RAISERROR('Error: La caja se debe cerrar por em mismo usuario que abrio turno.', 16, 1)
+	RETURN
+END
+
 --------------------------------------------------------------------------------
 -- EGRESO DE CUENTA DE ORIGEN ##################################################
 

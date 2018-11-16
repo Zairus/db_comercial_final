@@ -52,37 +52,37 @@ BEGIN
 END
 
 SELECT
-	 [idcliente] = c.idcliente
-	,[facturara] = cf.razon_social
-	,[nombre] = cf.razon_social
-	,[rfc] = cf.rfc
-	,[idfacturacion] = cf.idfacturacion
-	,[cliente] = c.nombre
-	,[codcliente] = c.codigo
-	,[direccion] = (cf.calle + ISNULL(' ' + cf.noExterior, '') + ISNULL(' ' + cf.noInterior, ''))
-	,[colonia] = cf.colonia
-	,[codciudad] = fac.codciudad
-	,[ciudad] = fac.ciudad
-	,[estado] = fac.estado
-	,[pais] = fac.pais
-	,[codigopostal] = cf.codpostal
-	,[codigo_postal] = cf.codpostal
-	,[telefono1] = cf.telefono1
-	,[email] = cf.email
-	,[idfacturacion] = c.idfacturacion
-	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
-	,[referencia] = RTRIM(c.cfd_NumCtaPago)
-	,[modificar] = c.modificar
-	,[modifica_precio_neg] = 0
-	,[clasificacion] = ''
-
-	,[idmoneda] = c.idmoneda
-	,[tipocambio] = bm.tipocambio
-	,[idforma] = c.idforma
-	,[cfd_iduso] = c.cfd_iduso
-	,[suspender] = ct.credito_suspendido
-	,[credito] = ct.credito
-	,[c_mensaje] = (
+	[idcliente] = c.idcliente
+	, [facturara] = cf.razon_social
+	, [nombre] = cf.razon_social
+	, [rfc] = cf.rfc
+	, [idfacturacion] = cf.idfacturacion
+	, [cliente] = c.nombre
+	, [codcliente] = c.codigo
+	, [direccion] = (cf.calle + ISNULL(' ' + cf.noExterior, '') + ISNULL(' ' + cf.noInterior, ''))
+	, [colonia] = cf.colonia
+	, [codciudad] = fac.codciudad
+	, [ciudad] = fac.ciudad
+	, [estado] = fac.estado
+	, [pais] = fac.pais
+	, [codigopostal] = cf.codpostal
+	, [codigo_postal] = cf.codpostal
+	, [telefono1] = cf.telefono1
+	, [email] = cf.email
+	, [idfacturacion] = c.idfacturacion
+	, [metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
+	, [referencia] = RTRIM(c.cfd_NumCtaPago)
+	, [modificar] = c.modificar
+	, [modifica_precio_neg] = 0
+	, [clasificacion] = ''
+	
+	, [idmoneda] = c.idmoneda
+	, [tipocambio] = bm.tipocambio
+	, [idforma] = c.idforma
+	, [cfd_iduso] = c.cfd_iduso
+	, [suspender] = ct.credito_suspendido
+	, [credito] = ct.credito
+	, [c_mensaje] = (
 		CASE 
 			WHEN ct.credito_suspendido = 1 THEN 'Crédito suspendido'
 			WHEN (csa.saldo >= ct.credito_limite) THEN 'No hay crédito disponible'
@@ -90,33 +90,35 @@ SELECT
 		END
 	)
 	
-	,[idvendedor] = ct.idvendedor
-	,[cliente_saldo] = csa.saldo
-	,[credito_disponible] = (ct.credito_limite - csa.saldo)
-	,[credito_dias] = ct.credito_plazo
-	,[porc_pe] = 0
-	,[inv_partes] = 0
-	,[idcontacto] = c.idcontacto
-	,[nombre_contacto] = ccc.nombre
-	,[telefono_contacto] = ''
-	,[fax_contacto] = ''
-	,[horario_contacto] = cc.horario
-	,[email] = cf.email
-
-	,[codcliente_o] = c.codigo
-	,[idcliente_o] = c.idcliente
-	,[nombre_o] = c.nombre
-
-	,[idubicacion] = cu.idubicacion
-	,[nombre_ubicacion] = cu.nombre_ubicacion
-	,[direccion_ubicacion] = cu.direccion_ubicacion
-	,[colonia_ubicacion] = cu.colonia_ubicacion
-	,[ciudad_ubicacion] = cu.ciudad_ubicacion
-	,[cp_ubicacion] = cu.cp_ubicacion
-	,[telefono_ubicacion] = cu.telefono_ubicacion
-
-	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
-	,[idmetodo] = (CASE WHEN ct.credito = 1 THEN 2 ELSE 1 END)
+	, [idvendedor] = ct.idvendedor
+	, [cliente_saldo] = csa.saldo
+	, [credito_disponible] = (ct.credito_limite - csa.saldo)
+	, [credito_dias] = ct.credito_plazo
+	, [porc_pe] = 0
+	, [inv_partes] = 0
+	, [idcontacto] = c.idcontacto
+	, [nombre_contacto] = ccc.nombre
+	, [telefono_contacto] = ''
+	, [fax_contacto] = ''
+	, [horario_contacto] = cc.horario
+	, [email] = cf.email
+	
+	, [codcliente_o] = c.codigo
+	, [idcliente_o] = c.idcliente
+	, [nombre_o] = c.nombre
+	
+	, [idubicacion] = cu.idubicacion
+	, [nombre_ubicacion] = cu.nombre_ubicacion
+	, [direccion_ubicacion] = cu.direccion_ubicacion
+	, [colonia_ubicacion] = cu.colonia_ubicacion
+	, [ciudad_ubicacion] = cu.ciudad_ubicacion
+	, [cp_ubicacion] = cu.cp_ubicacion
+	, [telefono_ubicacion] = cu.telefono_ubicacion
+	
+	, [cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
+	, [idmetodo] = (CASE WHEN ct.credito = 1 THEN 2 ELSE 1 END)
+	, [idforma] = c.idforma
+	, [cfd_iduso] = c.cfd_iduso
 FROM
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_facturacion AS cf

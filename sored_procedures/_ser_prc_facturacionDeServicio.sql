@@ -267,7 +267,7 @@ BEGIN
 		,[idimpuesto1_valor] = ci.valor
 		,[precio_venta] = tds.precio_venta
 		,[importe] = tds.importe
-		,[impuesto1] = tds.impuesto
+		,[impuesto1] = tds.impuesto1
 		,[comentario] = 'Facturacion automatica'
 		,[no_orden] = @no_orden
 	FROM

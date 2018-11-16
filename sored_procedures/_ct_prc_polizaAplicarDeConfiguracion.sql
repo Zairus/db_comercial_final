@@ -7,10 +7,11 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
 	@idtran AS INT
-	,@objeto_codigo AS VARCHAR(10) = NULL
-	,@idtran2 AS INT = NULL
-	,@poliza_idtran AS INT = NULL OUTPUT
-	,@regenerar AS BIT = 0
+	, @objeto_codigo AS VARCHAR(10) = NULL
+	, @idtran2 AS INT = NULL
+	, @poliza_idtran AS INT = NULL OUTPUT
+	, @regenerar AS BIT = 0
+	, @fecha AS DATETIME = NULL
 AS
 
 SET ANSI_WARNINGS OFF
@@ -18,19 +19,18 @@ SET NOCOUNT ON
 
 DECLARE
 	@idsucursal AS INT
-	,@referencia AS VARCHAR(50)
-	,@concepto AS VARCHAR(200)
+	, @referencia AS VARCHAR(50)
+	, @concepto AS VARCHAR(200)
 
 DECLARE
-	@fecha AS DATETIME
-	,@idtipo AS SMALLINT
-	,@idu AS INT
+	@idtipo AS SMALLINT
+	, @idu AS INT
 
 DECLARE
 	@cuadrar AS BIT
-	,@cuenta_cuadre_cargos AS VARCHAR(100)
-	,@cuenta_cuadre_abonos AS VARCHAR(100)
-	,@diferencia AS DECIMAL(18,6)
+	, @cuenta_cuadre_cargos AS VARCHAR(100)
+	, @cuenta_cuadre_abonos AS VARCHAR(100)
+	, @diferencia AS DECIMAL(18,6)
 
 IF @regenerar = 1
 BEGIN
@@ -39,12 +39,12 @@ END
 
 SELECT
 	@idsucursal = st.idsucursal
-	,@referencia = st.transaccion + ' - ' + st.folio
-	,@concepto = o.nombre + ': ' + st.folio
-	,@objeto_codigo = ISNULL(@objeto_codigo, st.transaccion)
+	, @referencia = st.transaccion + ' - ' + st.folio
+	, @concepto = o.nombre + ': ' + st.folio
+	, @objeto_codigo = ISNULL(@objeto_codigo, st.transaccion)
 
-	,@fecha = st.fecha
-	,@idu = ISNULL((
+	, @fecha = ISNULL(@fecha, st.fecha)
+	, @idu = ISNULL((
 		SELECT TOP 1 st2.idu 
 		FROM 
 			ew_sys_transacciones2 AS st2 
@@ -70,9 +70,9 @@ END
 
 SELECT
 	@idtipo = pc.idtipo
-	,@cuadrar = pc.cuadrar
-	,@cuenta_cuadre_cargos = pc.cuenta_cuadre_cargos
-	,@cuenta_cuadre_abonos = pc.cuenta_cuadre_abonos
+	, @cuadrar = pc.cuadrar
+	, @cuenta_cuadre_cargos = pc.cuenta_cuadre_cargos
+	, @cuenta_cuadre_abonos = pc.cuenta_cuadre_abonos
 FROM
 	ew_ct_polizas_configuracion AS pc
 WHERE
@@ -80,15 +80,15 @@ WHERE
 
 CREATE TABLE #_tmp_prepoliza (
 	idr INT IDENTITY
-	,orden INT NOT NULL DEFAULT 0
-	,cuenta VARCHAR(500) NOT NULL DEFAULT ''
-	,tipomov INT NOT NULL DEFAULT 0
-	,importe DECIMAL(18,6) NOT NULL DEFAULT 0
+	, orden INT NOT NULL DEFAULT 0
+	, cuenta VARCHAR(500) NOT NULL DEFAULT ''
+	, tipomov INT NOT NULL DEFAULT 0
+	, importe DECIMAL(18,6) NOT NULL DEFAULT 0
 )
 
 DECLARE
 	@idr AS INT
-	,@line_sql AS NVARCHAR(MAX)
+	, @line_sql AS NVARCHAR(MAX)
 
 DECLARE cur_prepoliza CURSOR FOR
 	SELECT
@@ -109,9 +109,9 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	SELECT @line_sql = N'SELECT
 		[orden] = ' + LTRIM(RTRIM(STR(pcm.orden))) + '
-		,[cuenta] = ' + pcm.cuenta + '
-		,[tipomov] = ' + LTRIM(RTRIM(STR(pcm.tipomov))) + '
-		,[importe] = ' + pcm.importe + '
+		, [cuenta] = ' + pcm.cuenta + '
+		, [tipomov] = ' + LTRIM(RTRIM(STR(pcm.tipomov))) + '
+		, [importe] = ' + pcm.importe + '
 	FROM
 		' + pcm.tabla + '
 	WHERE
@@ -180,11 +180,11 @@ END
 
 EXEC _ct_prc_polizaCrear
 	@idtran
-	,@fecha
-	,@idtipo
-	,@idu
-	,@poliza_idtran OUTPUT
-	,@referencia
+	, @fecha
+	, @idtipo
+	, @idu
+	, @poliza_idtran OUTPUT
+	, @referencia
 
 IF @poliza_idtran IS NULL OR @poliza_idtran = 0
 BEGIN
@@ -194,30 +194,29 @@ END
 
 INSERT INTO ew_ct_poliza_mov (
 	idtran
-	,idtran2
-	,consecutivo
-	,idsucursal
-	,cuenta
-	,tipomov
-	,referencia
-	,cargos
-	,abonos
-	,importe
-	,concepto
+	, idtran2
+	, consecutivo
+	, idsucursal
+	, cuenta
+	, tipomov
+	, referencia
+	, cargos
+	, abonos
+	, importe
+	, concepto
 )
 SELECT
 	[idtran] = @poliza_idtran
-	,[idtran2] = ISNULL(@idtran2, @idtran)
-	,[consecutivo] = tpp.orden
-	,[idsucursal] = @idsucursal
-	,[cuenta] = tpp.cuenta
-	,[tipomov] = tpp.tipomov
-	,[referencia] = @referencia
-	,[cargos] = (CASE WHEN tpp.tipomov = 0 THEN tpp.importe ELSE 0 END)
-	,[abonos] = (CASE WHEN tpp.tipomov = 1 THEN tpp.importe ELSE 0 END)
-	,[importe] = tpp.importe
-	,[concepto] = @concepto
-
+	, [idtran2] = ISNULL(@idtran2, @idtran)
+	, [consecutivo] = tpp.orden
+	, [idsucursal] = @idsucursal
+	, [cuenta] = tpp.cuenta
+	, [tipomov] = tpp.tipomov
+	, [referencia] = @referencia
+	, [cargos] = (CASE WHEN tpp.tipomov = 0 THEN tpp.importe ELSE 0 END)
+	, [abonos] = (CASE WHEN tpp.tipomov = 1 THEN tpp.importe ELSE 0 END)
+	, [importe] = tpp.importe
+	, [concepto] = @concepto
 FROM
 	#_tmp_prepoliza AS tpp
 ORDER BY 

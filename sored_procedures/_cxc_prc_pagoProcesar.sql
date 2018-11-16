@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -7,15 +7,16 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cxc_prc_pagoProcesar]
 	@idtran AS BIGINT
-	,@idu AS INT
+	, @idu AS INT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@cfd_version AS VARCHAR(10) = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
-	,@mensaje AS VARCHAR(1000) = ''
-	,@rep_auto AS BIT
+	, @mensaje AS VARCHAR(1000) = ''
+	, @rep_auto AS BIT
+	, @fecha_operacion AS DATETIME
 
 DECLARE
 	@total_timbrados AS INT
@@ -220,9 +221,16 @@ BEGIN
 		RAISERROR(@mensaje, 16, 1)
 		RETURN
 	END
+
+	SELECT
+		@fecha_operacion = ct.fecha_operacion
+	FROM
+		ew_cxc_transacciones AS ct
+	WHERE
+		ct.idtran = @idtran
 END
 
-EXEC [dbo].[_ct_prc_contabilizarBDC2] @idtran
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, 'BDC2', @idtran, NULL, 0, @fecha_operacion
 
 INSERT INTO ew_sys_transacciones2 (
 	idtran

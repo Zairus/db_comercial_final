@@ -218,7 +218,24 @@ FROM
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm
 		ON csm.idr = ct.idmetodo
 	LEFT JOIN ew_ban_formas AS bf
-		ON bf.idforma = ct.idforma
+		ON bf.idforma = (
+			CASE
+				WHEN ct.transaccion = 'EFA4' AND (SELECT COUNT(*) FROM ew_cxc_transacciones_rel AS ctr2 WHERE ctr2.idtran = ct.idtran) > 1 THEN
+					(
+						SELECT TOP 1
+							vtp1.idforma
+						FROM
+							ew_cxc_transacciones_rel AS ctr1
+							LEFT JOIN ew_ven_transacciones_pagos AS vtp1
+								ON vtp1.idtran = ctr1.idtran2
+						WHERE
+							ctr1.idtran = ct.idtran
+						ORDER BY
+							vtp1.total DESC
+					)
+				ELSE ct.idforma
+			END
+		)
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_uso AS csu
 		ON csu.id = ct.cfd_iduso
 

@@ -24,7 +24,7 @@ SELECT
 	)
 	,[documento_tipo] = vt.tipo
 	,[fecha] = cc.cfd_fecha
-	,[folio] = cc.cfd_serie + LTRIM(RTRIM(STR(cc.cfd_folio)))
+	,[folio] = cc.cfd_serie + dbo.fnRellenar(LTRIM(RTRIM(STR(cc.cfd_folio))),6,'0')
 
 	,[emisor_nombre] = ''
 	,[emisor_rfc] = cc.rfc_emisor
@@ -133,9 +133,19 @@ SELECT
 			AND  ccb.clabe = doc.clabe_origen
 	), '')
 	
+	,[receptor_contacto] = (
+		SELECT TOP 1 
+			(cc.nombre + ' ' + cc.apellido)
+		FROM
+			ew_cat_contactos cc
+		LEFT JOIN ew_clientes_contactos ccc 
+			ON ccc.idcontacto = cc.idcontacto
+		WHERE
+			ccc.idcliente = c.idcliente AND LTRIM(RTRIM(cc.nombre)) <>''
+	)
 	,[condicionesDePago] = cc.cdf_condicionesDePago
 	,[Moneda] = cc.cfd_Moneda
-	,[TipoCambio] = cc.cfd_TipoCambio
+	,[TipoCambio] = CONVERT(VARCHAR(20),CONVERT(NUMERIC(18,2),cc.cfd_TipoCambio))
 	,[formaDePago] = csfp.descripcion + ' [' + cc.cfd_metodoDePago + ']'
 	,[metodoDePago] = csmp.descripcion + ' [' + cc.cfd_formaDePago + ']'
 
@@ -174,37 +184,78 @@ SELECT
 	,[concepto_importe] = ccm.concepto_importe
 
 	,[total_texto] = [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
+
+	,[vendedor] = ISNULL(v.nombre,'')
+
 	,[pagare] = (
-		SELECT
-			'POR ESTE PAGARE PROMETO (EMOS) Y ME (NOS) OBLIGO (AMOS) A PAGAR INCONDICIONALMENTE A LA ORDEN DE '
-			+ ecfa.razon_social
-			+ ' EL DIA '
-			+ CONVERT(VARCHAR(8), cc.cfd_fecha, 3)
-			+ ' EN LA CIUDAD DE '
-			+ ccu.cfd_municipio
-			+ ', '
-			+ ccu.cfd_estado
-			+ ' LA CANTIDAD DE $'
-			+ CONVERT(VARCHAR(20), cc.cfd_total)
-			+ ' (Son: '
-			+ [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
-			+ ' VALOR RECIBIDO A MI (NUESTRA) ENTERA SATISFACCIÓN, ESTE PAGARÉ ES MERCANTIL Y ESTA REGIDO POR LA LEY GENERAL DE TITULOS Y OPERACIONES DE CREDITO, '
-			+ 'EN SU ART. 173 PARTE FINAL POR NO SER DOMICILIADO Y ARTICULOS CORRELATIVOS QUEDA EXPRESAMENTE CONVENIDO QUE SI NO ES PAGADO ESTE DOCUMENTO A SU VENCIMIENTO '
-			+ 'CAUSARA UN INTERESES MORATORIO DE '
-			+ '6%'
-			+ ' MENSUAL, SOMETIENDOME EN CASO DE COBRO JUDICIAL A LA JURISDICCION Y COMPETENCIA DE LOS JUECES Y TRIBUNALES DE ESTA CIUDAD DE '
-			+ ccu.cfd_municipio
-			+ ', '
-			+ ccu.cfd_estado
-			+ '.'
-		FROM 
-			ew_cfd_comprobantes_ubicacion AS ccu 
-		WHERE
-			ccu.idtipo = 1 
-			AND ccu.idtran = cc.idtran
+		CASE WHEN DB_NAME()='db_conexionpc_datos' THEN
+		(
+			SELECT
+				'Por éste pagaré me(nos) obligo(amos) a pagar incondicionalmente en la ciudad de '
+				+ ccu.cfd_municipio
+				+ ', '
+				+ ccu.cfd_estado
+				+ ' a la orden de '
+				+ ecfa.razon_social
+				+ ' la cantidad de: $'
+				+ CONVERT(VARCHAR(20), CONVERT(NUMERIC(18,2),cc.cfd_total))
+				+ ' (Son: '
+				+ [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
+				+ '.'
+				+ CHAR(13) + CHAR(10)
+				+ 'Con vencimiento el '
+				+ CONVERT(VARCHAR(10), DATEADD(day,ct.credito_plazo,cc.cfd_fecha), 103)
+				+ ' este pagaré causará intereses moratorios del 5% mensual a partir de su vencimiento. Cubriendo, además, costos y gastos originados.'
+				+ CHAR(13) + CHAR(10)
+				+ 'Se extiende en la ciudad de '
+				+ ccu.cfd_municipio
+				+ ', '
+				+ ccu.cfd_estado
+				+ ' el '
+				+ CONVERT(VARCHAR(10), cc.cfd_fecha, 103)
+				+ '.'
+			FROM 
+				ew_cfd_comprobantes_ubicacion AS ccu 
+			WHERE
+				ccu.idtipo = 1 
+				AND ccu.idtran = cc.idtran
+		)
+		ELSE
+		(
+			SELECT
+				'POR ESTE PAGARE PROMETO (EMOS) Y ME (NOS) OBLIGO (AMOS) A PAGAR INCONDICIONALMENTE A LA ORDEN DE '
+				+ ecfa.razon_social
+				+ ' EL DIA '
+				+ CONVERT(VARCHAR(8), cc.cfd_fecha, 3)
+				+ ' EN LA CIUDAD DE '
+				+ ccu.cfd_municipio
+				+ ', '
+				+ ccu.cfd_estado
+				+ ' LA CANTIDAD DE $'
+				+ CONVERT(VARCHAR(20), cc.cfd_total)
+				+ ' (Son: '
+				+ [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
+				+ ' VALOR RECIBIDO A MI (NUESTRA) ENTERA SATISFACCIÓN, ESTE PAGARÉ ES MERCANTIL Y ESTA REGIDO POR LA LEY GENERAL DE TITULOS Y OPERACIONES DE CREDITO, '
+				+ 'EN SU ART. 173 PARTE FINAL POR NO SER DOMICILIADO Y ARTICULOS CORRELATIVOS QUEDA EXPRESAMENTE CONVENIDO QUE SI NO ES PAGADO ESTE DOCUMENTO A SU VENCIMIENTO '
+				+ 'CAUSARA UN INTERESES MORATORIO DE '
+				+ '6%'
+				+ ' MENSUAL, SOMETIENDOME EN CASO DE COBRO JUDICIAL A LA JURISDICCION Y COMPETENCIA DE LOS JUECES Y TRIBUNALES DE ESTA CIUDAD DE '
+				+ ccu.cfd_municipio
+				+ ', '
+				+ ccu.cfd_estado
+				+ '.'
+			FROM 
+				ew_cfd_comprobantes_ubicacion AS ccu 
+			WHERE
+				ccu.idtipo = 1 
+				AND ccu.idtran = cc.idtran
+		)
+		END
 	)
 	,[observaciones] = CASE WHEN doc.transaccion IN('EFA1','EFA6') THEN (CONVERT(VARCHAR(MAX),doc.comentario) + ISNULL(dbo.fn_sys_parametro('VEN_MENSAJE_COMENTARIO'),'')) ELSE doc.comentario END
-	,[cancelado] = ISNULL(vt2.cancelado,0)
+	,[cancelado] = ISNULL(vt.cancelado,0)
+
+	,[vendedor] = ISNULL(v.nombre,'')
 FROM 
 	ew_cfd_comprobantes AS cc
 	LEFT JOIN ew_cfd_comprobantes_cancelados AS ccc
@@ -228,6 +279,12 @@ FROM
 
 	LEFT JOIN ew_ven_transacciones AS vt2
 		ON vt2.idtran = vt.idtran
+
+	LEFT JOIN ew_ven_vendedores v
+		ON v.idvendedor = vt2.idvendedor
+
+	LEFT JOIN ew_clientes_terminos ct
+		ON ct.idcliente = c.idcliente
 ---------------------------------------------------------------------------
 	LEFT JOIN (
 		SELECT
@@ -250,7 +307,7 @@ FROM
 				CASE 
 					WHEN LEN(vtm.series) > 0 THEN 
 						CHAR(13) + CHAR(10)
-						+ ' SERIES: ' + REPLACE(vtm.series, CHAR(9), CHAR(13) + CHAR(10))
+						+ ' SERIES: ' + REPLACE(vtm.series, CHAR(9), ',')
 					ELSE '' 
 				END
 			)
@@ -376,22 +433,55 @@ FROM
 			,[concepto_claveSAT] = ''
 			,[concepto_cantidad] = NULL
 			,[concepto_unidad] = ''
-			,[concepto_descripcion] = (
-				csp.plan_descripcion 
-				+ ' [' + vtms.plan_codigo + '], equipos: '
+			,[concepto_descripcion] = 
+				'Tipo Plan: ' + spt.nombre + CHAR(13) + CHAR(10)
 				+ (
-					SELECT
-						se.serie + ' '
-					FROM
-						ew_clientes_servicio_equipos AS cse
-						LEFT JOIN ew_ser_equipos AS se
-							ON se.idequipo = cse.idequipo
-					WHERE
-						cse.idcliente = vt.idcliente
-						AND cse.plan_codigo = csp.plan_codigo
-					FOR XML PATH('')
+					'Periodo: ' 
+					+ LTRIM(RTRIM(STR(vtms.ejercicio))) + '-' 
+					+ (
+						SELECT spd.descripcion 
+						FROM ew_sys_periodos_datos AS spd 
+						WHERE 
+							spd.grupo = 'meses' 
+							AND spd.id = vtms.periodo
+					)
+				) + CHAR(13) + CHAR(10)
+				+ (
+					REPLACE((
+						SELECT
+							(
+								(
+									CASE
+										WHEN ROW_NUMBER() OVER (PARTITION BY cu.idubicacion ORDER BY cu.nombre) = 1 THEN 
+											'Ubic.: ' + ISNULL(cu.nombre, 'GENERAL') + '{13}'
+											+ 'Equipo(s): {13}'
+										ELSE ''
+									END
+								)
+								+ CHAR(9) + '*'
+								+ se.serie
+								+ ': '
+								+ ae.nombre
+								+ ', '
+								+ '{13}'
+							) AS [text()]
+						FROM
+							ew_clientes_servicio_equipos AS cse
+							LEFT JOIN ew_clientes_ubicaciones AS cu
+								ON cu.idcliente = cse.idcliente
+								AND cu.idubicacion = cse.idubicacion
+							LEFT JOIN ew_ser_equipos AS se
+								ON se.idequipo = cse.idequipo
+							LEFT JOIN ew_articulos AS ae
+								ON ae.idarticulo = se.idarticulo
+						WHERE
+							cse.idcliente = vt.idcliente
+							AND cse.plan_codigo = csp.plan_codigo
+						ORDER BY
+							cu.nombre
+						FOR XML PATH ('')
+					), '{13}', CHAR(13) + CHAR(10))
 				)
-			)
 			,[concepto_precio_unitario] = NULL
 			,[concepto_importe] = NULL
 		FROM
@@ -407,6 +497,8 @@ FROM
 			LEFT JOIN ew_clientes_servicio_planes AS csp
 				ON csp.idcliente = vt.idcliente
 				AND csp.plan_codigo = vtms.plan_codigo
+			LEFT JOIN ew_ser_planes_tipos AS spt
+				ON spt.idtipoplan = csp.tipo
 	) AS ccm
 		ON ccm.idtran = cc.idtran
 
