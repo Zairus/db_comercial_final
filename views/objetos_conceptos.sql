@@ -5,6 +5,7 @@ AS
 SELECT
 	[idr] = oc.idr
 	, [objeto] = oc.objeto
+	, [objeto_codigo] = o.codigo
 	, [idconcepto] = oc.idconcepto
 	, [nombre] = ISNULL(c.nombre, '')
 	, [bancario] = 0
@@ -12,16 +13,16 @@ SELECT
 	, [contabilidad2] = oc.contabilidad2
 FROM
 	db_comercial.dbo.evoluware_objetos_conceptos AS oc
-	LEFT JOIN dbo.conceptos AS c
+	LEFT JOIN db_comercial.dbo.evoluware_objetos AS o
+		ON o.objeto = oc.objeto
+	LEFT JOIN db_comercial.dbo.evoluware_conceptos AS c
 		ON c.idconcepto = oc.idconcepto
 WHERE
-	oc.idconcepto NOT IN (
+	oc.objeto NOT IN (
 		SELECT
-			soc.idconcepto
+			soc.objeto
 		FROM
 			ew_sys_objetos_conceptos AS soc
-		WHERE
-			soc.objeto = oc.objeto
 	)
 
 UNION ALL
@@ -29,6 +30,7 @@ UNION ALL
 SELECT
 	[idr] = soc.idr
 	, [objeto] = soc.objeto
+	, [objeto_codigo] = o.codigo
 	, [idconcepto] = soc.idconcepto
 	, [nombre] = ISNULL(c.nombre, '')
 	, [bancario] = soc.bancario
@@ -36,6 +38,8 @@ SELECT
 	, [contabilidad2] = soc.contabilidad2
 FROM
 	dbo.ew_sys_objetos_conceptos AS soc
+	LEFT JOIN dbo.objetos AS o
+		ON o.objeto = soc.objeto
 	LEFT JOIN dbo.conceptos AS c
 		ON c.idconcepto = soc.idconcepto
 GO

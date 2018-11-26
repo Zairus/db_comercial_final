@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -40,8 +40,9 @@ WHERE
 	idtran = @idtran
 
 SELECT 
-	@credito = ISNULL(credito,0) 
-FROM ew_ven_transacciones 
+	@credito = ISNULL(credito, 0) 
+FROM 
+	ew_ven_transacciones 
 WHERE 
 	idtran IN (
 		SELECT idtran2 
@@ -51,9 +52,9 @@ WHERE
 
 IF @credito = 0
 BEGIN
-	IF MONTH(@cancelado_fecha) <> MONTH(@fecha_pago)
+	IF DATEDIFF(DAY, @fecha_pago, GETDATE()) > 1
 	BEGIN
-		RAISERROR('Error: No se pueden cancelar pagos de periodos anteriores.', 16, 1)
+		RAISERROR('Error: No es posible cancelar pagos aplicados a facturas de contado de dias anteriores.', 16, 1)
 		RETURN
 	END
 END

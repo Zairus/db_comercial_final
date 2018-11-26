@@ -1,15 +1,15 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110224
 -- Description:	Datos de articulo en factura de ventas
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_articuloFacturaDatos] 
+ALTER PROCEDURE [dbo].[_ven_prc_articuloFacturaDatos]
 	 @codarticulo AS VARCHAR(30)
-	,@idalmacen AS SMALLINT
-	,@idcliente AS INT
-	,@idmoneda AS SMALLINT
+	, @idalmacen AS SMALLINT
+	, @idcliente AS INT
+	, @idmoneda AS SMALLINT
 AS
 
 SET NOCOUNT ON
@@ -22,28 +22,30 @@ DECLARE
 
 DECLARE
 	 @idsucursal AS SMALLINT
-	,@iva AS DECIMAL(12,2)
-	,@idlista AS SMALLINT
+	, @iva AS DECIMAL(12,2)
+	, @idlista AS SMALLINT
 
 DECLARE
 	 @idmoneda_venta AS SMALLINT
-	,@tipocambio AS DECIMAL(15,4)
-	,@tipocambio_venta AS DECIMAL(15,4)
-	,@tipocambio_lista AS DECIMAL(15,4)
-	,@precio_venta AS DECIMAL(18,6)
-	,@precio_venta_validar AS DECIMAL(18,6)
-	,@precio_mayoreo AS DECIMAL(18,6)
-	,@costo_ultimo AS DECIMAL(18,6)
+	, @tipocambio AS DECIMAL(15,4)
+	, @tipocambio_venta AS DECIMAL(15,4)
+	, @tipocambio_lista AS DECIMAL(15,4)
+	, @precio_venta AS DECIMAL(18,6)
+	, @precio_venta_validar AS DECIMAL(18,6)
+	, @precio_mayoreo AS DECIMAL(18,6)
+	, @costo_ultimo AS DECIMAL(18,6)
 
 DECLARE
 	 @negociado AS BIT
-	,@precio_especial AS DECIMAL(18,6)
+	, @precio_especial AS DECIMAL(18,6)
 
 DECLARE
 	@error_mensaje AS VARCHAR(500)
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
+
+SELECT @idlista=ISNULL(idlista,0) FROM ew_clientes_terminos WHERE idcliente=@idcliente
 
 SELECT
 	@idarticulo = idarticulo
@@ -54,8 +56,8 @@ WHERE
 
 SELECT
 	 @idsucursal = alm.idsucursal
-	,@iva = s.iva
-	,@idlista = s.idlista
+	, @iva = s.iva
+	, @idlista = CASE WHEN @idlista=0 THEN s.idlista ELSE @idlista END
 FROM
 	ew_inv_almacenes AS alm
 	LEFT JOIN ew_sys_sucursales AS s
@@ -87,18 +89,10 @@ WHERE
 -- CALCULAR TIPO DE CAMBIO POR MONEDA DE PRECIO Y MONEDA DE VENTA ##############
 SELECT
 	 @idmoneda_venta = vlm.idmoneda
-	,@tipocambio_lista = bm.tipocambio
-	,@precio_venta = (
-		CASE vp.codprecio
-			WHEN 1 THEN vlm.precio1
-			WHEN 2 THEN vlm.precio2
-			WHEN 3 THEN vlm.precio3
-			WHEN 4 THEN vlm.precio4
-			ELSE vlm.precio5
-		END
-	)
-	,@precio_venta_validar = (CASE WHEN vlm.idmoneda = 0 THEN vlm.precio1 ELSE vlm.precio1 * bm.tipocambio END)
-	,@precio_mayoreo = vlm.precio3
+	, @tipocambio_lista = bm.tipocambio
+	, @precio_venta = vlm.precio1
+	, @precio_venta_validar = (CASE WHEN vlm.idmoneda = 0 THEN vlm.precio1 ELSE vlm.precio1 * bm.tipocambio END)
+	, @precio_mayoreo = vlm.precio3
 FROM
 	ew_ven_listaprecios_mov AS vlm
 	LEFT JOIN ew_ban_monedas AS bm
@@ -118,7 +112,7 @@ SELECT @tipocambio = (@tipocambio_lista / @tipocambio_venta)
 
 SELECT
 	 @negociado = negociado
-	,@precio_especial = precio_especial
+	, @precio_especial = precio_especial
 FROM
 	ew_clientes_inventario
 WHERE
@@ -152,31 +146,36 @@ END
 
 SELECT
 	 [codarticulo] = a.codigo
-	,a.nombre
-	,a.idarticulo
-	,[existencia] = aa.existencia
-	,[iva] = @iva
-	,[precio_unitario] = @precio_venta
-	,[mensaje] = 'Ok'
-	,[tipocambio] = @tipocambio
-	,[costo_promedio] = aa.costo_promedio
-	,[precio_minimo] = (CASE WHEN [as].bajo_costo = 1 THEN 0 ELSE aa.costo_ultimo END)
-	,[costo] = aa.costo_ultimo
-	,[costo_ultimo] = aa.costo_ultimo
-	,[cambiar_precio] = [as].cambiar_precio
+	, [nombre] = a.nombre
+	, [idarticulo] = a.idarticulo
+	, [existencia] = aa.existencia
+	, [iva] = @iva
+	, [precio_unitario] = @precio_venta
+	, [mensaje] = 'Ok'
+	, [tipocambio] = @tipocambio
+	, [costo_promedio] = aa.costo_promedio
+	, [precio_minimo] = (CASE WHEN [as].bajo_costo = 1 THEN 0 ELSE aa.costo_ultimo END)
+	, [costo] = aa.costo_ultimo
+	, [costo_ultimo] = aa.costo_ultimo
+	, [cambiar_precio] = [as].cambiar_precio
+	, [idum] = a.idum_venta
 
-	,[idimpuesto1] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IVA', 1, a.idarticulo), 0)
-	,[idimpuesto1_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IVA', 1, a.idarticulo), 0)
-	,[idimpuesto2] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IEPS', 1, a.idarticulo), 0)
-	,[idimpuesto2_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IEPS', 1, a.idarticulo), 0)
+	, [idimpuesto1] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IVA', 1, a.idarticulo), 0)
+	, [idimpuesto1_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IVA', 1, a.idarticulo), 0)
+	, [idimpuesto2] = ISNULL(dbo._ct_fnc_articuloImpuestoId('IEPS', 1, a.idarticulo), 0)
+	, [idimpuesto2_valor] = ISNULL(dbo._ct_fnc_articuloImpuestoTasa('IEPS', 1, a.idarticulo), 0)
+
+	, [clasif_SAT] = ISNULL(csat.clave,'-Sin Clasif.-')
+	, [serie] = a.series
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_articulos_almacenes AS aa
 		ON aa.idarticulo = a.idarticulo
 		AND aa.idalmacen = @idalmacen
 	LEFT JOIN ew_articulos_sucursales AS [as]
-		ON [as].idarticulo = a.idarticulo
-		AND [as].idsucursal = @idsucursal
+		ON [as].idarticulo = a.idarticulo AND [as].idsucursal = @idsucursal
+	LEFT JOIN ew_cfd_sat_clasificaciones csat
+		ON csat.idclasificacion = a.idclasificacion_sat
 WHERE
 	a.idarticulo = @idarticulo
 GO

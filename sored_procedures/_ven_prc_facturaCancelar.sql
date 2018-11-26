@@ -1,28 +1,32 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
-	,@fecha AS SMALLDATETIME
-	,@idu AS SMALLINT
-	,@password AS VARCHAR(20)
+	, @fecha AS SMALLDATETIME
+	, @idu AS SMALLINT
+	, @password AS VARCHAR(20)
+	, @confirmacion AS BIT = 0
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@idtran2 AS BIGINT
-	,@idtran_inv AS BIGINT
-	,@usuario AS VARCHAR(20)
-	,@sql AS VARCHAR(4000)
-	,@msg AS VARCHAR(250)
-	,@transaccion AS VARCHAR(5)
-	,@folio AS VARCHAR(15)
-	,@comentario2 AS VARCHAR(250)
-	,@codalm AS SMALLINT
-	,@surtir AS SMALLINT
+	, @idtran_inv AS BIGINT
+	, @usuario AS VARCHAR(20)
+	, @sql AS VARCHAR(4000)
+	, @msg AS VARCHAR(250)
+	, @transaccion AS VARCHAR(5)
+	, @folio AS VARCHAR(15)
+	, @comentario2 AS VARCHAR(250)
+	, @codalm AS SMALLINT
+	, @surtir AS SMALLINT
 
-	,@total AS DECIMAL(18,6)
-	,@saldo AS DECIMAL(18,6)
+	, @total AS DECIMAL(18,6)
+	, @saldo AS DECIMAL(18,6)
+	, @tipocambio AS DECIMAL(18,6)
+	, @fecha_factura AS DATETIME
+	, @credito AS BIT
 	
 SELECT 
 	@usuario = usuario 
@@ -34,6 +38,8 @@ SELECT
 	@transaccion = transaccion
 	, @folio = folio
 	, @codalm = idalmacen 
+	, @fecha_factura = fecha
+	, @credito = credito
 FROM 
 	ew_ven_transacciones 
 WHERE 
@@ -41,11 +47,33 @@ WHERE
 
 SELECT
 	@total = total
-	,@saldo = saldo
+	, @tipocambio = tipocambio
+	, @saldo = saldo
 FROM
 	ew_cxc_transacciones
 WHERE
 	idtran = @idtran
+
+IF @confirmacion = 0
+BEGIN
+	IF (DATEDIFF (hour,@fecha_factura,GETDATE()) > 72 AND (@total*@tipocambio) > 5000)
+	BEGIN
+		RAISERROR('Error: No se pueden cancelar facturas cuya fecha de emisión sea mayor a 72 horas con respecto al dia de cancelación y el importe no debe ser mayor a $5000.00 MXN.', 16, 1)
+		RETURN
+	END
+END
+	
+IF MONTH(@fecha) <> MONTH(@fecha_factura)
+BEGIN
+	RAISERROR('Error: No se puede cancelar factura de periodos anteriores.', 16, 1)
+	RETURN
+END
+
+IF @credito = 0 AND @fecha_factura < CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), GETDATE(), 3))
+BEGIN
+	RAISERROR('Error: No se pueden cancelar facturas de contado de dias anteriores.', 16, 1)
+	RETURN
+END
 
 IF ABS(@total - @saldo) > 0.01
 BEGIN
@@ -71,15 +99,15 @@ END
 --------------------------------------------------------------------
 INSERT INTO ew_sys_movimientos_acumula (
 	idmov1
-	,idmov2
-	,campo
-	,valor
+	, idmov2
+	, campo
+	, valor
 )
 SELECT 
-	m.idmov
-	,m.idmov2
-	,'cantidad_surtida'
-	,m.cantidad_surtida * (-1)
+	[idmov1] = m.idmov
+	, [idmov2] = m.idmov2
+	, [campo] = 'cantidad_surtida'
+	, [valor] = m.cantidad_surtida * (-1)
 FROM
 	ew_ven_transacciones_mov m
 	LEFT JOIN ew_articulos a 
@@ -93,15 +121,15 @@ WHERE
 --------------------------------------------------------------------
 INSERT INTO ew_sys_movimientos_acumula (
 	idmov1
-	,idmov2
-	,campo
-	,valor
+	, idmov2
+	, campo
+	, valor
 )
 SELECT 
-	idmov
-	,idmov2
-	,'cantidad_facturada'
-	,cantidad_facturada  * (-1)
+	[idmov1] = idmov
+	, [idmov2] = idmov2
+	, [campo] = 'cantidad_facturada'
+	, [valor] = cantidad_facturada  * (-1)
 FROM
 	ew_ven_transacciones_mov
 WHERE 
