@@ -13,6 +13,11 @@ SET NOCOUNT ON
 
 IF EXISTS (SELECT * FROM ew_ven_ordenes_mov AS vom WHERE (vom.idmov IS NULL OR vom.idmov = 0) AND vom.idtran = @idtran)
 BEGIN
+	EXEC _sys_prc_generarIdmovPorIdtran @idtran, 'ew_ven_ordenes_mov'
+END
+
+IF EXISTS (SELECT * FROM ew_ven_ordenes_mov AS vom WHERE (vom.idmov IS NULL OR vom.idmov = 0) AND vom.idtran = @idtran)
+BEGIN
 	RAISERROR('Error: Existen registros con identificador en 0.', 16, 1)
 	RETURN
 END

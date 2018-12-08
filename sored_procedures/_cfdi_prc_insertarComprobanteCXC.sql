@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE db_refriequipos_datos
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -220,7 +220,7 @@ FROM
 	LEFT JOIN ew_ban_formas AS bf
 		ON bf.idforma = (
 			CASE
-				WHEN ct.transaccion = 'EFA4' AND (SELECT COUNT(*) FROM ew_cxc_transacciones_rel AS ctr2 WHERE ctr2.idtran = ct.idtran) > 1 THEN
+				WHEN ct.transaccion = 'EFA4' /*AND (SELECT COUNT(*) FROM ew_cxc_transacciones_rel AS ctr2 WHERE ctr2.idtran = ct.idtran) > 1*/ THEN
 					(
 						SELECT TOP 1
 							vtp1.idforma
@@ -761,8 +761,8 @@ SELECT
 	,[cfd_unidad] = 'ACT'
 	,[cfd_noIdentificacion] = efa3.folio
 	,[cfd_descripcion] = o.nombre + ' ' + efa3.folio + ', del ' + CONVERT(VARCHAR(8), efa3.fecha, 3)
-	,[cfd_valorUnitario] = efa3.subtotal
-	,[cfd_importe] = efa3.subtotal
+	,[cfd_valorUnitario] = efa3.subtotal + efa3.redondeo
+	,[cfd_importe] = efa3.subtotal + efa3.redondeo
 
 	,[idimpuesto1] = efa4.idimpuesto1
 	,[impuesto1] = efa3.impuesto1

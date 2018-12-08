@@ -6,9 +6,12 @@ GO
 -- Description:	Presentar planes a facturar
 -- =============================================
 ALTER PROCEDURE [dbo].[_ser_prc_facturacionPresentar]
+	@periodo AS INT = NULL
 AS
 
 SET NOCOUNT ON
+
+SELECT @periodo = ISNULL(@periodo, MONTH(GETDATE()))
 
 SELECT
 	[cliente] = c.nombre
@@ -58,6 +61,19 @@ FROM
 WHERE
 	spt.facturar = 1
 	AND (MONTH(GETDATE()) - MONTH(csp.fecha_inicial)) % csp.periodo = 0
+	AND csp.plan_codigo NOT IN (
+		SELECT DISTINCT
+			vtms.plan_codigo
+		FROM
+			ew_ven_transacciones_mov_servicio AS vtms
+			LEFT JOIN ew_ven_transacciones AS vt
+				ON vt.idtran = vtms.idtran
+		WHERE
+			vtms.ejercicio = YEAR(GETDATE())
+			AND vtms.periodo = @periodo
+			AND vt.idcliente = csp.idcliente
+			AND vt.cancelado = 0
+	)
 
 SELECT
 	tf.cliente
@@ -79,7 +95,7 @@ GROUP BY
 	, tf.facturar
 	, tf.no_orden
 ORDER BY
-	tf.idcliente
+	tf.cliente
 
 DROP TABLE #_tmp_planesf
 GO

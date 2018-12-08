@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
@@ -63,7 +63,7 @@ BEGIN
 	END
 END
 	
-IF MONTH(@fecha) <> MONTH(@fecha_factura)
+IF @credito = 0 AND MONTH(@fecha) <> MONTH(@fecha_factura)
 BEGIN
 	RAISERROR('Error: No se puede cancelar factura de periodos anteriores.', 16, 1)
 	RETURN

@@ -30,6 +30,7 @@ DECLARE
 	, @fecha AS DATETIME = GETDATE()
 	, @importe AS DECIMAL(18, 6)
 	, @impuesto AS DECIMAL(18, 6)
+	, @poliza_idtran AS INT = NULL
 
 SELECT
 	@usuario = u.usuario
@@ -59,6 +60,12 @@ FROM
 		ON se.idequipo = cse.idequipo
 WHERE
 	c.idcliente = @idcliente
+
+IF @idsucursal IS NULL
+BEGIN
+	RAISERROR('Error: No hay planes para el cliente indicado.', 16, 1)
+	RETURN
+END
 
 SELECT TOP 1 
 	@idalmacen = alm.idalmacen 
@@ -104,7 +111,7 @@ SELECT
 	, @impuesto = SUM(impuesto1)
 FROM
 	#_tmp_detalle_ser
-
+	
 EXEC _sys_prc_insertarTransaccion
 	@usuario
 	,@password
@@ -116,7 +123,7 @@ EXEC _sys_prc_insertarTransaccion
 	,@factura_idtran OUTPUT
 	,@afolio
 	,@afecha
-
+	
 IF @factura_idtran IS NOT NULL AND @factura_idtran > 0
 BEGIN
 	INSERT INTO ew_ven_transacciones (
@@ -138,6 +145,7 @@ BEGIN
 		,[impuesto2]
 		,[redondeo]
 		,[idu]
+		,[idforma]
 		,[comentario]
 		,[no_orden]
 	)
@@ -160,6 +168,7 @@ BEGIN
 		,[impuesto2] = 0
 		,[redondeo] = 0
 		,[idu] = @idu
+		,[idforma] = ISNULL((SELECT idforma FROM ew_ban_formas_aplica WHERE codigo = '99'), 0)
 		,[comentario] = 'Facturacion automatica'
 		,[no_orden] = @no_orden
 	FROM
@@ -192,6 +201,9 @@ BEGIN
 		,[impuesto2]
 		,[redondeo]
 		,[idu]
+		,[idmetodo]
+		,[cfd_iduso]
+		,[idforma]
 		,[comentario]
 	)
 	SELECT
@@ -215,6 +227,9 @@ BEGIN
 		,[impuesto2] = 0
 		,[redondeo] = 0
 		,[idu] = @idu
+		,[idmetodo] = 2
+		,[cfd_iduso] = c.cfd_iduso
+		,[idforma] = ISNULL((SELECT idforma FROM ew_ban_formas_aplica WHERE codigo = '99'), 0)
 		,[comentario] = 'Facturacion automatica'
 	FROM
 		ew_sys_transacciones AS st
@@ -226,7 +241,7 @@ BEGIN
 			ON ci.idimpuesto = 1
 	WHERE
 		st.idtran = @factura_idtran
-
+		
 	INSERT INTO ew_ven_transacciones_mov (
 		[idtran]
 		,[idtran2]
@@ -301,6 +316,8 @@ END
 DROP TABLE #_tmp_detalle_ser
 
 EXEC _cxc_prc_aplicarTransaccion @factura_idtran, @fecha, @idu
+
+EXEC _ct_prc_polizaAplicarDeConfiguracion @factura_idtran, 'EFA6', @factura_idtran, @poliza_idtran OUTPUT, 0, @fecha
 
 SELECT
 	[factura_folio] = vt.folio

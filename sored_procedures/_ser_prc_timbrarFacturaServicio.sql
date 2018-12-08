@@ -5,9 +5,10 @@ GO
 -- Create date: 20180605
 -- Description:	Timbra una factura en proceso de facturacion de servicio
 -- =============================================
-ALTER PROCEDURE [dbo].[_srt_prc_timbrarFacturaServicio]
+ALTER PROCEDURE [dbo].[_ser_prc_timbrarFacturaServicio]
 	@idtran AS INT
-	,@idu AS INT
+	, @idu AS INT
+	, @enviar AS INT = 1
 AS
 
 SET NOCOUNT ON
@@ -28,7 +29,7 @@ WHERE
 
 EXEC _cfd_prc_timbrarComprobante @idtran, @idu
 
-IF LEN(@email) > 0
+IF LEN(@email) > 0 AND @enviar <> 0
 BEGIN
 	EXEC [dbo].[_cfd_prc_enviarEmail] @idtran, @email, @mensaje, 1
 END
@@ -50,13 +51,14 @@ END
 SELECT
 	[factura_folio] = ISNULL((
 		SELECT
-			cc.cfd_folio
+			cc.cfd_serie + dbo._sys_fnc_rellenar(cc.cfd_folio, 6, '0')
 		FROM
 			ew_cfd_comprobantes AS cc
 		WHERE
 			cc.idtran = @idtran
 	), '')
 	, [timbrada] = CONVERT(BIT, 1)
+	, [enviada] = CONVERT(BIT, @enviar)
 	, [uuid] = ISNULL((
 		SELECT
 			cci.cfdi_UUID

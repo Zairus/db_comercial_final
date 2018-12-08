@@ -428,7 +428,6 @@ BEGIN
 		idtran = @idtran
 END
 
-/*
 UPDATE ct SET
 	ct.idmetodo = (
 		CASE
@@ -441,6 +440,6 @@ UPDATE ct SET
 FROM
 	ew_cxc_transacciones AS ct
 WHERE
-	ct.idtran = @idtran
-*/
+	ct.credito = 0
+	AND ct.idtran = @idtran
 GO

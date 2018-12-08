@@ -72,7 +72,19 @@ INSERT INTO ew_sys_transacciones2 (
 )
 SELECT
 	[idtran] = ct.idtran2
-	, [idestado] = 0
+	, [idestado] = (
+		CASE
+			WHEN (
+				SELECT COUNT(*) 
+				FROM 
+					ew_sys_transacciones2 AS st2 
+				WHERE 
+					st2.idtran = ct.idtran2 
+					AND st2.idestado = 23
+			) > 0 THEN 23
+			ELSE 0
+		END
+	)
 	, [idu] = @idu
 FROM
 	ew_cxc_transacciones_mov AS ct

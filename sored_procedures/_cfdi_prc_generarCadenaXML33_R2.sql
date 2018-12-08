@@ -122,7 +122,7 @@ FROM (
 					FROM
 						(
 							SELECT
-								cc1.cfdi_UUID
+								[cfdi_UUID] = cc1.cfdi_UUID
 							FROM
 								ew_cxc_transacciones_mov AS ctm
 								LEFT JOIN ew_cxc_transacciones AS ct
@@ -137,7 +137,7 @@ FROM (
 							UNION ALL
 
 							SELECT
-								cc1.cfdi_UUID
+								[cfdi_UUID] = cc1.cfdi_UUID
 							FROM
 								ew_cxc_transacciones AS rf1
 								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
@@ -146,6 +146,21 @@ FROM (
 								rf1.idtran2 > 0
 								AND rf1.transaccion IN ('EFA7', 'BDC2')
 								AND rf1.idtran = cc.idtran
+
+							UNION ALL
+
+							SELECT
+								[cfdi_UUID] = cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones_rel AS ctr
+								LEFT JOIN ew_cxc_transacciones AS efa4
+									ON efa4.idtran = ctr.idtran
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = efa4.idtran
+							WHERE
+								efa4.transaccion = 'EFA4'
+								AND efa4.cancelado = 0
+								AND ctr.idtran2 = ct.idtran2
 						) AS cfdi_r
 
 					FOR XML PATH('cfdi:CfdiRelacionado'), TYPE
@@ -180,6 +195,21 @@ FROM (
 								rf1.idtran2 > 0
 								AND rf1.transaccion IN ('EFA7', 'BDC2')
 								AND rf1.idtran = cc.idtran
+
+							UNION ALL
+
+							SELECT
+								[cfdi_UUID] = cc1.cfdi_UUID
+							FROM
+								ew_cxc_transacciones_rel AS ctr
+								LEFT JOIN ew_cxc_transacciones AS efa4
+									ON efa4.idtran = ctr.idtran
+								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
+									ON cc1.idtran = efa4.idtran
+							WHERE
+								efa4.transaccion = 'EFA4'
+								AND efa4.cancelado = 0
+								AND ctr.idtran2 = ct.idtran2
 						) AS cfdi_r1
 				) > 0
 			FOR XML PATH('cfdi:CfdiRelacionados'), TYPE
