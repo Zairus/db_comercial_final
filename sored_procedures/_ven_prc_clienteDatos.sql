@@ -8,81 +8,82 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_clienteDatos]
 	@codigo AS VARCHAR(30)
-	,@idsucursal AS SMALLINT
+	, @idsucursal AS SMALLINT
 AS
 
 SET NOCOUNT ON
 
 SELECT
 	[codcliente] = c.codigo
-	,c.idcliente
-	,[cliente] = c.nombre
-	,cf.telefono1
-	,cf.telefono2
-	,telefono3=cf.fax
-	,c.idcontacto
-	,[horario] = ISNULL(cc.horario, '')
-	,[contacto_telefono] = 0
-	,[contacto_email] = 0
-	,[facturara] = cf.razon_social
-	,c.idfacturacion
-	,cf.rfc
-	,direccion = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
-	,cf.direccion1
-	,cf.colonia
-	,cf.codpostal
-	,[codigopostal] = cf.codpostal
-	,[ciudad] = fac.ciudad
-	,[estado] = fac.estado
-	,[f_direccion] = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
-	,[f_colonia] = cf.colonia
-	,[f_ciudad] = fac.ciudad
-	,[f_municipio] = fac.municipio
-	,[f_estado] = fac.estado
-	,[f_codigopostal] = cf.codpostal
-	,[entregara] = cu.nombre
-	,c.idubicacion
-	,[e_dir] = cu.direccion1
-	,[e_col] = cu.colonia
-	,[e_cd] = ent.ciudad
-	,[e_edo] = ent.estado
-	,[e_cp] = cu.codpostal
-	,[e_direccion] = cu.direccion1
-	,[e_colonia] = cu.colonia
-	,[e_ciudad] = ent.ciudad
-	,[e_estado] = ent.estado
-	,[e_codigopostal] = cu.codpostal
-	,ct.idvendedor
-	,[vendedor] = ISNULL(v.nombre, '- Sin Asignar -')
-	,[idimpuesto1] = (CASE WHEN cf.idimpuesto1 <>0 THEN cf.idimpuesto1 ELSE s.idimpuesto END)
-	,[idimpuesto1_valor] = (CASE WHEN cf.idimpuesto1 <>0 THEN imp.valor ELSE impSuc.valor END)
-	,[idimpuesto1_cuenta]=imp.contabilidad
-	,[iva]= (CASE WHEN cf.idimpuesto1 <>0 THEN (imp.valor*100) ELSE  (impSuc.valor*100) END)
-	,[idlista] = (CASE ct.idlista WHEN 0 THEN s.idlista ELSE ct.idlista END)
-	,[dias_entrega] = 0
-	,[idpolitica] = ISNULL(ct.idpolitica,0)
-	,[credito] = CONVERT(SMALLINT, ct.credito)
-	,[t_credito] = ct.credito
-	,ct.credito_plazo
-	,[cliente_limite] = ct.credito_limite
-	,[cliente_saldo] = ISNULL((CASE WHEN csa.saldo < 0 THEN 0 ELSE csa.saldo END),0)
-	,[idmoneda] = c.idmoneda
-	,[tipoCambio] = dbo.fn_ban_tipocambio (c.idmoneda,0)
-	,[forma_moneda] = c.idmoneda
-	,[forma_tipoCambio] = dbo.fn_ban_tipocambio (c.idmoneda,0)	
-	,[email]=cf.email
-	,entidad_codigo = c.codigo
-	,entidad_nombre = c.nombre
-	,identidad = c.idcliente
-	,politica=p.nombre
-	,cf.contabilidad
-	,p.dias_pp1
-	,p.dias_pp2
-	,p.dias_pp3
-	,[metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
-	,c.idforma
-	,c.cfd_iduso
-	,[cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
+	, [idcliente] = c.idcliente
+	, [cliente] = c.nombre
+	, [telefono1] = cf.telefono1
+	, [telefono2] = cf.telefono2
+	, [telefono3] = cf.fax
+	, [idcontacto] = c.idcontacto
+	, [horario] = ISNULL(cc.horario, '')
+	, [contacto_telefono] = 0
+	, [contacto_email] = 0
+	, [facturara] = cf.razon_social
+	, [idfacturacion] = c.idfacturacion
+	, [rfc] = cf.rfc
+	, [direccion] = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
+	, [direccion1] = cf.direccion1
+	, [colonia] = cf.colonia
+	, [codpostal] = cf.codpostal
+	, [codigopostal] = cf.codpostal
+	, [ciudad] = fac.ciudad
+	, [estado] = fac.estado
+	, [f_direccion] = cf.calle + ISNULL(' '+cf.noExterior,'') + ISNULL(' '+cf.noInterior,'') 
+	, [f_colonia] = cf.colonia
+	, [f_ciudad] = fac.ciudad
+	, [f_municipio] = fac.municipio
+	, [f_estado] = fac.estado
+	, [f_codigopostal] = cf.codpostal
+	, [entregara] = cu.nombre
+	, [idubicacion] = c.idubicacion
+	, [e_dir] = cu.direccion1
+	, [e_col] = cu.colonia
+	, [e_cd] = ent.ciudad
+	, [e_edo] = ent.estado
+	, [e_cp] = cu.codpostal
+	, [e_direccion] = cu.direccion1
+	, [e_colonia] = cu.colonia
+	, [e_ciudad] = ent.ciudad
+	, [e_estado] = ent.estado
+	, [e_codigopostal] = cu.codpostal
+	, [idvendedor] = ct.idvendedor
+	, [vendedor] = ISNULL(v.nombre, '- Sin Asignar -')
+	, [idimpuesto1] = (CASE WHEN cf.idimpuesto1 <>0 THEN cf.idimpuesto1 ELSE s.idimpuesto END)
+	, [idimpuesto1_valor] = (CASE WHEN cf.idimpuesto1 <>0 THEN imp.valor ELSE impSuc.valor END)
+	, [idimpuesto1_cuenta] = imp.contabilidad
+	, [iva] = (CASE WHEN cf.idimpuesto1 <>0 THEN (imp.valor*100) ELSE  (impSuc.valor*100) END)
+	, [idlista] = (CASE ct.idlista WHEN 0 THEN s.idlista ELSE ct.idlista END)
+	, [dias_entrega] = 0
+	, [idpolitica] = ISNULL(ct.idpolitica,0)
+	, [credito] = CONVERT(SMALLINT, ct.credito)
+	, [t_credito] = ct.credito
+	, [credito_plazo] = ct.credito_plazo
+	, [cliente_limite] = ct.credito_limite
+	, [cliente_saldo] = ISNULL((CASE WHEN csa.saldo < 0 THEN 0 ELSE csa.saldo END),0)
+	, [idmoneda] = c.idmoneda
+	, [tipoCambio] = dbo.fn_ban_tipocambio (c.idmoneda,0)
+	, [forma_moneda] = c.idmoneda
+	, [forma_tipoCambio] = dbo.fn_ban_tipocambio (c.idmoneda,0)	
+	, [email] = cf.email
+	, [entidad_codigo] = c.codigo
+	, [entidad_nombre] = c.nombre
+	, [identidad] = c.idcliente
+	, [politica] = p.nombre
+	, [contabilidad] = cf.contabilidad
+	, [dias_pp1] = p.dias_pp1
+	, [dias_pp2] = p.dias_pp2
+	, [dias_pp3] = p.dias_pp3
+	, [metodoDePago] = RTRIM(c.cfd_metodoDePago) + ' ' + RTRIM(c.cfd_NumCtaPago)
+	, [idmetodo] = (CASE WHEN ct.credito = 0 THEN 1 ELSE 2 END)
+	, [idforma] = c.idforma
+	, [cfd_iduso] = c.cfd_iduso
+	, [cliente_notif] = dbo._sys_fnc_parametroActivo('CFDI_NOTIFICAR_AUTOMATICO')
 FROM 
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_terminos AS ct 
@@ -114,7 +115,7 @@ FROM
 	LEFT JOIN ew_sys_ciudades AS ent 
 		ON ent.idciudad = cu.idciudad
 	LEFT JOIN ew_ven_politicas AS p 
-		ON p.idpolitica=ct.idpolitica
+		ON p.idpolitica = ct.idpolitica
 WHERE
 	c.codigo = @codigo 
 GO
