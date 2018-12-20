@@ -27,7 +27,7 @@ END
 
 UPDATE csp SET
 	csp.costo = (
-		SELECT SUM(vlm.precio1) 
+		SELECT SUM(ISNULL(vlm.precio1, 0))
 		FROM 
 			ew_clientes_servicio_equipos AS cse
 			LEFT JOIN ew_ser_equipos AS e
@@ -45,6 +45,12 @@ WHERE
 	csp.plan_codigo IN (
 		SELECT
 			i.plan_codigo
+		FROM
+			inserted AS i
+	)
+	AND csp.idcliente IN (
+		SELECT
+			i.idcliente
 		FROM
 			inserted AS i
 	)

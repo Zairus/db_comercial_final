@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
@@ -164,15 +164,20 @@ CLOSE cur_detalle1
 DEALLOCATE cur_detalle1
 
 UPDATE ew_cxc_transacciones SET 
-	cancelado = '1'
+	cancelado = 1
 	, cancelado_fecha = @fecha
 	, saldo = 0 
 WHERE
 	idtran = @idtran
 
 UPDATE ew_ven_transacciones SET
-	cancelado = '1'
+	cancelado = 1
 	, cancelado_fecha = @fecha
 WHERE
 	idtran = @idtran
+
+IF @confirmacion = 1
+BEGIN
+	EXEC [dbo].[_sys_prc_transaccionCancelacionEstado] @idtran, @idu, @fecha
+END
 GO

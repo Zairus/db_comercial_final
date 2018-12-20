@@ -5,7 +5,7 @@ GO
 -- Create date: 20181211
 -- Description:	Retira un equipo del cliente
 -- =============================================
-ALTER PROCEDURE _ser_prc_equipoRetirar
+ALTER PROCEDURE [dbo].[_ser_prc_equipoRetirar]
 	@idequipo AS INT
 AS
 
@@ -45,7 +45,7 @@ SELECT
 	, [idestado] = 0
 	, [idaccion] = 0
 
-DELETE FROM ew_clientes_servicio_equipo WHERE idequipo = @idequipo
+DELETE FROM ew_clientes_servicio_equipos WHERE idequipo = @idequipo
 
 SELECT [resultado] = @msg
 GO

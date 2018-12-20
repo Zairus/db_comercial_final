@@ -6,53 +6,60 @@ GO
 -- Description:	Libro de bancos
 -- =============================================
 ALTER PROCEDURE [dbo].[_ban_rpt_libro]
-	 @idcuenta AS INT = 0
-	,@fecha1 AS SMALLDATETIME = NULL
-	,@fecha2 AS SMALLDATETIME = NULL
+	@idcuenta AS INT = 0
+	, @fecha1 AS SMALLDATETIME = NULL
+	, @fecha2 AS SMALLDATETIME = NULL
+	, @quefecha AS SMALLINT = 0 --0=fecha de registro, 1=fecha de operacion
 AS
 
 SET NOCOUNT ON
 
-SELECT @fecha1 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha1, DATEADD(DAY, -30, GETDATE())), 3) + ' 00:00')
-SELECT @fecha2 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha2, GETDATE()), 3) + ' 23:59')
+SELECT @fecha1 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha1, DATEADD(day, -30, GETDATE())), 3))
+SELECT @fecha2 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha2, GETDATE()), 3)) + ' 23:59'
 
 CREATE TABLE #_tmp_libro (
-	 idr INT IDENTITY
-	,cuenta VARCHAR (200)
-	,idcuenta INT
-	,fecha SMALLDATETIME
-	,folio VARCHAR(15)
-	,movimiento VARCHAR(200)
-	,saldo_inicial DECIMAL(18,2)
-	,cargos DECIMAL(18,2)
-	,abonos DECIMAL(18,2)
-	,saldo_final DECIMAL(18,2)
-	,idtran INT
+	idr INT IDENTITY
+	, cuenta VARCHAR (200)
+	, idcuenta INT
+	, fecha SMALLDATETIME
+	, fecha_operacion SMALLDATETIME
+	, folio VARCHAR(15)
+	, movimiento VARCHAR(200)
+	, saldo_inicial DECIMAL(18,2)
+	, cargos DECIMAL(18,2)
+	, abonos DECIMAL(18,2)
+	, saldo_final DECIMAL(18,2)
+	, idtran INT
 )
 
 INSERT INTO #_tmp_libro (
-	 cuenta
-	,idcuenta
-	,fecha
-	,folio
-	,movimiento
-	,saldo_inicial
-	,cargos
-	,abonos
-	,saldo_final
-	,idtran
+	cuenta
+	, idcuenta
+	, fecha
+	, folio
+	, movimiento
+	, saldo_inicial
+	, cargos
+	, abonos
+	, saldo_final
+	, idtran
 )
 SELECT
-	 [cuenta] = bc.no_cuenta + ' - ' + b.nombre
-	,bc.idcuenta
-	,bt.fecha
-	,bt.folio
-	,[movimiento] = o.nombre
-	,[saldo_inicial] = 0
-	,[cargos] = (CASE bt.tipo WHEN 1 THEN bt.importe ELSE 0 END)
-	,[abonos] = (CASE bt.tipo WHEN 2 THEN bt.importe ELSE 0 END)
-	,[saldo_final] = 0
-	,bt.idtran
+	[cuenta] = bc.no_cuenta + ' - ' + b.nombre
+	, [idcuenta] = bc.idcuenta
+	, [fecha] = (
+		CASE 
+			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
+			ELSE bt.fecha 
+		END
+	)
+	, [folio] = bt.folio
+	, [movimiento] = o.nombre
+	, [saldo_inicial] = 0
+	, [cargos] = (CASE bt.tipo WHEN 1 THEN bt.importe ELSE 0 END)
+	, [abonos] = (CASE bt.tipo WHEN 2 THEN bt.importe ELSE 0 END)
+	, [saldo_final] = 0
+	, [idtran] = bt.idtran
 FROM
 	ew_ban_transacciones AS bt
 	LEFT JOIN ew_ban_cuentas AS bc
@@ -65,7 +72,12 @@ WHERE
 	bt.cancelado = 0
 	AND bt.tipo IN(1,2)
 	AND bt.idcuenta = (CASE @idcuenta WHEN 0 THEN bt.idcuenta ELSE @idcuenta END)
-	AND bt.fecha BETWEEN @fecha1 AND @fecha2
+	AND (
+		CASE 
+			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
+			ELSE bt.fecha 
+		END
+	) BETWEEN @fecha1 AND @fecha2
 
 UPDATE tl SET
 	tl.saldo_inicial = (
@@ -94,7 +106,7 @@ UPDATE tl SET
 		), 0)
 		+(
 			CASE
-				WHEN DAY(@fecha1) <> 1 THEN (
+				WHEN DAY(@fecha1) <> 1 THEN ISNULL((
 					SELECT
 						SUM(
 							CASE 
@@ -111,12 +123,12 @@ UPDATE tl SET
 						AND bt.fecha BETWEEN 
 							CONVERT(SMALLDATETIME, '01/' + LTRIM(RTRIM(STR(MONTH(@fecha1)))) + '/' + LTRIM(RTRIM(STR(YEAR(@fecha1)))) + ' 00:00') 
 							AND CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), DATEADD(DAY, -1, @fecha1), 3) + ' 23:59')
-				)
+				),0)
 				ELSE 0
 			END
 		)
 	)
-	,tl.saldo_final = (
+	, tl.saldo_final = (
 		ISNULL((
 			SELECT 
 				CASE MONTH(@fecha1)
@@ -142,7 +154,7 @@ UPDATE tl SET
 		), 0)
 		+(
 			CASE
-				WHEN DAY(@fecha1) <> 1 THEN (
+				WHEN DAY(@fecha1) <> 1 THEN ISNULL((
 					SELECT
 						SUM(
 							CASE 
@@ -159,7 +171,7 @@ UPDATE tl SET
 						AND bt.fecha BETWEEN 
 							CONVERT(SMALLDATETIME, '01/' + LTRIM(RTRIM(STR(MONTH(@fecha1)))) + '/' + LTRIM(RTRIM(STR(YEAR(@fecha1)))) + ' 00:00') 
 							AND CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), DATEADD(DAY, -1, @fecha1), 3) + ' 23:59')
-				)
+				),0)
 				ELSE 0
 			END
 		)

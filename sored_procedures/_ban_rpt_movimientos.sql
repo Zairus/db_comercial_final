@@ -9,33 +9,40 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ban_rpt_movimientos]
 	@idsucursal AS SMALLINT
-	,@fecha1 AS VARCHAR(50)
-	,@fecha2 AS VARCHAR(50)
-	,@idcuenta AS SMALLINT
-	,@aplicados  AS SMALLINT 
+	, @fecha1 AS VARCHAR(50)
+	, @fecha2 AS VARCHAR(50)
+	, @idcuenta AS SMALLINT
+	, @aplicados  AS SMALLINT
+	, @quefecha AS SMALLINT = 0 --0=fecha de registro, 1=fecha de operacion
 AS
 
-SET DATEFORMAT DMY
 SET NOCOUNT ON
 
 SELECT @fecha2 = @fecha2 + ' 23:59'
 
 SELECT 
 	[sucursal] = s.nombre
-	,[cuenta] = ISNULL(RTRIM(bc.no_cuenta) + '-' + RTRIM(b.nombre ),'Sin Especificar')
-	,[idtran] = bt.idtran
-	,[idsucursal] = bt.idsucursal
-	,[transaccion] = RTRIM(o.nombre)
-	,[idcuenta] = bt.idcuenta 
-	,[fecha] = bt.fecha
-	,[folio] = bt.folio
-	,[ingresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo = 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
-	,[egresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo<>1 THEN bt.importe ELSE 0 END) ELSE 0 END)
-	,[saldo] = (CASE WHEN Cancelado = 0 THEN bt.importe * (CASE WHEN bt.tipo = 1 THEN 1 ELSE (-1) END) ELSE 0 END)
-	,[aplicado] = bt.aplicado
-	,[estado] = e.nombre
-	,[tipo] = bt.tipo
-	,[empresa] = dbo.fn_sys_empresa()	
+	, [cuenta] = ISNULL(RTRIM(bc.no_cuenta) + '-' + RTRIM(b.nombre ),'Sin Especificar')
+	, [idtran] = bt.idtran
+	, [idsucursal] = bt.idsucursal
+	, [transaccion] = RTRIM(o.nombre)
+	, [idcuenta] = bt.idcuenta 
+	, beneficiario=ISNULL(ve.nombre, '')
+	,[fecha] = (
+		CASE 
+			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
+			ELSE bt.fecha 
+		END
+	)
+	, [folio] = bt.folio
+	, [ingresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo = 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
+	, [egresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo <> 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
+	, [saldo] = (CASE WHEN Cancelado = 0 THEN bt.importe * (CASE WHEN bt.tipo = 1 THEN 1 ELSE (-1) END) ELSE 0 END)
+	, [aplicado] = bt.aplicado
+	, [estado] = e.nombre
+	, [tipo] = bt.tipo
+	, [doc_comentario] = bt.comentario
+	, [empresa] = dbo.fn_sys_empresa()	
 FROM 
 	ew_ban_transacciones AS bt
 	LEFT JOIN ew_sys_sucursales	AS s
@@ -50,14 +57,21 @@ FROM
 		ON e.idestado = dbo.fn_sys_estadoActual(bt.idtran)
 	LEFT JOIN objetos AS o
 		ON o.codigo = bt.transaccion
+	LEFT JOIN vew_entidades ve 
+		ON ve.idrelacion=bt.idrelacion and ve.identidad=bt.identidad	
 WHERE
-	bt.tipo IN (1,2)
+	bt.tipo IN (1, 2)
 	AND bt.idsucursal = (CASE @idsucursal WHEN 0 THEN bt.idsucursal ELSE @idsucursal END)
 	AND bt.idcuenta = (CASE @idcuenta WHEN -1 THEN bt.idcuenta ELSE @idcuenta END)
-	AND bt.fecha BETWEEN @fecha1 AND @fecha2
+	AND (
+		CASE 
+			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
+			ELSE bt.fecha 
+		END
+	) BETWEEN @fecha1 AND @fecha2
 	AND bt.aplicado = (CASE @aplicados WHEN -1 THEN bt.aplicado ELSE @aplicados END)
 ORDER BY
 	cuenta
-	,fecha
-	,transaccion
+	, fecha
+	, transaccion
 GO
