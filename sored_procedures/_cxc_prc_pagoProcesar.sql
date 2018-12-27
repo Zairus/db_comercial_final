@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -70,6 +70,7 @@ BEGIN
 			ct.idtran = @idtran
 			AND ISNULL(csf.bancarizado, 0) = 1
 			AND LEN(ct.clabe_origen) = 0
+			AND 3 = 4 -- CLABE del cliente es opcional
 	)
 	BEGIN
 		SELECT 
@@ -175,6 +176,39 @@ BEGIN
 	IF @total_timbrados > 0 AND @total_relacionados > 0
 	BEGIN
 		SELECT @mensaje = 'Error: No se pueden mezclar documentos timbrados y no timbrados en un pago.'
+
+		RAISERROR(@mensaje, 16, 1)
+		RETURN
+	END
+
+	IF EXISTS(
+		SELECT *
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cfd_comprobantes AS ccf
+				ON ccf.idtran = ctm.idtran2
+		WHERE
+			ctm.idtran = @idtran
+			AND ccf.cfd_version = '3.2'
+	)
+	BEGIN
+		SELECT
+			@mensaje = (
+				'Error: Se esta intentando pagar la factura '
+				+ f.folio
+				+ ', que es CFDi version 3.2. '
+				+ 'Sera necesario hacer una factura de relacion para '
+				+ 'sustituir ese documento.'
+			)
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS f
+				ON f.idtran = ctm.idtran2
+			LEFT JOIN ew_cfd_comprobantes AS ccf
+				ON ccf.idtran = ctm.idtran2
+		WHERE
+			ctm.idtran = @idtran
+			AND ccf.cfd_version = '3.2'
 
 		RAISERROR(@mensaje, 16, 1)
 		RETURN

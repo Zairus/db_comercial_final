@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -13,9 +13,11 @@ SET NOCOUNT ON
 
 DECLARE 
 	@idu AS INT
+	,@transaccion VARCHAR(5) = ''
 
 SELECT
 	@idu = idu
+	,@transaccion = transaccion
 FROM
 	ew_com_ordenes
 WHERE
@@ -43,11 +45,24 @@ IF EXISTS(
 	SELECT * 
 	FROM ew_com_ordenes_mov 
 	WHERE 
-		idobra = 0 
+		idalmacen = 0 
 		AND idtran = @idtran
 )
 BEGIN
-	RAISERROR('Error: No se ha indicado obra.', 16, 1)
+	RAISERROR('Error: Existen registros sin almacen asignado.', 16, 1)
+	RETURN
+END
+
+IF EXISTS(
+	SELECT * 
+	FROM ew_com_ordenes_mov 
+	WHERE 
+		idobra = 0 
+		AND idtran = @idtran
+		AND @transaccion = 'COR2'
+)
+BEGIN
+	RAISERROR('Error: Falta especificar la obra a alguno de los artículos.', 16, 1)
 	RETURN
 END
 

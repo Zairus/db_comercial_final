@@ -53,7 +53,7 @@ INSERT INTO #_tmp_cartera (
 )
 
 SELECT
-	[moneda] = (bm.nombre + ' (' + bm.codigo + ')')
+	[moneda] = bm.codigo
 	, [idcliente] = ct.idcliente
 	, [codigo] = c.codigo
 	, [nombre] = c.nombre
@@ -72,7 +72,7 @@ WHERE
 	AND ct.tipo IN (1,2)
 	AND CONVERT(SMALLDATETIME, (CONVERT(VARCHAR(8), ct.fecha, 3) + ' 00:00')) BETWEEN @fecha1 AND @fecha2
 GROUP BY
-	(bm.nombre + ' (' + bm.codigo + ')')
+	bm.codigo
 	, ct.idcliente
 	, c.codigo
 	, c.nombre
@@ -156,18 +156,34 @@ FROM
 	#_tmp_cartera AS tc
 
 SELECT
-	*
-	, [reporte_fecha_impresion] = GETDATE()
-	, [reporte_titulo] = (
-		'Resumen de Movimientos de Cliente'
-		+ CHAR(13) + CHAR(10)
-		+ 'Del '
-		+ CONVERT(VARCHAR(8), @fecha1, 3)
-		+ ' al '
-		+ CONVERT(VARCHAR(8), @fecha2, 3)
+	tc.*
+	, [titulo] = ro.nombre
+	, [titulo_subtitulo] = UPPER(
+		'DEL '
+		+ LTRIM(RTRIM(STR(DAY(@fecha1))))
+		+ ' DE '
+		+ (SELECT spd.descripcion FROM ew_sys_periodos_datos AS spd WHERE spd.grupo = 'meses' AND spd.id = MONTH(@fecha1))
+		+ '-'
+		+ LTRIM(RTRIM(STR(YEAR(@fecha1))))
+		+ ' AL '
+		+ LTRIM(RTRIM(STR(DAY(@fecha2))))
+		+ ' DE '
+		+ (SELECT spd.descripcion FROM ew_sys_periodos_datos AS spd WHERE spd.grupo = 'meses' AND spd.id = MONTH(@fecha2))
+		+ '-'
+		+ LTRIM(RTRIM(STR(YEAR(@fecha2))))
 	)
+	, [titulo_fecha] = 'Fecha: ' + CONVERT(VARCHAR(8), GETDATE(), 3)
+	, [titulo_ruta] = [dbo].[_sys_fnc_objetoRuta](ro.objeto)
 FROM 
-	#_tmp_cartera
+	#_tmp_cartera AS tc
+	LEFT JOIN objetos AS ro
+		ON ro.tipo = 'AUX'
+		AND ro.codigo = 'AUX93'
+WHERE
+	tc.cargos > 0 
+	OR tc.abonos > 0
+ORDER BY
+	tc.nombre
 
 DROP TABLE #_tmp_cartera
 GO

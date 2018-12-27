@@ -73,6 +73,18 @@ BEGIN
 	END
 END
 
+IF EXISTS(
+	SELECT * 
+	FROM ew_com_transacciones_mov 
+	WHERE 
+		idalmacen = 0 
+		AND idtran = @idtran
+)
+BEGIN
+	RAISERROR('Error: Existen registros sin almacen asignado.', 16, 1)
+	RETURN
+END
+
 --------------------------------------------------------------------------------
 -- CREAR ENTRADA A ALMACEN #####################################################
 
@@ -106,6 +118,7 @@ FROM
 	ew_com_transacciones
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran) + '
+
 INSERT INTO ew_inv_transacciones_mov (
 	idtran
 	, idtran2

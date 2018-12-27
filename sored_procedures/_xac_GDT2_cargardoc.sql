@@ -73,6 +73,21 @@ FROM
 WHERE
 	idm.idtran = @idtran
 
+SELECT
+	fecha
+	, transaccion
+	, folio
+	, cargos
+	, abonos
+	, idr
+	, idtran
+	, idtran2
+	, objidtran
+FROM 
+	ew_inv_documentos_relacion 
+WHERE 
+	idtran = @idtran
+
 SELECT 
 	idr
 	,objidtran

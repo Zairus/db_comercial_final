@@ -1,4 +1,4 @@
-USE db_refriequipos_datos
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -995,7 +995,7 @@ SELECT
 	[idtran] = @idtran
 	,[idmov2] = tvd.idmov
 	,[idimpuesto] = tvd.idimpuesto2
-	,[idtasa] = 0
+	,[idtasa] = 0--ISNULL(cit.idtasa, 0)
 	,[base] = SUM(tvd.importe)
 	,[importe] = SUM(tvd.impuesto2)
 FROM
@@ -1008,6 +1008,18 @@ GROUP BY
 	,tvd.idimpuesto2
 HAVING
 	ABS(SUM(tvd.impuesto2)) > 0.0
+
+UPDATE ccmi SET
+	ccmi.idtasa = ISNULL(cit.idtasa, 0)
+FROM
+	ew_cfd_comprobantes_mov_impuesto AS ccmi
+	LEFT JOIN ew_cat_impuestos_tasas AS cit
+		ON cit.idimpuesto = ccmi.idimpuesto
+		AND cit.tasa = CONVERT(DECIMAL(18,6), CONVERT(DECIMAL(18,2), (ccmi.importe / ccmi.base)))
+WHERE
+	ccmi.idtasa = 0
+	AND ccmi.idimpuesto > 1
+	AND ccmi.idtran = @idtran
 
 DROP TABLE #_tmp_venta_detalle
 

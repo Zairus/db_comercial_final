@@ -15,6 +15,7 @@ DECLARE
 	@credito AS BIT
 	, @idforma AS INT
 	, @relacion_idtran AS INT
+	, @relacion_cancelado AS BIT
 	, @idu AS INT
 
 UPDATE ct SET
@@ -30,11 +31,14 @@ SELECT
 	@credito = ct.credito
 	, @idforma  = ct.idforma
 	, @relacion_idtran = vt.idtran2
+	, @relacion_cancelado = r.cancelado
 	, @idu = vt.idu
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN ew_ven_transacciones AS vt
 		ON vt.idtran = ct.idtran
+	LEFT JOIN ew_cxc_transacciones AS r
+		ON r.idtran = vt.idtran2
 WHERE 
 	ct.idtran = @idtran
 	
@@ -87,5 +91,8 @@ BEGIN
 	END
 END
 
-EXEC _cxc_prc_desaplicarTransaccion @relacion_idtran, @idu
+IF @relacion_cancelado = 0
+BEGIN
+	EXEC _cxc_prc_desaplicarTransaccion @relacion_idtran, @idu
+END
 GO
