@@ -59,8 +59,9 @@ FROM
 	LEFT JOIN ew_ser_equipos AS se
 		ON se.idequipo = cse.idequipo
 WHERE
-	c.idcliente = @idcliente
-
+	se.serie IS NOT NULL
+	AND c.idcliente = @idcliente
+	
 IF @idsucursal IS NULL
 BEGIN
 	RAISERROR('Error: No hay planes para el cliente indicado.', 16, 1)

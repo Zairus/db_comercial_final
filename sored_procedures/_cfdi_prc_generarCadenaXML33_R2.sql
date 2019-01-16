@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -118,99 +118,20 @@ FROM (
 				ISNULL(cst.c_tiporelacion, csto.c_tiporelacion) AS '@TipoRelacion'
 				,(
 					SELECT
-						cfdi_r.cfdi_UUID AS '@UUID'
-					FROM
-						(
-							SELECT
-								[cfdi_UUID] = cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones_mov AS ctm
-								LEFT JOIN ew_cxc_transacciones AS ct
-									ON ct.idtran = ctm.idtran 
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = ctm.idtran2
-							WHERE 
-								cc1.idr IS NOT NULL
-								AND ct.transaccion NOT IN ('BDC2')
-								AND ctm.idtran = cc.idtran
-
-							UNION ALL
-
-							SELECT
-								[cfdi_UUID] = cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones AS rf1
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = rf1.idtran2
-							WHERE
-								rf1.idtran2 > 0
-								AND rf1.transaccion IN ('EFA7', 'BDC2')
-								AND rf1.idtran = cc.idtran
-
-							UNION ALL
-
-							SELECT
-								[cfdi_UUID] = cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones_rel AS ctr
-								LEFT JOIN ew_cxc_transacciones AS efa4
-									ON efa4.idtran = ctr.idtran
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = efa4.idtran
-							WHERE
-								efa4.transaccion = 'EFA4'
-								AND efa4.cancelado = 0
-								AND ctr.idtran2 = ct.idtran2
-						) AS cfdi_r
-
+						ccdr.cfdi_UUID AS '@UUID'
+					FROM 
+						ew_cfd_comprobantes_documentos_relacionados AS ccdr
+					WHERE
+						ccdr.idtran = cc.idtran
 					FOR XML PATH('cfdi:CfdiRelacionado'), TYPE
 				)
 			WHERE
 				(
 					SELECT COUNT(*) 
 					FROM 
-						(
-							SELECT
-								cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones_mov AS ctm
-								LEFT JOIN ew_cxc_transacciones AS ct
-									ON ct.idtran = ctm.idtran  
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = ctm.idtran2
-							WHERE 
-								cc1.idr IS NOT NULL
-								AND ct.transaccion NOT IN ('BDC2')
-								AND ctm.idtran = cc.idtran
-
-							UNION ALL
-
-							SELECT
-								cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones AS rf1
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = rf1.idtran2
-							WHERE
-								rf1.idtran2 > 0
-								AND rf1.transaccion IN ('EFA7', 'BDC2')
-								AND rf1.idtran = cc.idtran
-
-							UNION ALL
-
-							SELECT
-								[cfdi_UUID] = cc1.cfdi_UUID
-							FROM
-								ew_cxc_transacciones_rel AS ctr
-								LEFT JOIN ew_cxc_transacciones AS efa4
-									ON efa4.idtran = ctr.idtran
-								LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-									ON cc1.idtran = efa4.idtran
-							WHERE
-								efa4.transaccion = 'EFA4'
-								AND efa4.cancelado = 0
-								AND ctr.idtran2 = ct.idtran2
-						) AS cfdi_r1
+						ew_cfd_comprobantes_documentos_relacionados AS ccdr
+					WHERE
+						ccdr.idtran = cc.idtran
 				) > 0
 			FOR XML PATH('cfdi:CfdiRelacionados'), TYPE
 		) AS '*'
@@ -661,7 +582,7 @@ FROM (
 		LEFT JOIN objetos AS o
 			ON o.codigo = ct.transaccion
 		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS cst
-			ON cst.idr = ct.cfd_idrelacion
+			ON cst.idr = ct.idrelacion
 		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion_objetos AS csto
 			ON csto.objeto = o.objeto
 		LEFT JOIN ew_clientes_facturacion AS cf

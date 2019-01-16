@@ -7,6 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ser_prc_facturacionPresentar]
 	@periodo AS INT = NULL
+	, @idcliente AS INT = 0
 AS
 
 SET NOCOUNT ON
@@ -48,7 +49,7 @@ SELECT
 		END
 	)
 	,[costo] = (csp.costo)
-	,[facturar] = 1
+	,[facturar] = 0
 	,[no_orden] = ''
 INTO
 	#_tmp_planesf
@@ -61,6 +62,18 @@ FROM
 WHERE
 	spt.facturar = 1
 	AND (MONTH(GETDATE()) - MONTH(csp.fecha_inicial)) % csp.periodo = 0
+	AND (
+		csp.idcliente = @idcliente
+		OR @idcliente = 0
+	)
+	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_clientes_servicio_equipos AS cse 
+		WHERE 
+			cse.idcliente = csp.idcliente 
+			AND cse.plan_codigo = csp.plan_codigo
+	) > 0
 	AND csp.plan_codigo NOT IN (
 		SELECT DISTINCT
 			vtms.plan_codigo

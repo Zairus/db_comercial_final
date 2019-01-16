@@ -7,13 +7,14 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cxp_prc_pagoCancelar]
 	@idtran AS INT
-	,@cancelado_fecha AS SMALLDATETIME
-	,@idu AS SMALLINT
+	, @cancelado_fecha AS SMALLDATETIME
+	, @idu AS SMALLINT
+	, @forzar AS BIT = 0
 AS
 
 SET NOCOUNT ON
 
-EXEC _cxp_prc_pagoRevocar @idtran, @idu, @cancelado_fecha
+EXEC _cxp_prc_pagoRevocar @idtran, @idu, @cancelado_fecha, @forzar
 
 EXEC _cxp_prc_cancelarTransaccion @idtran, @cancelado_fecha, @idu
 

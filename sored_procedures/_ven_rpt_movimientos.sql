@@ -83,7 +83,7 @@ SELECT
 	)
 	, [titulo_fecha] = 'Fecha: ' + CONVERT(VARCHAR(8), GETDATE(), 3)
 	, [titulo_ruta] = [dbo].[_sys_fnc_objetoRuta](ro.objeto)
-from 
+FROM
 	ven_transacciones ct
 	LEFT JOIN ew_sys_sucursales AS s 
 		ON s.idsucursal = ct.idsucursal

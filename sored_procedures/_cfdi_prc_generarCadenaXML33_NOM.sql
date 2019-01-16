@@ -246,6 +246,12 @@ FROM (
 								,ne.num_emp AS '@NumEmpleado'
 								,REPLACE(REPLACE(ne.numero_ss, '-', ''), ' ', '') AS '@NumSeguridadSocial'
 								,'04' AS '@PeriodicidadPago'
+								,(
+									CASE 
+										WHEN LEN(ne.clabe) =  18 THEN NULL
+										ELSE RIGHT(sbb.c_banco, 3)
+									END
+								) AS '@Banco'
 								,ne.puesto AS '@Puesto'
 								,LTRIM(RTRIM(STR(ne.idriesgo))) AS '@RiesgoPuesto'
 								,CONVERT(DECIMAL(18,2), ne.sueldo_diario_integrado) AS '@SalarioDiarioIntegrado'
@@ -439,6 +445,19 @@ FROM (
 										AND ntm.idtran = cc.idtran
 									FOR XML PATH('nomina12:Deduccion'), TYPE
 								)
+							WHERE
+								(
+									SELECT COUNT(*)
+									FROM 
+										ew_nom_transacciones_mov AS ntm
+										LEFT JOIN ew_nom_conceptos AS nc
+											ON nc.idconcepto = ntm.idconcepto
+										LEFT JOIN ew_nom_conceptos_tipos AS nct
+											ON nct.idtipo = nc.idtipo
+									WHERE
+										nc.tipo = 1
+										AND ntm.idtran = cc.idtran
+								) > 0
 							FOR XML PATH('nomina12:Deducciones'), TYPE
 						) AS '*'
 						
@@ -466,6 +485,8 @@ FROM (
 			ON nd.idr = ne.iddepto
 		LEFT JOIN ew_ban_bancos AS bb
 			ON bb.idbanco = ne.idbanco
+		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_bancos AS sbb
+			ON sbb.rfc = bb.rfc
 		LEFT JOIN ew_nom_tipos_contrato AS tc
 			ON tc.idtipocontrato = ne.idtipocontrato
 		LEFT JOIN ew_nom_tipos_jornada AS tj

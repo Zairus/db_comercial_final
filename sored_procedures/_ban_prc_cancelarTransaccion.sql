@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -7,37 +7,37 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ban_prc_cancelarTransaccion]
 	@idtran AS BIGINT
-	,@cancelado_fecha AS SMALLDATETIME
-	,@idu AS SMALLINT
-	,@desaplicar_referencias AS BIT = 1
-	,@forzar AS BIT = 0
+	, @cancelado_fecha AS SMALLDATETIME
+	, @idu AS SMALLINT
+	, @desaplicar_referencias AS BIT = 1
+	, @forzar AS BIT = 0
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@idtran2 AS BIGINT
-	,@aplicado AS BIT
-	,@tipo AS TINYINT
-	,@idconcepto AS SMALLINT
-	,@idcuenta AS SMALLINT
-	,@importe AS DECIMAL(15,2)
-	,@total AS DECIMAL(15,2)
-	,@moneda AS SMALLINT
-	,@msg AS VARCHAR(250)
-	,@fecha AS SMALLDATETIME
-	,@password AS VARCHAR(20)
-	,@transaccionref AS VARCHAR(4)
+	, @aplicado AS BIT
+	, @tipo AS TINYINT
+	, @idconcepto AS SMALLINT
+	, @idcuenta AS SMALLINT
+	, @importe AS DECIMAL(15,2)
+	, @total AS DECIMAL(15,2)
+	, @moneda AS SMALLINT
+	, @msg AS VARCHAR(250)
+	, @fecha AS SMALLDATETIME
+	, @password AS VARCHAR(20)
+	, @transaccionref AS VARCHAR(4)
 
 SELECT 
 	@idtran2 = bt.idtran2
-	,@aplicado = bt.aplicado
-	,@idcuenta = bt.idcuenta
-	,@tipo = bt.tipo
-	,@idconcepto = (bt.idconcepto + 1000)
-	,@importe = bt.importe
-	,@fecha = bt.fecha
-	,@transaccionref = ISNULL(st.transaccion, '')
+	, @aplicado = bt.aplicado
+	, @idcuenta = bt.idcuenta
+	, @tipo = bt.tipo
+	, @idconcepto = (bt.idconcepto + 1000)
+	, @importe = bt.importe
+	, @fecha = bt.fecha
+	, @transaccionref = ISNULL(st.transaccion, '')
 FROM
 	ew_ban_transacciones AS bt
 	LEFT JOIN ew_sys_transacciones AS st
@@ -46,9 +46,15 @@ WHERE
 	bt.idtran = @idtran
 	AND bt.cancelado = 0
 
-IF @transaccionref = 'BDT1' AND @forzar = 0
+IF @transaccionref IN ('BDT1', 'DDA4') AND @forzar = 0
 BEGIN
-	SELECT @msg = 'Error 1: BAN_TRANSACCIONES, la transaccion proviene de un traspaso, se debe cancelar el traspaso.'
+	SELECT 
+		@msg = 'Error 1: BAN_TRANSACCIONES, la transaccion proviene de ' + o.nombre + ', se debe cancelar dicha transaccion.'
+	FROM
+		objetos AS o
+	WHERE
+		o.codigo = @transaccionref
+
 	RAISERROR (@msg, 16, 1)
 	RETURN
 END
