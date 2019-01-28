@@ -41,7 +41,18 @@ SELECT
 	, [moneda] = cc.cfd_moneda
 	, [metodo_pago] = cc.cfd_formaDePago
 	, [tipo_relacion] = 'P01 Pago'
-	, [parcialidad] = ROW_NUMBER() OVER (PARTITION BY ctm.idtran2 ORDER BY ctm.idtran ASC, ctm.idmov ASC)
+	, [parcialidad] = ISNULL((
+		SELECT COUNT(*) 
+		FROM 
+			ew_cxc_transacciones_mov AS ctm1 
+			LEFT JOIN ew_cxc_transacciones AS ct1
+				ON ct1.idtran = ctm1.idtran
+		WHERE 
+			ct1.cancelado = 0
+			AND ctm1.idtran2 = ctm.idtran2
+			AND ctm1.idtran <> ctm.idtran
+			AND ct1.fecha < p.fecha
+	), 0) + 1
 	, [saldo_anterior] = f.saldo + ctm.importe2
 	, [importe_pagado] = ctm.importe2
 	, [saldo_actual] = f.saldo

@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -15,10 +15,16 @@ SET NOCOUNT ON
 SELECT @periodo = ISNULL(@periodo, MONTH(GETDATE()))
 
 SELECT
-	[cliente] = c.nombre
-	,[idcliente] = c.idcliente
-	,[fecha] = GETDATE()
-	,[plan] = (
+	[cliente] = ISNULL((
+		SELECT TOP 1 cfa.razon_social 
+		FROM 
+			ew_clientes_facturacion AS cfa 
+		WHERE 
+			cfa.idcliente = c.idcliente
+	), c.nombre)
+	, [idcliente] = c.idcliente
+	, [fecha] = GETDATE()
+	, [plan] = (
 		CASE
 			WHEN csp.tipo_facturacion = 3 THen csp.plan_descripcion
 			ELSE (
@@ -33,7 +39,7 @@ SELECT
 			) --csp.plan_codigo
 		END
 	) --csp.plan_descripcion
-	,[plan_codigo] = (
+	, [plan_codigo] = (
 		CASE
 			WHEN csp.tipo_facturacion = 3 THen csp.plan_codigo
 			ELSE (
@@ -48,9 +54,9 @@ SELECT
 			) --csp.plan_codigo
 		END
 	)
-	,[costo] = (csp.costo)
-	,[facturar] = 0
-	,[no_orden] = ''
+	, [costo] = (csp.costo)
+	, [facturar] = 0
+	, [no_orden] = ''
 INTO
 	#_tmp_planesf
 FROM

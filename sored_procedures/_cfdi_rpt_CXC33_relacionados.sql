@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -63,10 +63,50 @@ FROM
 	LEFT JOIN objetos AS o
 		ON o.codigo = f.transaccion
 	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
-		ON cct.idtran = ct.idtran2
+		ON cct.idtran = f.idtran
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS csr
 		ON csr.idr = ct.idrelacion
 WHERE 
 	ct.idtran = @idtran
 	AND csr.c_tiporelacion IS NOT NULL
+	AND LEN(ISNULL(cct.cfdi_UUID, '')) > 0
+
+UNION ALL
+
+SELECT
+	[transaccion] = f.transaccion
+	, [movimiento] = (
+		o.nombre 
+		+ ': '
+		+ cct.cfdi_uuid
+		+ ', '
+		+ csr.descripcion + ' [' + csr.c_tiporelacion + ']'
+	)
+	, [idconcepto] = f.idconcepto
+	, [fecha] = f.fecha
+	, [folio] = f.folio
+	, [subtotal] = f.subtotal
+	, [impuesto1] = f.impuesto1
+	, [impuesto2] = f.impuesto2
+	, [impuesto1_ret] = f.impuesto1_ret
+	, [impuesto2_ret] = f.impuesto2_ret
+	, [total] = f.total
+	, [aplicado] = 0
+	, [comentario] = csr.descripcion + ' [' + csr.c_tiporelacion + ']'
+FROM
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_cxc_transacciones_rel AS ctr
+		ON ctr.idtran = ct.idtran
+	LEFT JOIN ew_cxc_transacciones AS f
+		ON f.idtran = ctr.idtran2
+	LEFT JOIN objetos AS o
+		ON o.codigo = f.transaccion
+	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
+		ON cct.idtran = f.idtran
+	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS csr
+		ON csr.idr = ct.idrelacion
+WHERE 
+	ct.idtran = @idtran
+	AND csr.c_tiporelacion IS NOT NULL
+	AND LEN(ISNULL(cct.cfdi_UUID, '')) > 0
 GO

@@ -18,52 +18,50 @@ DECLARE
 	@registros AS INT
 
 DECLARE
-	 @fecha AS DATETIME
-	,@tipo AS TINYINT
-	,@idalmacen AS SMALLINT
-	,@idconcepto AS INT
-	,@idu AS SMALLINT
-	,@inv_idtran AS INT
+	@fecha AS DATETIME
+	, @tipo AS TINYINT
+	, @idalmacen AS SMALLINT
+	, @idconcepto AS INT
+	, @idu AS SMALLINT
+	, @inv_idtran AS INT
 
 DECLARE
-	 @idcliente AS INT
-	,@inventario_partes AS BIT
-	,@inventario_partes_actualizar AS BIT
-	,@mayoreo AS BIT
-	,@codciudad AS VARCHAR(20)
-	,@rfc AS VARCHAR(20)
-	,@idfacturacion AS INT
+	@idcliente AS INT
+	, @inventario_partes AS BIT
+	, @inventario_partes_actualizar AS BIT
+	, @mayoreo AS BIT
+	, @codciudad AS VARCHAR(20)
+	, @rfc AS VARCHAR(20)
+	, @idfacturacion AS INT
 
 DECLARE
-	 @total_detalle AS DECIMAL(18,6)
-	,@total_documento AS DECIMAL(18,6)
+	@total_detalle AS DECIMAL(18,6)
+	, @total_documento AS DECIMAL(18,6)
 
 DECLARE
-	 @credito AS BIT
-	,@credito_limite AS DECIMAL(18,6)
-	,@cliente_saldo AS DECIMAL(18,6)
-
-	,@error_mensaje AS VARCHAR(MAX)
+	@credito AS BIT
+	, @credito_limite AS DECIMAL(18,6)
+	, @cliente_saldo AS DECIMAL(18,6)
+	, @error_mensaje AS VARCHAR(MAX)
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
 SELECT
-	 @fecha = vt.fecha
-	,@tipo = 2
-	,@idalmacen = vt.idalmacen
-	,@idconcepto = 19
-	,@idu = vt.idu
-	,@idcliente = vt.idcliente
-	,@inventario_partes = c.inventario_partes
-	,@inventario_partes_actualizar = c.inventario_partes_actualizar
-	,@mayoreo = c.mayoreo
-	,@idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = c.idcliente)
-	,@total_documento = vt.total
-
-	,@credito = ct.credito
-	,@credito_limite = ctr.credito_limite
-	,@cliente_saldo = csa.saldo
+	@fecha = vt.fecha
+	, @tipo = 2
+	, @idalmacen = vt.idalmacen
+	, @idconcepto = 19
+	, @idu = vt.idu
+	, @idcliente = vt.idcliente
+	, @inventario_partes = c.inventario_partes
+	, @inventario_partes_actualizar = c.inventario_partes_actualizar
+	, @mayoreo = c.mayoreo
+	, @idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = c.idcliente)
+	, @total_documento = vt.total
+	, @credito = ct.credito
+	, @credito_limite = ctr.credito_limite
+	, @cliente_saldo = csa.saldo
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_clientes AS c
@@ -123,43 +121,43 @@ END
 -- EFECTUAR SALIDA DE ALMACEN ##################################################
 
 EXEC _inv_prc_transaccionCrear
-	 @idtran
-	,@fecha
-	,@tipo
-	,@idalmacen
-	,@idconcepto
-	,@idu
-	,@inv_idtran OUTPUT
+	@idtran
+	, @fecha
+	, @tipo
+	, @idalmacen
+	, @idconcepto
+	, @idu
+	, @inv_idtran OUTPUT
 
 INSERT INTO ew_inv_transacciones_mov (
-	 idtran
-	,idmov2
-	,consecutivo
-	,tipo
-	,idalmacen
-	,idarticulo
-	,series
-	,lote
-	,fecha_caducidad
-	,idum
-	,cantidad
-	,afectainv
-	,comentario
+	idtran
+	, idmov2
+	, consecutivo
+	, tipo
+	, idalmacen
+	, idarticulo
+	, series
+	, lote
+	, fecha_caducidad
+	, idum
+	, cantidad
+	, afectainv
+	, comentario
 )
 SELECT
-	 [idtran] = @inv_idtran
-	,[idmov2] = vtm.idmov
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY vtm.idr)
-	,[tipo] = @tipo
-	,[idalmacen] = @idalmacen
-	,vtm.idarticulo
-	,vtm.series
-	,[lote] = ''
-	,[fecha_caducidad] = NULL
-	,vtm.idum
-	,[cantidad] = vtm.cantidad_facturada
-	,[afectainv] = 1
-	,vtm.comentario
+	[idtran] = @inv_idtran
+	, [idmov2] = vtm.idmov
+	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY vtm.idr)
+	, [tipo] = @tipo
+	, [idalmacen] = @idalmacen
+	, [idarticulo] = vtm.idarticulo
+	, [series] = vtm.series
+	, [lote] = ''
+	, [fecha_caducidad] = NULL
+	, [idum] = vtm.idum
+	, [cantidad] = vtm.cantidad_facturada
+	, [afectainv] = 1
+	, [comentario] = vtm.comentario
 FROM
 	ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_articulos AS a
@@ -198,96 +196,10 @@ WHERE
 --------------------------------------------------------------------------------
 -- VERIFICAR MARGENES ##########################################################
 
-SELECT
-	@registros = COUNT(*)
-FROM
-	ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_ven_transacciones AS vt
-		ON vt.idtran = vtm.idtran
-	LEFT JOIN ew_articulos AS a
-		ON a.idarticulo = vtm.idarticulo
-	LEFT JOIN ew_articulos_sucursales AS [as]
-		ON [as].idarticulo = vtm.idarticulo
-		AND [as].idsucursal = vt.idsucursal
-WHERE
-	vtm.importe <= (vtm.costo * (1.0 + [as].margen_minimo))
-	AND [as].bajo_costo = 0
-	AND a.inventariable = 1
-	AND vtm.idtran = @idtran
-	
-IF @registros > 0 AND @mayoreo = 0
+EXEC _ven_prc_facturaPreciosValidar @idtran, 1, @error_mensaje
+
+IF @error_mensaje IS NOT NULL
 BEGIN
-	SELECT TOP 1
-		@error_mensaje = (
-			'Error: '
-			+' El artículo ['
-			+a.codigo
-			+'], no se puede vender a un precio de '
-			+CONVERT(VARCHAR(20), CONVERT(DECIMAL(18,2), vtm.importe / vtm.cantidad_facturada))
-			+', ya que queda por debajo del costo: '
-			+CONVERT(VARCHAR(20), CONVERT(DECIMAL(18,2), (vtm.costo * (1.0 + [as].margen_minimo)) / vtm.cantidad_facturada))
-			+'; segun capas de almacén.'
-		)
-	FROM
-		ew_ven_transacciones_mov AS vtm
-		LEFT JOIN ew_ven_transacciones AS vt
-			ON vt.idtran = vtm.idtran
-		LEFT JOIN ew_articulos AS a
-			ON a.idarticulo = vtm.idarticulo
-		LEFT JOIN ew_articulos_sucursales AS [as]
-			ON [as].idarticulo = vtm.idarticulo
-			AND [as].idsucursal = vt.idsucursal
-	WHERE
-		vtm.importe <= (vtm.costo * (1.0 + [as].margen_minimo))
-		AND [as].bajo_costo = 0
-		AND a.inventariable = 1
-		AND vtm.idtran = @idtran
-
-	RAISERROR(@error_mensaje, 16, 1)
-	RETURN
-END
-
-SELECT
-	@registros = COUNT(*)
-FROM
-	ew_ven_transacciones_mov AS vtm
-	LEFT JOIN ew_ven_transacciones AS vt
-		ON vt.idtran = vtm.idtran
-	LEFT JOIN ew_articulos AS a
-		ON a.idarticulo = vtm.idarticulo
-	LEFT JOIN ew_articulos_sucursales AS [as]
-		ON [as].idarticulo = vtm.idarticulo
-		AND [as].idsucursal = vt.idsucursal
-WHERE
-	vtm.importe <= vtm.costo
-	AND [as].bajo_costo = 0
-	AND a.inventariable = 1
-	AND vtm.idtran = @idtran
-
-IF @registros > 0
-BEGIN
-	SELECT TOP 1
-		@error_mensaje = (
-			'Error: No se puede vemder el artículo ' 
-			+ a.codigo 
-			+ ', en ' + CONVERT(VARCHAR(20), vtm.importe / vtm.cantidad_facturada) 
-			+ ', por debajo del costo: ' 
-			+ CONVERT(VARCHAR(20), vtm.costo / vtm.cantidad_facturada)
-		)
-	FROM
-		ew_ven_transacciones_mov AS vtm
-		LEFT JOIN ew_ven_transacciones AS vt
-		ON vt.idtran = vtm.idtran
-		LEFT JOIN ew_articulos AS a
-			ON a.idarticulo = vtm.idarticulo
-		LEFT JOIN ew_articulos_sucursales AS [as]
-			ON [as].idarticulo = vtm.idarticulo
-			AND [as].idsucursal = vt.idsucursal
-	WHERE
-		vtm.importe <= vtm.costo
-		AND [as].bajo_costo = 0
-		AND vtm.idtran = @idtran
-
 	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
@@ -299,7 +211,7 @@ IF @inventario_partes = 1
 BEGIN
 	UPDATE ci SET
 		 ci.precio_especial = vtm.precio_unitario
-		,ci.cantidad = (ci.cantidad + vtm.cantidad_facturada)
+		, ci.cantidad = (ci.cantidad + vtm.cantidad_facturada)
 	FROM
 		ew_ven_transacciones_mov AS vtm
 		LEFT JOIN ew_ven_transacciones AS vt
@@ -312,16 +224,16 @@ BEGIN
 		AND ci.id IS NOT NULL
 	
 	INSERT INTO ew_clientes_inventario (
-		 idcliente
-		,idarticulo
-		,precio_especial
-		,cantidad
+		idcliente
+		, idarticulo
+		, precio_especial
+		, cantidad
 	)
 	SELECT
-		 vt.idcliente
-		,vtm.idarticulo
-		,[precio_especial] = vtm.precio_unitario
-		,[cantidad] = vtm.cantidad_facturada
+		vt.idcliente
+		, vtm.idarticulo
+		, [precio_especial] = vtm.precio_unitario
+		, [cantidad] = vtm.cantidad_facturada
 	FROM
 		ew_ven_transacciones_mov AS vtm
 		LEFT JOIN ew_ven_transacciones AS vt
@@ -343,22 +255,22 @@ END
 -- ALMACENAR INFROACIÓN PARA GARANTÍAS DE VENTA ################################
 
 INSERT INTO ew_ven_garantias (
-	 idtran
-	,idcliente
-	,codigo
-	,nombre
-	,direccion1
-	,direccion2
-	,ubicacion_instalacion
+	idtran
+	, idcliente
+	, codigo
+	, nombre
+	, direccion1
+	, direccion2
+	, ubicacion_instalacion
 )
 SELECT
-	 vt.idtran
-	,vt.idcliente
-	,c.codigo
-	,c.nombre
-	,ISNULL(cu.direccion1, '')
-	,ISNULL(cu.direccion2, '')
-	,vt.ubicacion_instalacion
+	vt.idtran
+	, vt.idcliente
+	, c.codigo
+	, c.nombre
+	, ISNULL(cu.direccion1, '')
+	, ISNULL(cu.direccion2, '')
+	, vt.ubicacion_instalacion
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_clientes AS c
@@ -376,11 +288,6 @@ WHERE
 			ew_ven_garantias AS vg
 	)
 	AND vt.idtran = @idtran
-
---------------------------------------------------------------------------------
--- APLICAR PAGOS EN FACTURA ####################################################
-
-EXEC _ven_prc_facturaPagos @idtran
 
 --------------------------------------------------------------------------------
 -- CFDI ########################################################################
@@ -407,6 +314,11 @@ BEGIN
 	RAISERROR('Error: Hay un error con el RFC del cliente.', 16, 1)
 	RETURN
 END
+
+--------------------------------------------------------------------------------
+-- APLICAR PAGOS EN FACTURA ####################################################
+
+EXEC _ven_prc_facturaPagos @idtran
 
 --------------------------------------------------------------------------------
 -- CONTABILIZAR VENTA CON COSTO ################################################

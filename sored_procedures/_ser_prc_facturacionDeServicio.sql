@@ -31,6 +31,7 @@ DECLARE
 	, @importe AS DECIMAL(18, 6)
 	, @impuesto AS DECIMAL(18, 6)
 	, @poliza_idtran AS INT = NULL
+	, @mensaje VARCHAR(500)
 
 SELECT
 	@usuario = u.usuario
@@ -113,6 +114,31 @@ SELECT
 FROM
 	#_tmp_detalle_ser
 	
+IF EXISTS(
+	SELECT *
+	FROM
+		ew_clientes_terminos AS ctr
+	WHERE
+		ctr.credito = 0
+		AND ctr.idcliente = @idcliente
+)
+BEGIN
+	SELECT 
+		@mensaje = (
+			'Error: '
+			+ 'El cliente '
+			+ c.nombre
+			+ ', no tiene credito autorizado.'
+		)
+	FROM
+		ew_clientes AS c
+	WHERE
+		c.idcliente = @idcliente
+
+	RAISERROR(@mensaje, 16, 1)
+	RETURN
+END
+
 EXEC _sys_prc_insertarTransaccion
 	@usuario
 	,@password
