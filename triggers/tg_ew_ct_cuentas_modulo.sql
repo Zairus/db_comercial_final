@@ -14,8 +14,13 @@ SET NOCOUNT ON
 
 DECLARE
 	@cuenta AS VARCHAR(20)
-	,@idmodulo AS INT
-	,@mensaje AS VARCHAR(500)
+	, @idmodulo AS INT
+	, @mensaje AS VARCHAR(500)
+
+IF UPDATE(llave) AND UPDATE(consecutivo) AND UPDATE(nivel)
+BEGIN
+	RETURN
+END
 
 DECLARE cur_valida_modulo CURSOR FOR
 	SELECT
@@ -30,6 +35,8 @@ FETCH NEXT FROM cur_valida_modulo INTO
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
+	SELECT @idmodulo = NULL
+
 	SELECT @idmodulo = emc.idmodulo
 	FROM 
 		db_comercial.dbo.evoluware_modulos_contabilidad  AS emc

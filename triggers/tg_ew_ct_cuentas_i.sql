@@ -1,6 +1,12 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
-ALTER TRIGGER [dbo].[tg_ew_ct_cuentas_i] ON [dbo].[ew_ct_cuentas] 
+-- =============================================
+-- Author:		Laurence Saavedra
+-- Create date: 20080501
+-- Description:	Validar insertar en cuentas contables
+-- =============================================
+ALTER TRIGGER [dbo].[tg_ew_ct_cuentas_i] 
+	ON [dbo].[ew_ct_cuentas] 
 	INSTEAD OF INSERT
 AS
 
@@ -8,13 +14,13 @@ SET NOCOUNT ON
 
 DECLARE 
 	@msg AS VARCHAR(100)
-	,@idcuenta AS INT
-	,@cont AS INT
-	,@cuenta AS VARCHAR(20)
-	,@cuentasup AS VARCHAR(20)
-	,@llave AS VARCHAR(50)
-	,@ejercicio AS SMALLINT
-	,@afectable AS BIT
+	, @idcuenta AS INT
+	, @cont AS INT
+	, @cuenta AS VARCHAR(20)
+	, @cuentasup AS VARCHAR(20)
+	, @llave AS VARCHAR(50)
+	, @ejercicio AS SMALLINT
+	, @afectable AS BIT
 
 DECLARE cur_ew_ct_cuentas_i CURSOR FOR
 	SELECT 
@@ -33,7 +39,7 @@ FETCH NEXT FROM cur_ew_ct_cuentas_i INTO
 	, @cuentasup
 	, @ejercicio
 
-WHILE @@fetch_status = 0
+WHILE @@FETCH_STATUS = 0
 BEGIN
 	SELECT @cont = 0
 	
