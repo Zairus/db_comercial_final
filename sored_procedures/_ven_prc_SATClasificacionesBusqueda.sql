@@ -22,5 +22,5 @@ SELECT
 FROM 
 	ew_cfd_sat_clasificaciones AS csc
 WHERE
-	csc.descripcion LIKE @busqueda
+	(csc.clave + ' ' + csc.descripcion + ' ' + csc.palabras_clave) LIKE @busqueda
 GO
