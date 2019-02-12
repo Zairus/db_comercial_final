@@ -7,7 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cfdi_prc_generarCadenaXML33_NOM]
 	@idtran AS INT
-	,@comprobante AS VARCHAR(MAX) OUTPUT
+	, @comprobante AS VARCHAR(MAX) OUTPUT
 AS
 
 SET NOCOUNT ON
@@ -17,8 +17,8 @@ DECLARE
 
 DECLARE
 	@cfd_fecha AS DATETIME = GETDATE()
-	,@namespace_text AS VARCHAR(MAX) = ''
-	,@schema_location AS VARCHAR(MAX) = ''
+	, @namespace_text AS VARCHAR(MAX) = ''
+	, @schema_location AS VARCHAR(MAX) = ''
 
 CREATE TABLE #_tmp_ns (
 	codigo VARCHAR(50)
@@ -54,19 +54,18 @@ SELECT
 FROM (
 	SELECT
 		@schema_location AS '@xsi:schemaLocation'
-		,'3.3' AS '@Version'
-		,cc.cfd_serie AS '@Serie'
-		,CONVERT(VARCHAR(15), cc.cfd_folio) AS '@Folio'
-		,CONVERT(VARCHAR(19), @cfd_fecha, 126) AS '@Fecha'
-		,cer.noCertificado AS '@NoCertificado'
-		,'N' AS '@TipoDeComprobante'
-		--,(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END) AS '@CondicionesDePago'
-		,ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
-		,cc.cfd_Moneda AS '@Moneda'
-		,dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) AS '@TipoCambio'
-		,dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@SubTotal'
+		, '3.3' AS '@Version'
+		, cc.cfd_serie AS '@Serie'
+		, CONVERT(VARCHAR(15), cc.cfd_folio) AS '@Folio'
+		, CONVERT(VARCHAR(19), @cfd_fecha, 126) AS '@Fecha'
+		, cer.noCertificado AS '@NoCertificado'
+		, 'N' AS '@TipoDeComprobante'
+		, ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
+		, cc.cfd_Moneda AS '@Moneda'
+		, dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) AS '@TipoCambio'
+		, dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@SubTotal'
 		
-		,(
+		, (
 			SELECT
 				SUM(
 					CONVERT(DECIMAL(18,2), ntm.importe_gravado)
@@ -78,7 +77,7 @@ FROM (
 				ntm.idtran = cc.idtran
 		) AS '@Total'
 
-		,(
+		, (
 			SELECT
 				CONVERT(
 					DECIMAL(18,2)
@@ -98,16 +97,16 @@ FROM (
 				AND ntm.idtran = cc.idtran
 		) AS '@Descuento'
 
-		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
-		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
-		,db_comercial.dbo.EWCFD('CERTIFICADO', cer.certificado + ' 1') AS '@Certificado'
+		, (CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
+		, (CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
+		, dbEVOLUWARE.dbo.base64_read(cer.certificado) AS '@Certificado'
 
 		--Emisor
 		,(
 			SELECT
 				cc.rfc_emisor AS '@Rfc'
-				,emisor_rfc.cfd_nombre AS '@Nombre'
-				,[dbo].[_sys_fnc_parametroTexto]('CFDI_REGIMEN') AS '@RegimenFiscal'
+				, emisor_rfc.cfd_nombre AS '@Nombre'
+				, [dbo].[_sys_fnc_parametroTexto]('CFDI_REGIMEN') AS '@RegimenFiscal'
 			FOR XML PATH('cfdi:Emisor'), TYPE
 		) AS '*'
 
@@ -130,14 +129,14 @@ FROM (
 		,(
 			SELECT
 				'84111505' AS '@ClaveProdServ'
-				,NULL AS '@NoIdentificacion'
-				,1 AS '@Cantidad'
-				,'ACT' AS '@ClaveUnidad'
-				,NULL AS '@Unidad'
-				,'Pago de nómina' AS '@Descripcion'
-				,dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@ValorUnitario'
-				,dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@Importe'
-				,(
+				, NULL AS '@NoIdentificacion'
+				, 1 AS '@Cantidad'
+				, 'ACT' AS '@ClaveUnidad'
+				, NULL AS '@Unidad'
+				, 'Pago de nómina' AS '@Descripcion'
+				, dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@ValorUnitario'
+				, dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@Importe'
+				, (
 					SELECT
 						CONVERT(
 							DECIMAL(18,2)
@@ -165,31 +164,31 @@ FROM (
 				(
 					SELECT
 						'1.2' AS '@Version'
-						,(
+						, (
 							dbo._sys_fnc_rellenar(YEAR(nt.fecha_inicial), 4, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(MONTH(nt.fecha_inicial), 2, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(DAY(nt.fecha_inicial), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(MONTH(nt.fecha_inicial), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(DAY(nt.fecha_inicial), 2, '0')
 						) AS '@FechaInicialPago'
-						,(
+						, (
 							dbo._sys_fnc_rellenar(YEAR(nt.fecha_final), 4, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(MONTH(nt.fecha_final), 2, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(DAY(nt.fecha_final), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(MONTH(nt.fecha_final), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(DAY(nt.fecha_final), 2, '0')
 						) AS '@FechaFinalPago'
-						,(
+						, (
 							dbo._sys_fnc_rellenar(YEAR(nt.fecha), 4, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(MONTH(nt.fecha), 2, '0')
-							+'-'
-							+dbo._sys_fnc_rellenar(DAY(nt.fecha), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(MONTH(nt.fecha), 2, '0')
+							+ '-'
+							+ dbo._sys_fnc_rellenar(DAY(nt.fecha), 2, '0')
 						) AS '@FechaPago'
-						,DATEDIFF(DAY, nt.fecha_inicial, nt.fecha_final) AS '@NumDiasPagados'
-						,'O' AS '@TipoNomina'
-						,0 AS '@TotalOtrosPagos'
-						,ISNULL(
+						, DATEDIFF(DAY, nt.fecha_inicial, nt.fecha_final) AS '@NumDiasPagados'
+						, 'O' AS '@TipoNomina'
+						, 0 AS '@TotalOtrosPagos'
+						, ISNULL(
 							CONVERT(DECIMAL(18,2), (
 								SELECT SUM(ABS(ccm.cfd_importe)) 
 								FROM ew_cfd_comprobantes_mov AS ccm 
@@ -199,7 +198,7 @@ FROM (
 							))
 							, 0
 						) AS '@TotalPercepciones'
-						,(
+						, (
 							SELECT
 								CONVERT(
 									DECIMAL(18,2)
@@ -223,8 +222,8 @@ FROM (
 						,(
 							SELECT
 								ISNULL(dbo.fn_sys_parametro('REGISTRO_PATRONAL'),'') AS '@RegistroPatronal'
-								,cc.rfc_emisor AS '@RfcPatronOrigen'
-								,(CASE WHEN dbo.fn_sys_parametro('CURP') = '' THEN NULL ELSE dbo.fn_sys_parametro('CURP') END) AS '@Curp'
+								, cc.rfc_emisor AS '@RfcPatronOrigen'
+								, (CASE WHEN dbo.fn_sys_parametro('CURP') = '' THEN NULL ELSE dbo.fn_sys_parametro('CURP') END) AS '@Curp'
 							FOR XML PATH('nomina12:Emisor'), TYPE
 						) AS '*'
 
@@ -232,33 +231,33 @@ FROM (
 						,(
 							SELECT
 								'P' + LTRIM(RTRIM(STR( ((DATEDIFF(DAY, ne.fecha_alta, nt.fecha_final) + 1) / 7) ))) + 'W' AS '@Antigüedad'
-								,'SON' AS '@ClaveEntFed'
-								,ne.clabe AS '@CuentaBancaria'
-								,ne.curp AS '@Curp'
-								,nd.codigo AS '@Departamento'
-								,(
+								, 'SON' AS '@ClaveEntFed'
+								, ne.clabe AS '@CuentaBancaria'
+								, ne.curp AS '@Curp'
+								, nd.codigo AS '@Departamento'
+								, (
 									dbo._sys_fnc_rellenar(YEAR(ne.fecha_alta), 4, '0')
-									+'-'
-									+dbo._sys_fnc_rellenar(MONTH(ne.fecha_alta), 2, '0')
-									+'-'
-									+dbo._sys_fnc_rellenar(DAY(ne.fecha_alta), 2, '0')
+									+ '-'
+									+ dbo._sys_fnc_rellenar(MONTH(ne.fecha_alta), 2, '0')
+									+ '-'
+									+ dbo._sys_fnc_rellenar(DAY(ne.fecha_alta), 2, '0')
 								) AS '@FechaInicioRelLaboral'
-								,ne.num_emp AS '@NumEmpleado'
-								,REPLACE(REPLACE(ne.numero_ss, '-', ''), ' ', '') AS '@NumSeguridadSocial'
-								,'04' AS '@PeriodicidadPago'
-								,(
+								, ne.num_emp AS '@NumEmpleado'
+								, REPLACE(REPLACE(ne.numero_ss, '-', ''), ' ', '') AS '@NumSeguridadSocial'
+								, '04' AS '@PeriodicidadPago'
+								, (
 									CASE 
 										WHEN LEN(ne.clabe) =  18 THEN NULL
 										ELSE RIGHT(sbb.c_banco, 3)
 									END
 								) AS '@Banco'
-								,ne.puesto AS '@Puesto'
-								,LTRIM(RTRIM(STR(ne.idriesgo))) AS '@RiesgoPuesto'
-								,CONVERT(DECIMAL(18,2), ne.sueldo_diario_integrado) AS '@SalarioDiarioIntegrado'
-								,'No' AS '@Sindicalizado'
-								,tc.codigo AS '@TipoContrato'
-								,tj.codigo AS '@TipoJornada'
-								,tr.codigo AS '@TipoRegimen'
+								, ne.puesto AS '@Puesto'
+								, LTRIM(RTRIM(STR(ne.idriesgo))) AS '@RiesgoPuesto'
+								, CONVERT(DECIMAL(18,2), ne.sueldo_diario_integrado) AS '@SalarioDiarioIntegrado'
+								, 'No' AS '@Sindicalizado'
+								, tc.codigo AS '@TipoContrato'
+								, tj.codigo AS '@TipoJornada'
+								, tr.codigo AS '@TipoRegimen'
 							FOR XML PATH('nomina12:Receptor'), TYPE
 						) AS '*'
 
@@ -280,7 +279,7 @@ FROM (
 										AND nct.clave NOT IN ('022', '023', '025', '039', '044', '017')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalSueldos'
-								,(
+								, (
 									SELECT
 										CONVERT(DECIMAL(18,2), SUM(ntm.importe_gravado))
 									FROM
@@ -294,7 +293,7 @@ FROM (
 										AND nct.clave NOT IN ('022', '023', '039', '044', '017')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalGravado'
-								,(
+								, (
 									SELECT
 										CONVERT(DECIMAL(18,2), SUM(ntm.importe_gravado))
 										+ CONVERT(DECIMAL(18,2), SUM(ntm.importe_exento))
@@ -309,7 +308,7 @@ FROM (
 										AND nct.clave IN ('025')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalSeparacionIndemnizacion'
-								,(
+								, (
 									SELECT
 										CONVERT(DECIMAL(18,2), SUM(ntm.importe_exento))
 									FROM
@@ -323,7 +322,7 @@ FROM (
 										AND nct.clave NOT IN ('022', '023', '039', '044', '017')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalExento'
-								,(
+								, (
 									SELECT
 										nct.clave AS '@TipoPercepcion'
 										,nct.clave AS '@Clave'
@@ -355,16 +354,16 @@ FROM (
 										AND ntm.idtran = cc.idtran
 									FOR XML PATH('nomina12:Percepcion'), TYPE
 								) AS '*'
-								,(
+								, (
 									SELECT
 										(
 											CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
-											+CONVERT(DECIMAL(18,2), ntm.importe_exento)
+											+ CONVERT(DECIMAL(18,2), ntm.importe_exento)
 										) AS '@TotalPagado'
-										,CONVERT(INT, ROUND((DATEDIFF(MONTH, ne.fecha_alta, nt.fecha) / 12.0), 0)) AS '@NumAñosServicio'
-										,CONVERT(DECIMAL(18,2), (ne.sueldo_diario_integrado * 30.4)) AS '@UltimoSueldoMensOrd'
-										,0 AS '@IngresoAcumulable'
-										,(
+										, CONVERT(INT, ROUND((DATEDIFF(MONTH, ne.fecha_alta, nt.fecha) / 12.0), 0)) AS '@NumAñosServicio'
+										, CONVERT(DECIMAL(18,2), (ne.sueldo_diario_integrado * 30.4)) AS '@UltimoSueldoMensOrd'
+										, 0 AS '@IngresoAcumulable'
+										, (
 											CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
 											+CONVERT(DECIMAL(18,2), ntm.importe_exento)
 										) AS '@IngresoNoAcumulable'
@@ -405,7 +404,7 @@ FROM (
 										AND nct.clave NOT IN ('002')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalOtrasDeducciones'
-								,(
+								, (
 									SELECT
 										CONVERT(
 											DECIMAL(18,2)
@@ -425,12 +424,12 @@ FROM (
 										AND nct.clave IN ('002')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalImpuestosRetenidos'
-								,(
+								, (
 									SELECT
 										nct.clave AS '@TipoDeduccion'
-										,nct.clave AS '@Clave'
-										,nc.nombre AS '@Concepto'
-										,ABS(
+										, nct.clave AS '@Clave'
+										, nc.nombre AS '@Concepto'
+										, ABS(
 											CONVERT(DECIMAL(18,2), ntm.importe_gravado)
 											+ CONVERT(DECIMAL(18,2), ntm.importe_exento)
 										) AS '@Importe'

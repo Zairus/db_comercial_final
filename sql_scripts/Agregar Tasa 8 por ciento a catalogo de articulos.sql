@@ -46,6 +46,8 @@ FROM
 	##_tmp_ait AS tait
 	LEFT JOIN ew_articulos_impuestos_tasas AS ait
 		ON ait.idr = tait.idr
+WHERE
+	ait.idzona = 0
 
 INSERT INTO ew_articulos_impuestos_tasas (
 	idarticulo

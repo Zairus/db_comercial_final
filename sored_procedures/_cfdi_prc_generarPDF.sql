@@ -43,7 +43,7 @@ SELECT TOP 1
 		+ '&dsu:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?52')
 		+ '&dsp:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?53')
 		+ '&rs:format=PDF'
-		+ '&ServidorSQL=Data Source=104.198.96.129,1093;Initial Catalog=' + DB_NAME()
+		+ '&ServidorSQL=Data Source=erp.evoluware.com,1093;Initial Catalog=' + DB_NAME()
 		+ '&idtran={idtran}'
 	), p.PDF_RS)
 FROM
@@ -78,7 +78,7 @@ END
 
 SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15),@idtran)))
 
-SELECT @success = db_comercial.dbo.WEB_download(@PDF_rs, @ruta, '', '')
+SELECT @success = [dbEVOLUWARE].[dbo].[web_download_v2](@PDF_rs, @ruta, '', '')
 
 IF @success != 1
 BEGIN

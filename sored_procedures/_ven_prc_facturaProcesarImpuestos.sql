@@ -38,8 +38,20 @@ SELECT
 	,[importe] = CONVERT(DECIMAL(18,2), (CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion)) * cit.tasa))
 FROM
 	ew_ven_transacciones_mov AS vom
+	
+	LEFT JOIN ew_ven_transacciones AS vt
+		ON vt.idtran = vom.idtran
+	LEFT JOIN ew_sys_sucursales AS ss
+		ON ss.idsucursal = vt.idsucursal
+	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_codigopostal AS scp
+		ON scp.c_codigopostal = ss.codpostal
+
 	LEFT JOIN ew_articulos_impuestos_tasas AS ait
 		ON ait.idarticulo = vom.idarticulo
+		AND (
+			ait.idzona = scp.idzona
+			OR ait.idzona = 0
+		)
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
 		ON cit.idtasa = ait.idtasa
 WHERE

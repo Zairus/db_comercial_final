@@ -7,7 +7,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cfdi_prc_generarCadenaXML33_R2]
 	@idtran AS INT
-	,@comprobante AS VARCHAR(MAX) OUTPUT
+	, @comprobante AS VARCHAR(MAX) OUTPUT
 AS
 
 SET NOCOUNT ON
@@ -17,8 +17,8 @@ DECLARE
 
 DECLARE
 	@cfd_fecha AS DATETIME = GETDATE()
-	,@namespace_text AS VARCHAR(MAX) = ''
-	,@schema_location AS VARCHAR(MAX) = ''
+	, @namespace_text AS VARCHAR(MAX) = ''
+	, @schema_location AS VARCHAR(MAX) = ''
 
 CREATE TABLE #_tmp_ns (
 	codigo VARCHAR(50)
@@ -63,19 +63,19 @@ SELECT
 FROM (
 	SELECT
 		@schema_location AS '@xsi:schemaLocation'
-		,'3.3' AS '@Version'
-		,cc.cfd_serie AS '@Serie'
-		,CONVERT(VARCHAR(15), cc.cfd_folio) AS '@Folio'
-		,CONVERT(VARCHAR(19), @cfd_fecha, 126) AS '@Fecha'
-		,cer.noCertificado AS '@NoCertificado'
-		,REPLACE(REPLACE(cc.cfd_tipoDeComprobante, 'ingreso', 'I'), 'egreso', 'E') AS '@TipoDeComprobante'
-		,NULL AS '@CondicionesDePago' --(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END)
-		,ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) END) AS '@TipoCambio'
-		,(CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) END) AS '@SubTotal'
+		, '3.3' AS '@Version'
+		, cc.cfd_serie AS '@Serie'
+		, CONVERT(VARCHAR(15), cc.cfd_folio) AS '@Folio'
+		, CONVERT(VARCHAR(19), @cfd_fecha, 126) AS '@Fecha'
+		, cer.noCertificado AS '@NoCertificado'
+		, REPLACE(REPLACE(cc.cfd_tipoDeComprobante, 'ingreso', 'I'), 'egreso', 'E') AS '@TipoDeComprobante'
+		, NULL AS '@CondicionesDePago' --(CASE WHEN cc.cdf_condicionesDePago = '' THEN NULL ELSE cc.cdf_condicionesDePago END)
+		, ISNULL(s.codpostal, '83000') AS '@LugarExpedicion'
+		, (CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN 'XXX' ELSE cc.cfd_Moneda END) AS '@Moneda'
+		, (CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL ELSE dbo._sys_fnc_decimales(cc.cfd_TipoCambio, (CASE WHEN cc.cfd_Moneda = 'MXN' THEN 0 ELSE 6 END)) END) AS '@TipoCambio'
+		, (CASE WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' ELSE dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) END) AS '@SubTotal'
 		
-		,(
+		, (
 			CASE 
 				WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0' 
 				ELSE dbo._sys_fnc_decimales(
@@ -107,13 +107,12 @@ FROM (
 			END
 		) AS '@Total'
 
-		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
-		,(CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
-		,db_comercial.dbo.EWCFD('CERTIFICADO', cer.certificado + ' 1') AS '@Certificado'
-		--,'' AS '@Sello'
+		, (CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_metodoDePago ELSE NULL END) AS '@FormaPago'
+		, (CASE WHEN cc.cfd_tipoDeComprobante NOT IN ('P') THEN cc.cfd_formaDePago ELSE NULL END) AS '@MetodoPago'
+		, dbEVOLUWARE.dbo.base64_read(cer.certificado) AS '@Certificado'
 		
 		--CfdiRelacionados
-		,(
+		, (
 			SELECT
 				ISNULL(cst.c_tiporelacion, csto.c_tiporelacion) AS '@TipoRelacion'
 				,(
@@ -137,7 +136,7 @@ FROM (
 		) AS '*'
 
 		--Emisor
-		,(
+		, (
 			SELECT
 				cc.rfc_emisor AS '@Rfc'
 				,emisor_rfc.cfd_nombre AS '@Nombre'
@@ -146,7 +145,7 @@ FROM (
 		) AS '*'
 
 		--Receptor
-		,(
+		, (
 			SELECT
 				cc.rfc_receptor AS '@Rfc'
 				,(
@@ -161,10 +160,10 @@ FROM (
 		) AS '*'
 		
 		--Conceptos
-		,(
+		, (
 			SELECT
 				csc.clave AS '@ClaveProdServ'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL
 						ELSE (
@@ -177,27 +176,27 @@ FROM (
 						)
 					END
 				) AS '@NoIdentificacion'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '1'
 						ELSE CONVERT(VARCHAR(20), ccm.cfd_cantidad)
 					END
 				) AS '@Cantidad'
 				,ISNULL(um.sat_unidad_clave, 'EA') AS '@ClaveUnidad'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN NULL
 						ELSE ccm.cfd_unidad
 					END
 				) AS '@Unidad'
 				,ccm.cfd_descripcion AS '@Descripcion'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0'
 						ELSE dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 6)
 					END
 				) AS '@ValorUnitario'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0'
 						ELSE dbo._sys_fnc_decimales(ccm.cfd_importe, csm.decimales)
@@ -206,7 +205,7 @@ FROM (
 				--,ccm.cfd_descuento AS '@Descuento'
 				
 				--Impuestos por conceptos
-				,(
+				, (
 					SELECT
 						(
 							SELECT
@@ -285,7 +284,7 @@ FROM (
 				) AS '*'
 
 				--Partes
-				,(
+				, (
 					SELECT
 						csc.clave AS '@ClaveProdServ'
 						,(CASE WHEN ccmp.cfd_noIdentificacion = '' THEN NULL ELSE ccmp.cfd_noIdentificacion END) AS '@NoIdentificacion'
@@ -327,7 +326,7 @@ FROM (
 		) AS 'cfdi:Conceptos'
 		
 		--Impuestos
-		,(
+		, (
 			SELECT
 				(
 					CASE
@@ -349,7 +348,7 @@ FROM (
 							)
 					END
 				) AS '@TotalImpuestosRetenidos'
-				,(
+				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN
 							'0'
@@ -369,7 +368,7 @@ FROM (
 							)
 					END
 				) AS '@TotalImpuestosTrasladados'
-				,(
+				, (
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,dbo._sys_fnc_decimales(SUM(cci.cfd_importe), csm.decimales) AS '@Importe'
@@ -385,7 +384,7 @@ FROM (
 						ISNULL(csi.c_impuesto, '002')
 					FOR XML PATH('cfdi:Retencion'), TYPE
 				) AS 'cfdi:Retenciones'
-				,(
+				, (
 					SELECT
 						ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 						,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
@@ -419,7 +418,7 @@ FROM (
 			FOR XML PATH ('cfdi:Impuestos'), TYPE
 		) AS '*'
 		
-		,(
+		, (
 			SELECT
 				(
 					SELECT
@@ -427,49 +426,48 @@ FROM (
 						,(
 							SELECT
 								CONVERT(VARCHAR(19), p.fecha_operacion, 126) AS '@FechaPago'
-								,ccp.cfd_metodoDePago AS '@FormaDePagoP'
-								,ccp.cfd_moneda AS '@MonedaP'
-								,(CASE WHEN ccp.cfd_moneda = 'MXN' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
-								,dbo._sys_fnc_decimales(ccp.cfd_total, csm.decimales) AS '@Monto'
-								,(CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
-								,NULL AS '@RfcEmisorCtaOrd'
-								,(CASE WHEN ccb.extranjero = 1 THEN cbb.nombre ELSE NULL END) AS '@NomBancoOrdExt'
-								,(
+								, ccp.cfd_metodoDePago AS '@FormaDePagoP'
+								, ccp.cfd_moneda AS '@MonedaP'
+								, (CASE WHEN ccp.cfd_moneda = 'MXN' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'
+								, dbo._sys_fnc_decimales(ccp.cfd_total, csm.decimales) AS '@Monto'
+								, (CASE WHEN p.referencia = '' THEN NULL ELSE p.referencia END) AS '@NumOperacion'
+								, NULL AS '@RfcEmisorCtaOrd'
+								, (CASE WHEN ccb.extranjero = 1 THEN cbb.nombre ELSE NULL END) AS '@NomBancoOrdExt'
+								, (
 									CASE 
 										WHEN LEN(p.clabe_origen) = 0 THEN NULL 
 										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
 										ELSE p.clabe_origen 
 									END
 								) AS '@CtaOrdenante'
-								,(
+								, (
 									CASE
 										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
 										ELSE cbb_e.rfc
 									END
 								) AS '@RfcEmisorCtaBen'
-								,(	
+								, (	
 									CASE
 										WHEN ISNULL(csfpp.bancarizado, 0) = 0 THEN NULL
 										ELSE bc.clabe
 									END
 								) AS '@CtaBeneficiario'
-								,NULL AS '@TipoCadPago'
-								,NULL AS '@CertPago'
-								,NULL AS '@CadPago'
-								,NULL AS '@SelloPago'
-								,(
+								, NULL AS '@TipoCadPago'
+								, NULL AS '@CertPago'
+								, NULL AS '@CadPago'
+								, NULL AS '@SelloPago'
+								, (
 									SELECT
 										ccft.cfdi_UUID AS '@IdDocumento'
-										,ccf.cfd_serie AS '@Serie'
-										,ccf.cfd_folio AS '@Folio'
-										,ccf.cfd_moneda AS '@MonedaDR'
-										,(CASE WHEN ccp.cfd_moneda = ccf.cfd_moneda THEN NULL ELSE ccf.cfd_tipoCambio END) AS '@TipoCambioDR'
-										--,(CASE WHEN ccf.cfd_moneda IN ('MXN', 'XXX') THEN NULL ELSE ccf.cfd_tipoCambio END) AS '@TipoCambioDR'
-										,ccf.cfd_formaDePago AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
-										,(SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS np WHERE np.idtran2 = ctm.idtran2 AND np.idtran <= ctm.idtran) AS '@NumParcialidad'
-										,(dbo._sys_fnc_decimales(f.saldo + ctm.importe2, csm.decimales)) AS '@ImpSaldoAnt'
-										,dbo._sys_fnc_decimales(ctm.importe2, csm.decimales) AS '@ImpPagado'
-										,(dbo._sys_fnc_decimales(f.saldo, csm.decimales)) AS '@ImpSaldoInsoluto'
+										, ccf.cfd_serie AS '@Serie'
+										, ccf.cfd_folio AS '@Folio'
+										, ccf.cfd_moneda AS '@MonedaDR'
+										, (CASE WHEN ccp.cfd_moneda = ccf.cfd_moneda THEN NULL ELSE ccf.cfd_tipoCambio END) AS '@TipoCambioDR'
+										, ccf.cfd_formaDePago AS '@MetodoDePagoDR' --ccf.cfd_formaDePago
+										, (SELECT COUNT(*) FROM ew_cxc_transacciones_mov AS np WHERE np.idtran2 = ctm.idtran2 AND np.idtran <= ctm.idtran) AS '@NumParcialidad'
+										, (dbo._sys_fnc_decimales(f.saldo + ctm.importe2, csm.decimales)) AS '@ImpSaldoAnt'
+										, dbo._sys_fnc_decimales(ctm.importe2, csm.decimales) AS '@ImpPagado'
+										, (dbo._sys_fnc_decimales(f.saldo, csm.decimales)) AS '@ImpSaldoInsoluto'
 									FROM
 										ew_cxc_transacciones_mov AS ctm
 										LEFT JOIN ew_cfd_comprobantes AS ccf
@@ -482,7 +480,7 @@ FROM (
 										ctm.idtran = cc.idtran
 									FOR XML PATH('pago10:DoctoRelacionado'), TYPE
 								) AS '*'
-								,(
+								, (
 									SELECT
 										ISNULL((
 											SELECT 
@@ -494,7 +492,7 @@ FROM (
 												AND ccip.idtipo = 2
 												AND ccip.idtran = cc.idtran
 										), 0) AS '@TotalImpuestosRetenidos'
-										,ISNULL((
+										, ISNULL((
 											SELECT 
 												SUM(ccip.cfd_importe) 
 											FROM 
@@ -504,7 +502,7 @@ FROM (
 												AND ccip.idtipo = 1
 												AND ccip.idtran = cc.idtran
 										), 0) AS '@TotalImpuestosTrasladados'
-										,(
+										, (
 											SELECT
 												ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 												,SUM(cci.cfd_importe) AS '@Importe'
@@ -520,7 +518,7 @@ FROM (
 												ISNULL(csi.c_impuesto, '002')
 											FOR XML PATH('pago10:Retencion'), TYPE
 										) AS 'pago10:Retenciones'
-										,(
+										, (
 											SELECT
 												ISNULL(csi.c_impuesto, '002') AS '@Impuesto'
 												,'Tasa' AS '@TipoFactor' --Tasa; Cuota; Exento
@@ -608,7 +606,7 @@ SELECT @comprobante = '<?xml version="1.0" encoding="utf-8"?>' + CONVERT(VARCHAR
 
 SELECT
 	@comprobante = REPLACE(@comprobante, ' xmlns:' + xmlns.codigo + '="' + xmlns.uri + '"', '')
-	,@namespace_text = (
+	, @namespace_text = (
 		@namespace_text 
 		+ (
 			CASE 

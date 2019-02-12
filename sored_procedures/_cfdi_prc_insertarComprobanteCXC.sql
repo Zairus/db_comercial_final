@@ -285,7 +285,8 @@ FROM
 		ON c.idciudad = f.idciudad
 WHERE
 	cxc.idtran = @idtran
-
+	AND f.idr IS NOT NULL
+	
 UNION ALL
 
 SELECT

@@ -12,6 +12,10 @@ AS
 
 SET NOCOUNT ON
 
+DECLARE
+	@idcliente AS INT
+	, @plan_codigo AS VARCHAR(10)
+
 IF EXISTS (
 	SELECT
 		*
@@ -25,33 +29,28 @@ BEGIN
 	RETURN
 END
 
-UPDATE csp SET
-	csp.costo = (
-		SELECT SUM(ISNULL(vlm.precio1, 0))
-		FROM 
-			ew_clientes_servicio_equipos AS cse
-			LEFT JOIN ew_ser_equipos AS e
-				ON e.idequipo = cse.idequipo
-			LEFT JOIN ew_ven_listaprecios_mov AS vlm
-				ON vlm.idlista = CONVERT(INT, dbo._sys_fnc_parametroTexto('SER_LISTA_PRECIOS_RENTA'))
-				AND vlm.idarticulo = e.idarticulo
-		WHERE
-			cse.idcliente = csp.idcliente
-			AND cse.plan_codigo = csp.plan_codigo
-	)
-FROM
-	ew_clientes_servicio_planes AS csp
-WHERE
-	csp.plan_codigo IN (
-		SELECT
-			i.plan_codigo
-		FROM
-			inserted AS i
-	)
-	AND csp.idcliente IN (
-		SELECT
-			i.idcliente
-		FROM
-			inserted AS i
-	)
+DECLARE cur_planCosto CURSOR FOR
+	SELECT DISTINCT
+		i.idcliente
+		, i.plan_codigo
+	FROM
+		inserted AS i
+
+OPEN cur_planCosto
+
+FETCH NEXT FROM cur_planCosto INTO
+	@idcliente
+	, @plan_codigo
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	EXEC [dbo].[_ser_prc_planCalcularCosto] @idcliente, @plan_codigo
+
+	FETCH NEXT FROM cur_planCosto INTO
+		@idcliente
+		, @plan_codigo
+END
+
+CLOSE cur_planCosto
+DEALLOCATE cur_planCosto
 GO

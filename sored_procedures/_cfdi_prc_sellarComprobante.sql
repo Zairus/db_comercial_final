@@ -6,82 +6,84 @@ GO
 -- Description:	Sella un Comprobante Fiscal Digital
 -- =============================================
 ALTER PROCEDURE [dbo].[_cfdi_prc_sellarComprobante]
-	 @idtran AS INT
-	,@archivoXML AS VARCHAR(200)
+	@idtran AS INT
+	, @archivoXML AS VARCHAR(200)
 AS
 
 SET NOCOUNT ON
 
 DECLARE 
 	@idcertificado AS SMALLINT
-	,@idtimbre AS INT
-	,@restantes AS INT
+	, @idtimbre AS INT
+	, @restantes AS INT
 
 DECLARE
 	@msg AS VARCHAR(4000)
 
 DECLARE 
 	@rfc_emisor AS VARCHAR(13)
-	,@rfc_receptor AS VARCHAR(13)
-	,@cfd_total AS DECIMAL(17,6)
-	,@QR_Base64 AS NVARCHAR(MAX)
-	,@QR_code AS VARBINARY(MAX)
+	, @rfc_receptor AS VARCHAR(13)
+	, @cfd_total AS DECIMAL(17,6)
+	, @QR_Base64 AS NVARCHAR(MAX)
+	, @QR_code AS VARBINARY(MAX)
 
 DECLARE
 	@noCertificado AS VARCHAR(200)
-	,@ruta AS VARCHAR(200)
-	,@comprobante AS VARCHAR(MAX)
-	,@cadena AS VARCHAR(MAX)
-	,@tmp AS VARCHAR(200)
-	,@xmlCFDi AS VARCHAR(MAX)
-	,@idpac AS INT
-	,@pac_codigo AS VARCHAR(50)
+	, @ruta AS VARCHAR(200)
+	, @comprobante AS VARCHAR(MAX)
+	, @cadena AS VARCHAR(MAX)
+	, @tmp AS VARCHAR(200)
+	, @xmlCFDi AS VARCHAR(MAX)
+	, @idpac AS INT
+	, @pac_codigo AS VARCHAR(50)
 
 DECLARE
 	@r AS BIT
-	,@sello AS NVARCHAR(MAX)
+	, @sello AS NVARCHAR(MAX)
 
 DECLARE
 	@pac_contrato AS VARCHAR(36)
-	,@pac_usr AS VARCHAR(50)
-	,@pac_pwd AS VARCHAR(50)
-	,@pac_wsdl_url AS VARCHAR(200)
-	,@pac_prueba AS BIT
+	, @pac_usr AS VARCHAR(50)
+	, @pac_pwd AS VARCHAR(50)
+	, @pac_wsdl_url AS VARCHAR(200)
+	, @pac_prueba AS BIT
 
 DECLARE
 	@codigo AS VARCHAR(10)
-	,@mensaje AS VARCHAR(500)
-	,@version AS VARCHAR(MAX)
-	,@UUID AS VARCHAR(MAX)
-	,@FechaTimbrado AS VARCHAR(MAX)
-	,@selloCFD AS VARCHAR(MAX)
-	,@noCertificadoSAT AS VARCHAR(MAX)
-	,@selloSAT AS VARCHAR(MAX)
-	,@xmlBase64 AS VARCHAR(MAX)
-	,@cadena_original_timbrado AS VARCHAR(MAX)
+	, @mensaje AS VARCHAR(500)
+	, @version AS VARCHAR(MAX)
+	, @UUID AS VARCHAR(MAX)
+	, @FechaTimbrado AS VARCHAR(MAX)
+	, @selloCFD AS VARCHAR(MAX)
+	, @noCertificadoSAT AS VARCHAR(MAX)
+	, @selloSAT AS VARCHAR(MAX)
+	, @xmlBase64 AS VARCHAR(MAX)
+	, @cadena_original_timbrado AS VARCHAR(MAX)
 
-	,@xmlSellado AS NVARCHAR(MAX)
-	,@xmlSellado64 AS NVARCHAR (MAX)
-	,@xmlTimbrado AS NVARCHAR(MAX)
-	,@xmlTimbrado64 AS NVARCHAR (MAX)
-	,@soapXml AS NVARCHAR(MAX)
-	,@soapXmlResponse AS NVARCHAR(MAX)
+	, @xmlSellado AS NVARCHAR(MAX)
+	, @xmlSellado64 AS NVARCHAR (MAX)
+	, @xmlTimbrado AS NVARCHAR(MAX)
+	, @xmlTimbrado64 AS NVARCHAR (MAX)
+	, @soapXml AS NVARCHAR(MAX)
+	, @soapXmlResponse AS NVARCHAR(MAX)
 
 DECLARE
 	@bin_xml AS VARBINARY(MAX)
-	,@str_xml AS VARCHAR(MAX)
+	, @str_xml AS VARCHAR(MAX)
 
 DECLARE
 	@xslt AS VARCHAR(1000)
-	,@firma AS VARCHAR(MAX)
+	, @firma_path AS VARCHAR(500)
+	, @firma_clave AS VARCHAR(500)
+	, @firma AS VARCHAR(MAX)
 
 DECLARE
 	@error_xml AS XML
-	,@error_fatal AS BIT = 1
+	, @error_fatal AS BIT = 1
 
 DECLARE
 	@transaccion AS VARCHAR(5)
-	
+
 IF NOT EXISTS(SELECT idtran FROM ew_cfd_comprobantes WHERE idtran = @idtran)
 BEGIN
 	SELECT @msg = 'No existe el comprobante'
@@ -98,8 +100,8 @@ WHERE
 
 SELECT
 	@rfc_emisor = c.rfc_emisor
-	,@rfc_receptor = c.rfc_receptor
-	,@cfd_total = cfd_total
+	, @rfc_receptor = c.rfc_receptor
+	, @cfd_total = cfd_total
 FROM
 	dbo.ew_cfd_comprobantes AS c
 WHERE
@@ -119,18 +121,19 @@ END
 ----------------------------------------------------------------
 SELECT TOP 1 
 	@idcertificado = f.idcertificado
-	,@ruta = directorio
-	,@tmp = RTRIM(rfc_emisor) + '_' + RTRIM(cfd_serie) + '-' + dbo.fnRellenar(RTRIM(CONVERT(VARCHAR(10),cfd_folio)),5,'0') + '.xml'
-	,@idpac = fc.idpac
-	,@pac_codigo = ep.codigo
-	,@pac_contrato = ep.contrato
-	,@pac_wsdl_url = ep.wsdl_url
-	,@pac_usr = pc.usuario
-	,@pac_pwd = pc.clave_acceso
-	,@pac_prueba = fc.prueba
+	, @ruta = directorio
+	, @tmp = RTRIM(rfc_emisor) + '_' + RTRIM(cfd_serie) + '-' + dbo.fnRellenar(RTRIM(CONVERT(VARCHAR(10),cfd_folio)),5,'0') + '.xml'
+	, @idpac = fc.idpac
+	, @pac_codigo = ep.codigo
+	, @pac_contrato = ep.contrato
+	, @pac_wsdl_url = ep.wsdl_url
+	, @pac_usr = pc.usuario
+	, @pac_pwd = pc.clave_acceso
+	, @pac_prueba = fc.prueba
 
-	,@xslt = fc.cadenaOriginal
-	,@firma = db_comercial.dbo.EWCFD('LLAVE', fc.firma + ' ' + dbo.fn_sys_desencripta([fc].[contraseña], ''))
+	, @xslt = fc.cadenaOriginal
+	, @firma_path = fc.firma
+	, @firma_clave = dbo.fn_sys_desencripta([fc].[contraseña], '')
 FROM	
 	ew_cfd_comprobantes AS c 
 	LEFT JOIN ew_cfd_folios AS f
@@ -141,9 +144,11 @@ FROM
 		ON ep.idpac = fc.idpac
 	LEFT JOIN ew_cat_pac_credenciales AS pc
 		ON ep.idpac = pc.idpac
-WHERE	
+WHERE
 	c.idtran = @idtran
 	
+EXEC [dbEVOLUWARe].[dbo].[_cfdi_prc_convertirKeyAXML] @firma_path, @firma_clave, @firma OUTPUT
+
 IF RIGHT(@ruta, 1) != '\' 
 	SELECT @ruta = @ruta + '\'
 
@@ -233,15 +238,15 @@ BEGIN TRY
 	BEGIN
 		UPDATE ew_cfd_comprobantes_timbre SET
 			cfdi_FechaTimbrado = @FechaTimbrado
-			,cfdi_versionTFD = @version
-			,cfdi_UUID = @UUID
-			,cfdi_noCertificadoSAT = @noCertificadoSAT
-			,cfdi_selloDigital = @selloSAT
-			,cfdi_cadenaOriginal = @cadena_original_timbrado
-			,cfdi_respuesta_codigo = @codigo
-			,cfdi_respuesta_mensaje = @mensaje
-			,QRCode = @QR_code
-			,cfdi_prueba = @pac_prueba
+			, cfdi_versionTFD = @version
+			, cfdi_UUID = @UUID
+			, cfdi_noCertificadoSAT = @noCertificadoSAT
+			, cfdi_selloDigital = @selloSAT
+			, cfdi_cadenaOriginal = @cadena_original_timbrado
+			, cfdi_respuesta_codigo = @codigo
+			, cfdi_respuesta_mensaje = @mensaje
+			, QRCode = @QR_code
+			, cfdi_prueba = @pac_prueba
 		WHERE
 			idtran = @idtran
 	END
@@ -249,29 +254,29 @@ BEGIN TRY
 	BEGIN
 		INSERT INTO ew_cfd_comprobantes_timbre (
 			idtran
-			,cfdi_FechaTimbrado
-			,cfdi_versionTFD
-			,cfdi_UUID
-			,cfdi_noCertificadoSAT
-			,cfdi_selloDigital
-			,cfdi_cadenaOriginal
-			,cfdi_respuesta_codigo
-			,cfdi_respuesta_mensaje
-			,QRCode
-			,cfdi_prueba
+			, cfdi_FechaTimbrado
+			, cfdi_versionTFD
+			, cfdi_UUID
+			, cfdi_noCertificadoSAT
+			, cfdi_selloDigital
+			, cfdi_cadenaOriginal
+			, cfdi_respuesta_codigo
+			, cfdi_respuesta_mensaje
+			, QRCode
+			, cfdi_prueba
 		)
 		VALUES (
 			@idtran
-			,@FechaTimbrado
-			,@version
-			,@UUID
-			,@noCertificadoSAT
-			,@selloSAT
-			,@cadena_original_timbrado
-			,@codigo
-			,@mensaje
-			,@QR_code
-			,@pac_prueba
+			, @FechaTimbrado
+			, @version
+			, @UUID
+			, @noCertificadoSAT
+			, @selloSAT
+			, @cadena_original_timbrado
+			, @codigo
+			, @mensaje
+			, @QR_code
+			, @pac_prueba
 		)
 	END
 
@@ -284,13 +289,14 @@ END TRY
 BEGIN CATCH
 	SELECT @error_fatal = 0
 	SELECT @msg = ERROR_MESSAGE()
+
 	GOTO ERROR_HANDLING
 END CATCH
 
 UPDATE ew_cfd_comprobantes_sello SET 
 	cadenaOriginal = @cadena
-	,cfd_sello = @sello
-	,archivoXML = @archivoXML
+	, cfd_sello = @sello
+	, archivoXML = @archivoXML
 WHERE
 	idtran = @idtran
 
@@ -303,8 +309,8 @@ BEGIN
 	)
 	SELECT
 		idtran = @idtran
-		,cadenaOriginal = @cadena
-		,cfd_sello = @sello
+		, cadenaOriginal = @cadena
+		, cfd_sello = @sello
 END
 
 UPDATE ew_cfd_comprobantes SET cfd_noCertificado = @noCertificado WHERE idtran = @idtran
@@ -326,13 +332,13 @@ BEGIN TRY
 	BEGIN
 		INSERT INTO ew_cfd_comprobantes_xml (
 			uuid
-			,xml_base64
-			,xml_cfdi
+			, xml_base64
+			, xml_cfdi
 		)
 		VALUES (
 			@UUID
-			,@xmlBase64
-			,@str_xml
+			, @xmlBase64
+			, @str_xml
 		)
 	END
 
