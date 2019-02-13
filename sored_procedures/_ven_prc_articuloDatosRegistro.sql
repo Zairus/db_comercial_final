@@ -91,8 +91,13 @@ SELECT
 		* @precio_factor
 	)
 
-	, [existencia] = [as].existencia
-	, [comprometida] = dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
+	, [existencia] = ISNULL(aa.existencia, 0)
+	, [comprometida] = (
+		CASE
+			WHEN a.inventariable = 1 THEN dbo.fn_inv_existenciaComprometida(a.idarticulo, @idalmacen)
+			ELSE 0
+		END
+	)
 
 	, [idimpuesto1] = 0
 	, [idimpuesto1_valor] = 0
@@ -156,6 +161,9 @@ FROM
 	LEFT JOIN ew_articulos_sucursales AS [as]
 		ON [as].idarticulo = a.idarticulo
 		AND [as].idsucursal = s.idsucursal
+	LEFT JOIN ew_articulos_almacenes AS aa
+		ON aa.idarticulo = a.idarticulo
+		AND aa.idalmacen = @idalmacen
 	LEFT JOIN ew_cat_marcas AS m 
 			ON a.idmarca = m.idmarca
 	LEFT JOIN ew_cfd_sat_clasificaciones AS csc

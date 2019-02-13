@@ -25,6 +25,7 @@ SELECT
 	,[descripcion] = a.nombre
 	,[idum] = om.idum
 	,[existencia] = ISNULL(aa.existencia, 0) --(Febrero 28, 2018)
+	,[comprometida] = dbo.fn_inv_existenciaComprometida(om.idarticulo,doc.idalmacen)
 	,[precio_minimo] = 0
 	,[cantidad_porFacturar]= cantidad_porFacturar
 	,[cantidad_porSurtir]= cantidad_porSurtir
@@ -50,26 +51,26 @@ SELECT
 	,[idalmacen] = doc.idalmacen
 	,[cuenta_sublinea] = subl.contabilidad
 	
-	,[idimpuesto1] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 1, a.idarticulo), a.idimpuesto1)
-	,[idimpuesto1_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 1, a.idarticulo), 0.16)
-	,[idimpuesto1_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 1, a.idarticulo, 1), '2130001002')
-	,[idimpuesto2] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IEPS', 1, a.idarticulo), a.idimpuesto2)
-	,[idimpuesto2_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IEPS', 1, a.idarticulo), 0.0)
-	,[idimpuesto2_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IEPS', 1, a.idarticulo, 1), '')
-	,[idimpuesto1_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 2, a.idarticulo), a.idimpuesto1_ret)
-	,[idimpuesto1_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 2, a.idarticulo), 0.0)
-	,[idimpuesto1_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 2, a.idarticulo, 1), '')
-	,[idimpuesto2_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('ISR', 2, a.idarticulo), a.idimpuesto2_ret)
-	,[idimpuesto2_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('ISR', 2, a.idarticulo), 0.0)
-	,[idimpuesto2_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('ISR', 2, a.idarticulo, 1), '')
-	,[ingresos_cuenta] = ISNULL([dbo].[_ct_fnc_articuloIngresosCuenta](a.idarticulo), '4100001000')
+	,[idimpuesto1] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 1, a.idarticulo, doc.idsucursal), a.idimpuesto1)
+	,[idimpuesto1_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 1, a.idarticulo, doc.idsucursal), 0.16)
+	,[idimpuesto1_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 1, a.idarticulo, 1, doc.idsucursal), '2130001002')
+	,[idimpuesto2] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IEPS', 1, a.idarticulo, doc.idsucursal), a.idimpuesto2)
+	,[idimpuesto2_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IEPS', 1, a.idarticulo, doc.idsucursal), 0.0)
+	,[idimpuesto2_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IEPS', 1, a.idarticulo, 1, doc.idsucursal), '')
+	,[idimpuesto1_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('IVA', 2, a.idarticulo, doc.idsucursal), a.idimpuesto1_ret)
+	,[idimpuesto1_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('IVA', 2, a.idarticulo, doc.idsucursal), 0.0)
+	,[idimpuesto1_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('IVA', 2, a.idarticulo, 1, doc.idsucursal), '')
+	,[idimpuesto2_ret] = ISNULL([dbo].[_ct_fnc_articuloImpuestoId]('ISR', 2, a.idarticulo, doc.idsucursal), a.idimpuesto2_ret)
+	,[idimpuesto2_ret_valor] = ISNULL([dbo].[_ct_fnc_articuloImpuestoTasa]('ISR', 2, a.idarticulo, doc.idsucursal), 0.0)
+	,[idimpuesto2_ret_cuenta] = ISNULL([dbo].[_ct_fnc_articuloImpuestoCuenta]('ISR', 2, a.idarticulo, 1, doc.idsucursal), '')
+	,[ingresos_cuenta] = ISNULL([dbo].[_ct_fnc_articuloIngresosCuenta](a.idarticulo, doc.idsucursal), '4100001000')
 	,[objlevel] = om.objlevel
 FROM 
 	ew_ven_ordenes_mov AS om
 	LEFT JOIN ew_articulos AS a 
-		ON a.idarticulo =om.idarticulo
+		ON a.idarticulo = om.idarticulo
 	LEFT JOIN ew_ven_ordenes AS doc 
-		ON doc.idtran =  om.idtran
+		ON doc.idtran = om.idtran
 	LEFT JOIN ew_ven_listaprecios_mov AS vlm 
 		ON vlm.idarticulo = a.idarticulo 
 		AND vlm.idlista = doc.idlista 

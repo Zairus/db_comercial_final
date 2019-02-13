@@ -5,11 +5,12 @@ GO
 -- Create date: 20160224
 -- Description:	Obtiene tasa de impuesto de un articulo
 -- =============================================
-ALTER FUNCTION _ct_fnc_articuloImpuestoTasa
+ALTER FUNCTION [dbo].[_ct_fnc_articuloImpuestoTasa]
 (
 	@codigo AS VARCHAR(10)
-	,@tipo AS SMALLINT
-	,@idarticulo AS INT
+	, @tipo AS SMALLINT
+	, @idarticulo AS INT
+	, @idsucursal AS INT
 )
 RETURNS DECIMAL(18,6)
 AS
@@ -29,6 +30,10 @@ BEGIN
 		ci.grupo = @codigo
 		AND cit.tipo = @tipo
 		AND ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
+			OR ait.idzona = 0
+		)
 
 	RETURN @tasa
 END

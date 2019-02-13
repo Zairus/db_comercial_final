@@ -5,12 +5,13 @@ GO
 -- Create date: 20160224
 -- Description:	Obtiene cuenta de impuesto de un articulo
 -- =============================================
-ALTER FUNCTION _ct_fnc_articuloImpuestoCuenta
+ALTER FUNCTION [dbo].[_ct_fnc_articuloImpuestoCuenta]
 (
 	@codigo AS VARCHAR(10)
-	,@tipo AS SMALLINT
-	,@idarticulo AS INT
-	,@cuenta_tipo AS SMALLINT
+	, @tipo AS SMALLINT
+	, @idarticulo AS INT
+	, @cuenta_tipo AS SMALLINT
+	, @idsucursal AS INT
 )
 RETURNS VARCHAR(20)
 AS
@@ -37,6 +38,10 @@ BEGIN
 		ci.grupo = @codigo
 		AND cit.tipo = @tipo
 		AND ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
+			OR ait.idzona = 0
+		)
 
 	RETURN @cuenta
 END

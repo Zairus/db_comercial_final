@@ -41,8 +41,14 @@ SELECT
 	,[importe] = CONVERT(DECIMAL(18,2), (CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion)) * cit.tasa))
 FROM
 	ew_ven_ordenes_mov AS vom
+	LEFT JOIN ew_ven_ordenes AS vo
+		ON vo.idtran = vom.idtran
 	LEFT JOIN ew_articulos_impuestos_tasas AS ait
 		ON ait.idarticulo = vom.idarticulo
+		AND (
+			ait.idzona = [dbo].[_ct_fnc_idzonaFiscal](vo.idsucursal)
+			OR ait.idzona = 0
+		)
 	LEFT JOIN ew_cat_impuestos_tasas AS cit
 		ON cit.idtasa = ait.idtasa
 WHERE

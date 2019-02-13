@@ -5,9 +5,10 @@ GO
 -- Create date: 20160224
 -- Description:	Obtiene cuenta de ingresos para articulos dependiendo de IVA
 -- =============================================
-ALTER FUNCTION _ct_fnc_articuloIngresosCuenta
+ALTER FUNCTION [dbo].[_ct_fnc_articuloIngresosCuenta]
 (
 	@idarticulo AS INT
+	, @idsucursal AS INT
 )
 RETURNS VARCHAR(20)
 AS
@@ -22,7 +23,7 @@ BEGIN
 				ELSE
 					CASE
 						WHEN cit.tasa = 0 THEN '4100002000'
-						ELSE '4100001000'
+						ELSE cit.contabilidad5
 					END
 			END
 		)
@@ -36,6 +37,10 @@ BEGIN
 		ci.grupo = 'IVA'
 		AND cit.tipo = 1
 		AND ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
+			OR ait.idzona = 0
+		)
 
 	RETURN @cuenta
 END
