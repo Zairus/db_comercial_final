@@ -7,16 +7,22 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_cfdi_prc_generarPDF]
 	@idtran AS INT
+	, @ruta AS VARCHAR(1000) = NULL OUTPUT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
-	@ruta AS VARCHAR(1000)
-	,@PDF_rs AS VARCHAR(4000)
-	,@transaccion AS VARCHAR(5)
-	,@msg AS VARCHAR(200)
-	,@success AS BIT
+	@PDF_rs AS VARCHAR(4000)
+	, @transaccion AS VARCHAR(5)
+	, @msg AS VARCHAR(200)
+	, @success AS BIT
+	, @presentar AS BIT = 1
+
+IF @ruta IS NOT NULL
+BEGIN
+	SELECT @presentar = 0
+END
 
 SELECT
 	@transaccion = transaccion
@@ -65,7 +71,15 @@ END
 IF @ruta = ''
 BEGIN
 	SELECT
-		@ruta = cer.directorio + c.rfc_emisor + '_' + c.cfd_serie + '-' + CONVERT(VARCHAR(10),c.cfd_folio) + '.pdf'
+		@ruta = (
+			cer.directorio 
+			+ c.rfc_emisor 
+			+ '_' 
+			+ c.cfd_serie 
+			+ '-' 
+			+ CONVERT(VARCHAR(10),c.cfd_folio) 
+			+ '.pdf'
+		)
 	FROM
 		ew_cfd_comprobantes AS c
 		LEFT JOIN ew_cfd_folios AS f 
@@ -76,9 +90,16 @@ BEGIN
 		c.idtran = @idtran
 END
 
-SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15),@idtran)))
+SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15), @idtran)))
 
-SELECT @success = [dbEVOLUWARE].[dbo].[web_download_v2](@PDF_rs, @ruta, '', '')
+IF [dbEVOLUWARE].[dbo].[_sys_fnc_fileExists](@ruta) = 1
+BEGIN
+	SELECT @success = 1
+END
+	ELSE
+BEGIN
+	SELECT @success = [dbEVOLUWARE].[dbo].[web_download_v2](@PDF_rs, @ruta, '', '')
+END
 
 IF @success != 1
 BEGIN
@@ -87,5 +108,8 @@ BEGIN
 	RETURN
 END
 
-SELECT [ruta] = @ruta
+IF @presentar = 1
+BEGIN
+	SELECT [ruta] = @ruta
+END
 GO

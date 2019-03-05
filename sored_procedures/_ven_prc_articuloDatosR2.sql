@@ -6,7 +6,7 @@ GO
 -- Description:	Obtencion de datos de articulo para venta
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_articuloDatosR2]
-	@codarticulo AS VARCHAR(30)
+	@codarticulo AS VARCHAR(MAX)
 	, @idalmacen AS SMALLINT
 	, @idcliente AS INT
 	, @idlista AS SMALLINT
@@ -48,6 +48,20 @@ DECLARE
 	, @reg_clave AS VARCHAR(20) = ''
 	, @error_message AS VARCHAR(MAX) = NULL
 
+DECLARE
+	@idimpuesto1 AS INT
+	, @idimpuesto1_valor AS DECIMAL(18, 6)
+	, @idimpuesto1_cuenta AS VARCHAR(50)
+	, @idimpuesto2 AS INT
+	, @idimpuesto2_valor AS DECIMAL(18, 6)
+	, @idimpuesto2_cuenta AS VARCHAR(50)
+	, @idimpuesto1_ret AS INT
+	, @idimpuesto1_ret_valor AS DECIMAL(18, 6)
+	, @idimpuesto1_ret_cuenta AS VARCHAR(50)
+	, @idimpuesto2_ret AS INT
+	, @idimpuesto2_ret_valor AS DECIMAL(18, 6)
+	, @idimpuesto2_ret_cuenta AS VARCHAR(50)
+
 CREATE TABLE #_tmp_articulo_datos (
 	[id] INT IDENTITY
 	, [codarticulo] VARCHAR(30) NOT NULL DEFAULT ''
@@ -57,7 +71,7 @@ CREATE TABLE #_tmp_articulo_datos (
 	, [nombre] VARCHAR(500) NOT NULL DEFAULT ''
 	, [descripcion] VARCHAR(500) NOT NULL DEFAULT ''
 	, [nombre_corto] VARCHAR(100) NOT NULL DEFAULT ''
-	, [marca] VARCHAR(100) NOT NULL DEFAULT ''
+	, [marca] VARCHAR(200) NOT NULL DEFAULT ''
 	, [clasif_SAT] VARCHAR(50) NOT NULL DEFAULT ''
 	, [idum] INT NOT NULL DEFAULT 0
 	, [maneja_lote] BIT NOT NULL DEFAULT 0
@@ -114,14 +128,9 @@ CREATE TABLE #_tmp_articulo_datos (
 	, [reg_clave] VARCHAR(20) NOT NULL DEFAULT ''
 ) ON [PRIMARY]
 
-SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
+SELECT @precio_actual = 0
 
-SELECT
-	@idarticulo = a.idarticulo
-FROM
-	ew_articulos AS a
-WHERE
-	a.codigo = @codarticulo
+SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
 
 SELECT
 	@idsucursal = alm.idsucursal
@@ -131,96 +140,6 @@ WHERE
 	alm.idalmacen = @idalmacen
 
 SELECT @idzona_fiscal_emisor = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
-
-DECLARE
-	@idimpuesto1 AS INT
-	, @idimpuesto1_valor AS DECIMAL(18, 6)
-	, @idimpuesto1_cuenta AS VARCHAR(50)
-	, @idimpuesto2 AS INT
-	, @idimpuesto2_valor AS DECIMAL(18, 6)
-	, @idimpuesto2_cuenta AS VARCHAR(50)
-	, @idimpuesto1_ret AS INT
-	, @idimpuesto1_ret_valor AS DECIMAL(18, 6)
-	, @idimpuesto1_ret_cuenta AS VARCHAR(50)
-	, @idimpuesto2_ret AS INT
-	, @idimpuesto2_ret_valor AS DECIMAL(18, 6)
-	, @idimpuesto2_ret_cuenta AS VARCHAR(50)
-
-SELECT
-	@idimpuesto1 = cit.idimpuesto
-	, @idimpuesto1_valor = cit.tasa
-	, @idimpuesto1_cuenta = cit.contabilidad1
-FROM 
-	ew_articulos_impuestos_tasas AS ait
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idtasa = ait.idtasa
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	ait.idarticulo = @idarticulo
-	AND (
-		ait.idzona = @idzona_fiscal_emisor
-		OR ait.idzona = 0
-	)
-	AND cit.tipo = 1
-	AND ci.grupo = 'IVA'
-
-SELECT
-	@idimpuesto2 = cit.idimpuesto
-	, @idimpuesto2_valor = cit.tasa
-	, @idimpuesto2_cuenta = cit.contabilidad1
-FROM 
-	ew_articulos_impuestos_tasas AS ait
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idtasa = ait.idtasa
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	ait.idarticulo = @idarticulo
-	AND (
-		ait.idzona = @idzona_fiscal_emisor
-		OR ait.idzona = 0
-	)
-	AND cit.tipo = 1
-	AND ci.grupo = 'IEPS'
-
-SELECT
-	@idimpuesto1_ret = cit.idimpuesto
-	, @idimpuesto1_ret_valor = cit.tasa
-	, @idimpuesto1_ret_cuenta = cit.contabilidad1
-FROM 
-	ew_articulos_impuestos_tasas AS ait
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idtasa = ait.idtasa
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	ait.idarticulo = @idarticulo
-	AND (
-		ait.idzona = @idzona_fiscal_emisor
-		OR ait.idzona = 0
-	)
-	AND cit.tipo = 2
-	AND ci.grupo = 'IVA'
-
-SELECT
-	@idimpuesto2_ret = cit.idimpuesto
-	, @idimpuesto2_ret_valor = cit.tasa
-	, @idimpuesto2_ret_cuenta = cit.contabilidad1
-FROM 
-	ew_articulos_impuestos_tasas AS ait
-	LEFT JOIN ew_cat_impuestos_tasas AS cit
-		ON cit.idtasa = ait.idtasa
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = cit.idimpuesto
-WHERE
-	ait.idarticulo = @idarticulo
-	AND (
-		ait.idzona = @idzona_fiscal_emisor
-		OR ait.idzona = 0
-	)
-	AND cit.tipo = 2
-	AND ci.grupo = 'ISR'
 
 SELECT
 	@tipocambio = ISNULL(@tipocambio, tipocambio1)
@@ -242,12 +161,92 @@ FETCH NEXT FROM cur_articulosDatos INTO
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-	-- Seleccionamos la Lista de Precios 
-	-- Seleccionamos la Politica de Venta
+	SELECT
+		@idarticulo = a.idarticulo
+	FROM
+		ew_articulos AS a
+	WHERE
+		a.codigo = @codarticulo_linea
 	
+	SELECT
+		@idimpuesto1 = cit.idimpuesto
+		, @idimpuesto1_valor = cit.tasa
+		, @idimpuesto1_cuenta = cit.contabilidad1
+	FROM 
+		ew_articulos_impuestos_tasas AS ait
+		LEFT JOIN ew_cat_impuestos_tasas AS cit
+			ON cit.idtasa = ait.idtasa
+		LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = cit.idimpuesto
+	WHERE
+		ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = @idzona_fiscal_emisor
+			OR ait.idzona = 0
+		)
+		AND cit.tipo = 1
+		AND ci.grupo = 'IVA'
+
+	SELECT
+		@idimpuesto2 = cit.idimpuesto
+		, @idimpuesto2_valor = cit.tasa
+		, @idimpuesto2_cuenta = cit.contabilidad1
+	FROM 
+		ew_articulos_impuestos_tasas AS ait
+		LEFT JOIN ew_cat_impuestos_tasas AS cit
+			ON cit.idtasa = ait.idtasa
+		LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = cit.idimpuesto
+	WHERE
+		ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = @idzona_fiscal_emisor
+			OR ait.idzona = 0
+		)
+		AND cit.tipo = 1
+		AND ci.grupo = 'IEPS'
+
+	SELECT
+		@idimpuesto1_ret = cit.idimpuesto
+		, @idimpuesto1_ret_valor = cit.tasa
+		, @idimpuesto1_ret_cuenta = cit.contabilidad1
+	FROM 
+		ew_articulos_impuestos_tasas AS ait
+		LEFT JOIN ew_cat_impuestos_tasas AS cit
+			ON cit.idtasa = ait.idtasa
+		LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = cit.idimpuesto
+	WHERE
+		ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = @idzona_fiscal_emisor
+			OR ait.idzona = 0
+		)
+		AND cit.tipo = 2
+		AND ci.grupo = 'IVA'
+
+	SELECT
+		@idimpuesto2_ret = cit.idimpuesto
+		, @idimpuesto2_ret_valor = cit.tasa
+		, @idimpuesto2_ret_cuenta = cit.contabilidad1
+	FROM 
+		ew_articulos_impuestos_tasas AS ait
+		LEFT JOIN ew_cat_impuestos_tasas AS cit
+			ON cit.idtasa = ait.idtasa
+		LEFT JOIN ew_cat_impuestos AS ci
+			ON ci.idimpuesto = cit.idimpuesto
+	WHERE
+		ait.idarticulo = @idarticulo
+		AND (
+			ait.idzona = @idzona_fiscal_emisor
+			OR ait.idzona = 0
+		)
+		AND cit.tipo = 2
+		AND ci.grupo = 'ISR'
+
 	INSERT INTO #_tmp_articulo_datos
 	EXEC [dbo].[_ven_prc_articuloDatosRegistro]
-		@codarticulo
+		@codarticulo_linea
 		, @idlista
 		, @idcliente
 		, @idsucursal
@@ -256,7 +255,8 @@ BEGIN
 	UPDATE #_tmp_articulo_datos SET
 		cantidad_facturada = @cantidad
 	WHERE
-		@cantidad > 0
+		@cantidad IS NOT NULL
+		AND @cantidad > 0
 
 	EXEC [dbo].[_ven_prc_descuentosValores]
 		@idsucursal
@@ -270,7 +270,7 @@ BEGIN
 		, @descuentos_codigos OUTPUT
 		, @precio_fijo OUTPUT
 		, @bajo_costo OUTPUT
-
+		
 	UPDATE tad SET
 		tad.descuento1 = @descuento1
 		, tad.descuento2 = @descuento2
@@ -281,7 +281,7 @@ BEGIN
 		, tad.precio_minimo = (CASE WHEN @precio_fijo = 0 THEN tad.precio_minimo ELSE @precio_fijo END)
 	FROM
 		#_tmp_articulo_datos AS tad
-
+		
 	UPDATE tad SET
 		tad.precio_unitario = @precio_actual
 		, tad.precio_unitario_m = @precio_actual
@@ -383,6 +383,7 @@ BEGIN
 
 		SELECT
 			@codarticulo_p = a.codigo
+			, @cantidad_p = ai.cantidad
 			, @reg_clave = 'kit' + LTRIM(RTRIM(STR(ai.idr)))
 		FROM
 			ew_articulos_insumos AS ai
@@ -390,7 +391,7 @@ BEGIN
 				ON a.idarticulo = ai.idarticulo
 		WHERE
 			ai.idr = @reg_id
-
+			
 		INSERT INTO #_tmp_articulo_datos
 		EXEC [dbo].[_ven_prc_articuloDatosRegistro]
 			@codarticulo_p
@@ -435,7 +436,7 @@ UPDATE tad SET
 	tad.precio_unitario = tad.precio_unitario * (tad.tipocambio_m / @tipocambio)
 	, tad.precio_unitario_m = tad.precio_unitario_m * (tad.tipocambio_m / @tipocambio)
 	, tad.precio_unitario_m2 = tad.precio_unitario_m2 * (tad.tipocambio_m / @tipocambio)
-	, tad.precio_minimo = tad.precio_minimo * (tad.tipocambio_m / @tipocambio)
+	--, tad.precio_minimo = tad.precio_minimo * (tad.tipocambio_m / @tipocambio)
 FROM
 	#_tmp_articulo_datos AS tad
 WHERE
@@ -479,6 +480,7 @@ FROM
 WHERE
 	tad.precio_unitario < tad.costo_ultimo
 	AND tad.costo_bajo = 0
+	AND ABS(@precio_actual) > 0
 
 SELECT
 	@error_message = 
@@ -513,6 +515,9 @@ BEGIN
 END
 
 SELECT * 
+	, [cantidad_solicitada] = tad.cantidad_facturada
+	, [cantidad_ordenada] = tad.cantidad_facturada
+	, [cantidad_autorizada] = tad.cantidad_facturada
 FROM 
 	#_tmp_articulo_datos AS tad
 

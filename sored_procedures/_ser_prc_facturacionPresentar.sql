@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -8,11 +8,13 @@ GO
 ALTER PROCEDURE [dbo].[_ser_prc_facturacionPresentar]
 	@periodo AS INT = NULL
 	, @idcliente AS INT = 0
+	, @ejercicio AS INT = NULL
 AS
 
 SET NOCOUNT ON
 
 SELECT @periodo = ISNULL(@periodo, MONTH(GETDATE()))
+SELECT @ejercicio = ISNULL(@ejercicio, YEAR(GETDATE()))
 
 SELECT
 	[cliente] = ISNULL((
@@ -67,7 +69,7 @@ FROM
 		ON c.idcliente = csp.idcliente
 WHERE
 	spt.facturar = 1
-	AND (MONTH(GETDATE()) - MONTH(csp.fecha_inicial)) % csp.periodo = 0
+	AND (@periodo - MONTH(csp.fecha_inicial)) % csp.periodo = 0
 	AND (
 		csp.idcliente = @idcliente
 		OR @idcliente = 0
@@ -88,7 +90,7 @@ WHERE
 			LEFT JOIN ew_ven_transacciones AS vt
 				ON vt.idtran = vtms.idtran
 		WHERE
-			vtms.ejercicio = YEAR(GETDATE())
+			vtms.ejercicio = @ejercicio
 			AND vtms.periodo = @periodo
 			AND vt.idcliente = csp.idcliente
 			AND vt.cancelado = 0

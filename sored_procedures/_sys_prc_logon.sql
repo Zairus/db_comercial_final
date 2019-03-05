@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- SP: 	Valida el ingreso de un usuario EVOLUWARE
 --		Regresa un query con los menus y objetos a los que puede acceder el usuario
@@ -126,7 +126,7 @@ FROM
 			evoluware_menus AS e
 		WHERE
 			e.modelo = 1
-			AND e.activo = 1
+			--AND e.activo = 1
 			--AND e.menu BETWEEN 0 AND 10
 			--AND e.submenu BETWEEN 0 AND 7
 

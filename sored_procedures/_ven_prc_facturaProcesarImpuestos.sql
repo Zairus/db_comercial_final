@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -43,13 +43,10 @@ FROM
 		ON vt.idtran = vom.idtran
 	LEFT JOIN ew_sys_sucursales AS ss
 		ON ss.idsucursal = vt.idsucursal
-	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_codigopostal AS scp
-		ON scp.c_codigopostal = ss.codpostal
-
 	LEFT JOIN ew_articulos_impuestos_tasas AS ait
 		ON ait.idarticulo = vom.idarticulo
 		AND (
-			ait.idzona = scp.idzona
+			ait.idzona = [dbo].[_ct_fnc_idzonaFiscal](vt.idsucursal)
 			OR ait.idzona = 0
 		)
 	LEFT JOIN ew_cat_impuestos_tasas AS cit

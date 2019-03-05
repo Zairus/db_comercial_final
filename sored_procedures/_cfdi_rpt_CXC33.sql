@@ -51,8 +51,9 @@ SELECT
 			+ ', '
 			+ ' C.P. '
 			+ ccu.cfd_codigoPostal
-			+ ' TEL: '
+			+ CASE WHEN DB_NAME() NOT IN ('db_rafagas_datos2') THEN ' TEL: ' --que excluya teléfono en RAFAGAS DEL PACIFICO
 			+ s.telefono
+			ELSE '' END
 		FROM 
 			ew_cfd_comprobantes_ubicacion AS ccu 
 		WHERE
@@ -179,7 +180,7 @@ SELECT
 	,[concepto_claveSAT] = ccm.concepto_claveSAT
 	,[concepto_cantidad] = ccm.concepto_cantidad
 	,[concepto_unidad] = ccm.concepto_unidad
-	,[concepto_descripcion] = ccm.concepto_descripcion 
+	,[concepto_descripcion] = REPLACE(ccm.concepto_descripcion, CHAR(13), '<br />')
 	,[concepto_precio_unitario] = ccm.concepto_precio_unitario
 	,[concepto_importe] = ccm.concepto_importe
 
@@ -296,7 +297,7 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ISNULL(cum1.sat_unidad_clave, 'EA') + '-' + ccm1.cfd_unidad
-			,[concepto_descripcion] = (
+			,[concepto_descripcion] = REPLACE((
 				CASE 
 					WHEN @concat_nom_corto_articulo = 1 THEN 
 						a.nombre_corto + ' - ' + ccm1.cfd_descripcion 
@@ -341,7 +342,7 @@ FROM
 						), 2, 1000), '')
 					ELSE ''
 				END
-			)
+			), CHAR(13), '<br />')
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -369,19 +370,21 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = 1
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = (
+			,[concepto_descripcion] = REPLACE((
 				'Aplicación a '
 				+ o1.nombre
 				+ ': '
 				+ ccf.cfd_serie
 				+ LTRIM(RTRIM(STR(ccf.cfd_folio)))
-			)
+			), CHAR(13), '<br />')
 			,[concepto_precio_unitario] = ct1.subtotal
 			,[concepto_importe] = ctm1.importe
 		FROM
 			ew_cfd_comprobantes_mov AS ccm1
 			LEFT JOIN ew_cxc_transacciones_mov AS ctm1
 				ON ctm1.idtran = ccm1.idtran
+			LEFT JOIN ew_cxc_transacciones AS ctd1
+				ON ctd1.idtran = ccm1.idtran
 			LEFT JOIN ew_articulos AS a
 				ON a.idarticulo = ccm1.idarticulo
 			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_clasificaciones AS csc
@@ -395,6 +398,7 @@ FROM
 			WHERE 
 				ccm1.idr IS NOT NULL
 				AND ccm1.consecutivo_padre = 0
+				AND ctd1.transaccion NOT IN ('EDE1')
 
 		UNION ALL
 		
@@ -408,7 +412,7 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = ccm1.cfd_descripcion
+			,[concepto_descripcion] = REPLACE(ccm1.cfd_descripcion, CHAR(13), '<br />')
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -433,8 +437,8 @@ FROM
 			,[concepto_claveSAT] = ''
 			,[concepto_cantidad] = NULL
 			,[concepto_unidad] = ''
-			,[concepto_descripcion] = 
-				'Tipo Plan: ' + spt.nombre + CHAR(13) + CHAR(10)
+			,[concepto_descripcion] = (
+				'Tipo Plan: ' + spt.nombre + '<br />'
 				+ (
 					'Periodo: ' 
 					+ LTRIM(RTRIM(STR(vtms.ejercicio))) + '-' 
@@ -445,7 +449,7 @@ FROM
 							spd.grupo = 'meses' 
 							AND spd.id = vtms.periodo
 					)
-				) + CHAR(13) + CHAR(10)
+				) + '<br />'
 				+ (
 					REPLACE((
 						SELECT
@@ -480,8 +484,9 @@ FROM
 						ORDER BY
 							cu.nombre
 						FOR XML PATH ('')
-					), '{13}', CHAR(13) + CHAR(10))
+					), '{13}', '<br />')
 				)
+			)
 			,[concepto_precio_unitario] = NULL
 			,[concepto_importe] = NULL
 		FROM

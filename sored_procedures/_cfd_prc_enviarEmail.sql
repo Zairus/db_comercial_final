@@ -32,15 +32,22 @@ DECLARE
 	, @receptor_nombre VARCHAR(200)=''
 
 -- Obtener folio y empresa para anexarlo al ASUNTO del Correo
-SELECT @folio = folio 
-FROM ew_sys_transacciones 
-WHERE idtran=@idtran
-
-SELECT @empresa = razon_social 
-FROM ew_clientes_facturacion 
+SELECT 
+	@folio = folio 
+FROM 
+	ew_sys_transacciones 
 WHERE 
-	idcliente = 0 
-	AND idfacturacion = 0
+	idtran = @idtran
+
+SELECT 
+	@empresa = (CASE WHEN c.nombre = '' THEN cf.razon_social ELSE c.nombre END)
+FROM 
+	ew_clientes_facturacion cf
+	LEFT JOIN ew_clientes AS c 
+		ON c.idcliente = cf.idcliente
+WHERE 
+	cf.idcliente = 0 
+	AND cf.idfacturacion = 0
 
 SELECT 
 	@receptor_nombre = ISNULL(receptor_nombre, '') 
@@ -80,7 +87,7 @@ SELECT TOP 1
 	@XML_email = p.XML_email
 	, @PDF_guardar = p.PDF_guardar
 	, @PDF_email = p.PDF_email
-	, @PDF_rs = ISNULL((
+	, @PDF_rs = '' /*ISNULL((
 		dbo.fn_sys_obtenerDato('DEFAULT', '?50')
 		+ 'Pages/ReportViewer.aspx?/'
 		+ od.valor
@@ -92,14 +99,14 @@ SELECT TOP 1
 		+ '&rs:format=PDF'
 		+ '&ServidorSQL=Data Source=erp.evoluware.com,1093;Initial Catalog=' + DB_NAME()
 		+ '&idtran={idtran}'
-	), p.PDF_RS)
+	), p.PDF_RS)*/
 FROM
 	ew_cfd_parametros AS p
-	LEFT JOIN objetos AS o
-		ON o.codigo = @transaccion
-	LEFT JOIN objetos_datos AS od
-		ON od.objeto = o.objeto
-		AND od.codigo = 'REPORTERS'
+	--LEFT JOIN objetos AS o
+		--ON o.codigo = @transaccion
+	--LEFT JOIN objetos_datos AS od
+		--ON od.objeto = o.objeto
+		--AND od.codigo = 'REPORTERS'
 
 SELECT 
 	@archivoXML = ISNULL(archivoXML, '')
@@ -133,18 +140,9 @@ END
 ----------------------------------------------------------------
 IF @PDF_guardar = 1
 BEGIN
-	SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15),@idtran)))
-	
-	SELECT @cadena = 'C:\EVOLUWARE\Temp\' + RIGHT(@archivoXML, PATINDEX('%\%', REVERSE(@archivoXML)) - 1) + '.pdf'
-	
-	SELECT @success = [dbEVOLUWARE].[dbo].[web_download_v2](@PDF_rs, @cadena, '', '')
-
-	IF @success != 1
-	BEGIN
-		SELECT @msg = 'No se pudo generar el archivo PDF...'
-		RAISERROR(@msg, 16, 1)
-		RETURN
-	END
+	SELECT @cadena = ''
+	EXEC [dbo].[_cfdi_prc_generarPDF] @idtran, @cadena OUTPUT
+	SELECT @success = 1
 END
 
 ----------------------------------------------------------------
@@ -185,69 +183,70 @@ BEGIN
 			+ '<html>'
 			+ '<body>'
 			+ (
-			'Estimado Cliente' + CASE WHEN @receptor_nombre = '' THEN ':' ELSE ' ' + @receptor_nombre + ':' END
-			+ '<br>'
-			+ '<br>'
-			+ 'Adjunto se envía ' 
-			+ o.nombre 
-			+ ' ' 
-			+ ct.folio 
-			+ ', generado el día '
-			+ CONVERT(VARCHAR(8), ct.fecha, 3)
-			+ '<br>'
-			+ '<br>'
-			+ (
-				CASE
-					WHEN ct.tipo = 1 THEN
-						(
-							'Programación de pago: '
-							+ CONVERT(VARCHAR(8), ct.vencimiento, 3)
-							+ '<br>'
-						)
-					ELSE ''
-				END
-			)
-			+ 'Total: $'
-			+ CONVERT(VARCHAR(20), CONVERT(MONEY, ct.total), 1)
-			+ (
-				CASE
-					WHEN ct.tipo = 1 THEN
-						(
-							'<br>'
-							+ '<br>'
-							+ 'DATOS PARA PAGO: '
-							+ '<br>'
-							+ (
-								SELECT TOP 1
-									bb.nombre 
-									+ ' ' 
-									+ bc.no_cuenta 
-									+ ' SUC ' 
-									+ bc.sucursal 
-									+ ' CLABE: ' 
-									+ bc.clabe 
-									+ ' ' 
-									+ bm.codigo
-								FROM 
-									ew_ban_cuentas AS bc 
-									LEFT JOIN ew_ban_bancos As bb
-										ON bb.idbanco = bc.idbanco
-									LEFT JOIN ew_ban_monedas AS bm
-										ON bm.idmoneda = bc.idmoneda
-								WHERE 
-									bc.imprimir = 1
+				'Estimado Cliente' + CASE WHEN @receptor_nombre = '' THEN ':' ELSE ' ' + @receptor_nombre + ':' END
+				+ '<br>'
+				+ '<br>'
+				+ 'Adjunto se envía ' 
+				+ o.nombre 
+				+ ' ' 
+				+ ct.folio 
+				+ ', generado el día '
+				+ CONVERT(VARCHAR(8), ct.fecha, 3)
+				+ '<br>'
+				+ '<br>'
+				+ (
+					CASE
+						WHEN ct.tipo = 1 AND ct.vencimiento IS NOT NULL THEN
+							(
+								'Programación de pago: '
+								+ CONVERT(VARCHAR(8), ct.vencimiento, 3)
+								+ '<br>'
 							)
-						)
-					ELSE ''
-				END
+						ELSE ''
+					END
+				)
+				+ 'Total: $'
+				+ CONVERT(VARCHAR(20), CONVERT(MONEY, ct.total), 1)
+				+ ISNULL((
+					CASE
+						WHEN ct.tipo = 1 THEN
+							(
+								'<br>'
+								+ '<br>'
+								+ 'DATOS PARA PAGO: '
+								+ '<br>'
+								+ (
+									SELECT TOP 1
+										bb.nombre 
+										+ ' ' 
+										+ bc.no_cuenta 
+										+ ' SUC ' 
+										+ bc.sucursal 
+										+ ' CLABE: ' 
+										+ bc.clabe 
+										+ ' ' 
+										+ bm.codigo
+									FROM 
+										ew_ban_cuentas AS bc 
+										LEFT JOIN ew_ban_bancos As bb
+											ON bb.idbanco = bc.idbanco
+										LEFT JOIN ew_ban_monedas AS bm
+											ON bm.idmoneda = bc.idmoneda
+									WHERE 
+										bc.imprimir = 1
+								)
+							)
+						ELSE ''
+					END
+				), '')
 			)
-		)
 	FROM
 		ew_cxc_transacciones AS ct
 		LEFT JOIN objetos AS o
 			ON o.codigo = ct.transaccion
 	WHERE
 		ct.idtran = @idtran
+		
 	SELECT 
 		@message_body = (
 			ISNULL(@message_body, dbo.fn_sys_parametro('EMAIL_BODY'))
@@ -257,6 +256,7 @@ BEGIN
 			+ @mensaje
 			+ '</body></html>'
 		)
+
 	INSERT INTO dbEVOLUWARE.dbo.ew_sys_email (
 		db
 		, idtran
@@ -281,9 +281,11 @@ BEGIN
 		, @urgente
 		, @message_cc
 	)
+
 	IF @urgente = 1
 	BEGIN
 		DECLARE @id INT
+
 		SELECT TOP 1 
 			@id = ISNULL(idr, 0) 
 		FROM 
@@ -292,6 +294,7 @@ BEGIN
 			idtran = @idtran 
 		ORDER BY 
 			idr DESC
+
 		IF @id > 0
 		BEGIN
 			EXEC dbEVOLUWARE.dbo._adm_prc_enviarEmail @id
