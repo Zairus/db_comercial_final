@@ -35,7 +35,8 @@ BEGIN
 	FROM
 		ew_articulos_sucursales AS sa
 	WHERE
-		sa.idarticulo = @idarticulo
+		sa.bajo_costo = 0
+		AND sa.idarticulo = @idarticulo
 		AND sa.idsucursal = @idsucursal
 
 	SELECT @precio_minimo = ISNULL(@precio_minimo, 0)

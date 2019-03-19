@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -16,13 +16,19 @@ DECLARE
 	@cfd_version AS VARCHAR(10) = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
 	, @mensaje AS VARCHAR(1000) = ''
 	, @rep_auto AS BIT
-	, @fecha_operacion AS DATETIME
 
 DECLARE
 	@total_timbrados AS INT
 	, @total_relacionados AS INT
 
 SELECT @rep_auto = dbo._sys_fnc_parametroActivo('CFDI_REP_AUTOMATICO')
+
+IF EXISTS(SELECT * FROM ew_ban_transacciones WHERE idtran=@idtran AND tipocambio2=0)
+BEGIN
+	SELECT @mensaje='El tipo de cambio debe ser mayor a 0.'
+	RAISERROR(@mensaje, 16, 1)
+	RETURN
+END
 
 IF @rep_auto = 1
 BEGIN
@@ -87,40 +93,6 @@ BEGIN
 		WHERE
 			ct.idtran = @idtran
 		
-		RAISERROR(@mensaje, 16, 1)
-		RETURN
-	END
-
-	IF EXISTS (
-		SELECT
-			*
-		FROM
-			ew_cxc_transacciones AS ct
-			LEFT JOIN ew_ban_formas_aplica AS bfa
-				ON bfa.idforma = ct.idforma
-			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
-				ON csf.c_formapago = bfa.codigo
-		WHERE
-			ct.idtran = @idtran
-			AND ISNULL(csf.bancarizado, 0) = 1
-			AND [dbEVOLUWARE].[dbo].[regex_match](ct.clabe_origen, csf.cuenta_ordenante_patron) = 0
-	)
-	BEGIN
-		SELECT
-			@mensaje = (
-				'Error: La cuenta del cliente [' + ct.clabe_origen + '], '
-				+ 'no cumple con el patron indicado por el SAT para la forma de pago '
-				+ csf.descripcion
-			)
-		FROM
-			ew_cxc_transacciones AS ct
-			LEFT JOIN ew_ban_formas_aplica AS bfa
-				ON bfa.idforma = ct.idforma
-			LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_formapago AS csf
-				ON csf.c_formapago = bfa.codigo
-		WHERE
-			ct.idtran = @idtran
-
 		RAISERROR(@mensaje, 16, 1)
 		RETURN
 	END
@@ -255,26 +227,19 @@ BEGIN
 		RAISERROR(@mensaje, 16, 1)
 		RETURN
 	END
-
-	SELECT
-		@fecha_operacion = ct.fecha_operacion
-	FROM
-		ew_cxc_transacciones AS ct
-	WHERE
-		ct.idtran = @idtran
 END
 
-EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, 'BDC2', @idtran, NULL, 0, @fecha_operacion
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, 'BDC2', @idtran, NULL, 0
 
 INSERT INTO ew_sys_transacciones2 (
 	idtran
-	,idestado
-	,idu
+	, idestado
+	, idu
 )
 SELECT
 	f.idtran
-	,[idestado] = 50
-	,[idu] = @idu
+	, [idestado] = 50
+	, [idu] = @idu
 FROM 
 	ew_cxc_transacciones_mov AS ctm
 	LEFT JOIN ew_cxc_transacciones AS f

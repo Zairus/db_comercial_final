@@ -1,10 +1,10 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
--- SP: 	Envia un correo electrónico
--- 		Elaborado por Laurence Saavedra
--- 		Creado en Junio 2012
---		
--- EXEC _sys_prc_enviarEmail 1939, 'laurence@evoluware.com', ''
+-- =============================================
+-- Author:		Laurence Saavedra
+-- Create date: 20120601
+-- Description:	Envia un correo electrónico
+-- =============================================
 ALTER PROCEDURE [dbo].[_sys_prc_enviarEmail]
 	@To AS VARCHAR(200) = ''
 	, @CC AS VARCHAR(200) = ''
@@ -49,7 +49,7 @@ DECLARE
 BEGIN
 	SELECT @File_Name = 'C:\Evoluware\Temp\' + @File_Name
 
-	SELECT @success = [db_comercial].[dbo].[WEB_download](@File_Url, @File_Name, @File_User, @File_Pass)
+	SELECT @success = [dbEVOLUWARE].[dbo].[WEB_download_v2](@File_Url, @File_Name, @File_User, @File_Pass)
 
 	IF @success != 1
 	BEGIN
@@ -70,6 +70,21 @@ END
 ----------------------------------------------------------------
 -- Enviamos por correo electronico
 ----------------------------------------------------------------
+SELECT
+	@idserver = crc.idserver
+FROM
+	ew_cat_usuarios_correo AS crc
+	LEFT JOIN evoluware_usuarios AS u
+		ON u.idu = crc.idu
+	LEFT JOIN objetos AS o
+		ON o.tipo = 'XAC'
+		AND o.objeto > 0
+		AND o.objeto = crc.objeto
+	LEFT JOIN ew_sys_transacciones AS st
+		ON st.idtran = @idtran
+WHERE
+	u.idu = @idu
+	AND ISNULL(o.codigo, st.transaccion) = st.transaccion
 
 SELECT
 	@idserver = crc.idserver
@@ -84,7 +99,8 @@ FROM
 	LEFT JOIN ew_sys_transacciones AS st
 		ON st.idtran = @idtran
 WHERE
-	u.idu = @idu
+	@idserver IS NULL
+	AND u.idu = @idu
 	AND ISNULL(o.codigo, st.transaccion) = st.transaccion
 
 IF @idserver IS NULL

@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ser_prc_facturacionPresentar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ser_prc_facturacionPresentar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180601
 -- Description:	Presentar planes a facturar
 -- =============================================
-ALTER PROCEDURE [dbo].[_ser_prc_facturacionPresentar]
+CREATE PROCEDURE [dbo].[_ser_prc_facturacionPresentar]
 	@periodo AS INT = NULL
 	, @idcliente AS INT = 0
 	, @ejercicio AS INT = NULL
@@ -56,7 +61,7 @@ SELECT
 			) --csp.plan_codigo
 		END
 	)
-	, [costo] = (csp.costo)
+	, [costo] = ISNULL(NULLIF(csp.costo_especial, 0), csp.costo)
 	, [facturar] = 0
 	, [no_orden] = ''
 INTO
@@ -69,6 +74,15 @@ FROM
 		ON c.idcliente = csp.idcliente
 WHERE
 	spt.facturar = 1
+	AND (
+		(
+			MONTH(csp.fecha_inicial) <= @periodo
+			AND YEAR(csp.fecha_inicial) = @ejercicio
+		)
+		OR (
+			YEAR(csp.fecha_inicial) < @ejercicio
+		)
+	)
 	AND (@periodo - MONTH(csp.fecha_inicial)) % csp.periodo = 0
 	AND (
 		csp.idcliente = @idcliente

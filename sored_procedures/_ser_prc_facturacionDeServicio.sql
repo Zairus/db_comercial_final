@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ser_prc_facturacionDeServicio') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ser_prc_facturacionDeServicio
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180601
 -- Description:	Elaborar factura a partir de plan de cliente
 -- =============================================
-ALTER PROCEDURE [dbo].[_ser_prc_facturacionDeServicio]
+CREATE PROCEDURE [dbo].[_ser_prc_facturacionDeServicio]
 	@periodo AS INT
 	, @dia AS INT
 	, @idcliente AS INT
@@ -88,12 +93,12 @@ SELECT
 	[consecutivo] = ROW_NUMBER() OVER (ORDER BY csp.plan_codigo)
 	, [idarticulo] = a.idarticulo
 	, [idum] = a.idum_venta
-	, [precio_unitario] = csp.costo
+	, [precio_unitario] = ISNULL(NULLIF(csp.costo_especial, 0), csp.costo)
 	, [idimpuesto1] = ci.idimpuesto
 	, [idimpuesto1_valor] = ci.valor
-	, [precio_venta] = csp.costo
-	, [importe] = csp.costo
-	, [impuesto1] = ROUND((csp.costo * ci.valor), 2)
+	, [precio_venta] = ISNULL(NULLIF(csp.costo_especial, 0), csp.costo)
+	, [importe] = ISNULL(NULLIF(csp.costo_especial, 0), csp.costo)
+	, [impuesto1] = ROUND((ISNULL(NULLIF(csp.costo_especial, 0), csp.costo) * ci.valor), 2)
 	, [plan_codigo] = csp.plan_codigo
 INTO #_tmp_detalle_ser
 FROM

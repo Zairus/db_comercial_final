@@ -9,7 +9,7 @@ ALTER PROCEDURE [dbo].[_ban_rpt_libro]
 	@idcuenta AS INT = 0
 	, @fecha1 AS SMALLDATETIME = NULL
 	, @fecha2 AS SMALLDATETIME = NULL
-	, @quefecha AS SMALLINT = 0 --0=fecha de registro, 1=fecha de operacion
+	, @quefecha AS SMALLINT = 0 --0 = fecha de registro, 1 = fecha de operacion
 AS
 
 SET NOCOUNT ON
@@ -25,6 +25,7 @@ CREATE TABLE #_tmp_libro (
 	, fecha_operacion SMALLDATETIME
 	, folio VARCHAR(15)
 	, movimiento VARCHAR(200)
+	, concepto VARCHAR(106)
 	, saldo_inicial DECIMAL(18,2)
 	, cargos DECIMAL(18,2)
 	, abonos DECIMAL(18,2)
@@ -38,6 +39,7 @@ INSERT INTO #_tmp_libro (
 	, fecha
 	, folio
 	, movimiento
+	, concepto
 	, saldo_inicial
 	, cargos
 	, abonos
@@ -55,6 +57,7 @@ SELECT
 	)
 	, [folio] = bt.folio
 	, [movimiento] = o.nombre
+	, [concepto] = ISNULL(c.nombre, '-No Definido-')
 	, [saldo_inicial] = 0
 	, [cargos] = (CASE bt.tipo WHEN 1 THEN bt.importe ELSE 0 END)
 	, [abonos] = (CASE bt.tipo WHEN 2 THEN bt.importe ELSE 0 END)
@@ -68,6 +71,9 @@ FROM
 		ON b.idbanco = bc.idbanco
 	LEFT JOIN objetos AS o
 		ON o.codigo = bt.transaccion
+	LEFT JOIN conceptos AS c 
+		ON c.idconcepto = bt.idconcepto
+
 WHERE
 	bt.cancelado = 0
 	AND bt.tipo IN(1,2)

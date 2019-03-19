@@ -1,29 +1,28 @@
 USE db_comercial_final
 GO
--- SP: 	Valida el ingreso de un usuario EVOLUWARE
---		Regresa un query con los menus y objetos a los que puede acceder el usuario
--- 		Elaborado por Laurence Saavedra
--- 		Agosto del 2009
---		Modificado en Octubre del 2009
---		EXEC _sys_prc_logon 'SUPERVISOR','admin',2056
---      Modificado 2015-03 LAUSAA : 7 Submenus
+-- =============================================
+-- Author:		Laurence Saavedra
+-- Create date: 20090801
+-- Description:	Valida el ingreso de un usuario EVOLUWARE
+--              Regresa un query con los menus y objetos a los que puede acceder el usuario
+-- =============================================
 ALTER PROCEDURE [dbo].[_sys_prc_logon]
 	@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@version AS SMALLINT = 0
+	, @password AS VARCHAR(20)
+	, @version AS SMALLINT = 0
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@user AS VARCHAR(20)
-	,@pass AS VARCHAR(20)
-	,@idu AS SMALLINT
-	,@activo AS BIT
-	,@version2 AS SMALLINT
-	,@msg AS VARCHAR(200)
-	,@idrol AS SMALLINT
-	,@seguridad AS BIT
+	, @pass AS VARCHAR(20)
+	, @idu AS SMALLINT
+	, @activo AS BIT
+	, @version2 AS SMALLINT
+	, @msg AS VARCHAR(200)
+	, @idrol AS SMALLINT
+	, @seguridad AS BIT
 	
 SELECT 
 	@idu = idu
@@ -64,6 +63,7 @@ SELECT TOP 1 @version2 = [version] FROM licencia
 IF @version < @version2 
 BEGIN
 	SELECT @msg = 'Versión de Ejecutable no permitida ' + CHAR(13) + 'Version Requerida ' + CONVERT(VARCHAR(4), @version2)
+
 	RAISERROR(@msg, 16, 1)
 	RETURN
 END
@@ -76,7 +76,8 @@ SELECT
 	@seguridad = seguridad 
 FROM 
 	evoluware_roles 
-WHERE idrol = @idrol
+WHERE 
+	idrol = @idrol
 
 SELECT @seguridad = ISNULL(@seguridad, 0)
 
@@ -148,12 +149,12 @@ FROM
 					) 
 				END
 			)
-			, [menu] = a.menu
-			, [submenu] = a.submenu
-			, [orden] = a.orden
+			, [menu] = COALESCE(so.menu, a.menu)
+			, [submenu] = COALESCE(so.submenu, a.submenu)
+			, [orden] = COALESCE(so.orden, a.orden)
 			, [tipo] = a.tipo
 			, [codigo] = a.codigo
-			, [nombre] = a.nombre
+			, [nombre] = COALESCE(so.nombre, a.nombre)
 			, [shortcut] = a.shortcut
 			, [separador] = a.separador
 			, [visible] = a.visible
@@ -168,8 +169,10 @@ FROM
 			, [comando] = ISNULL((SELECT TOP 1 b.valor FROM objetos_datos AS b WHERE b.objeto = a.objeto AND b.grupo='DATO' AND b.codigo = 'EXECUTE'),'')
 			, [icono] = a.icono
 			, [objeto] = a.objeto
-	FROM
-		objetos AS a
+		FROM
+			objetos AS a
+			LEFT JOIN ew_sys_objetos AS so
+				ON so.objeto = a.objeto
 ) AS MM
 ORDER BY
 	menu
