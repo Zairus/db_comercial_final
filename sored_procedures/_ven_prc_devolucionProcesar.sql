@@ -2,12 +2,8 @@ USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
--- Create date: 201104
--- Modificacion: 
-
+-- Create date: 20110401
 -- Description:	Procesar nota de crédito por devolucion de cliente.
--- EXEC _ven_prc_devolucionProcesar 0
-
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_devolucionProcesar]
 	@idtran AS BIGINT
@@ -15,28 +11,24 @@ AS
 
 SET NOCOUNT ON
 
---------------------------------------------------------------------------------
--- VALIDAR DATOS 
-
 DECLARE
 	@surtir AS BIT
-	,@msg AS VARCHAR(250)
+	, @error_mensaje AS VARCHAR(250)
 
+-- Parametro que indica si las facturas surten.
 SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
 
+-- Valida si los documentos aplicados son timbrados o no
+-- no puede haber mezcla de documentos timbrados y no timbrados
 EXEC _cxc_prc_validarTimbreAplicacion @idtran
 
---------------------------------------------------------------------------------
--- SURTIR MERCANCIA 
-
+-- Si la factura surtio, se devuelve lo surtido
 IF @surtir = 1
 BEGIN
-	EXEC _inv_prc_ventaSurtir @idtran, 1, 20
+	EXEC [dbo].[_ven_prc_facturaSurtir] @idtran, 0
 END
 
---------------------------------------------------------------------
--- Devolvemos la mercancia en la orden de Venta
---------------------------------------------------------------------
+--Actualizar cantidad devuelta en facturas
 INSERT INTO ew_sys_movimientos_acumula (
 	idmov1
 	,idmov2
@@ -58,9 +50,6 @@ WHERE
 	m.cantidad != 0
 	AND m.idtran = @idtran
 
---------------------------------------------------------------------
--- Indicamos la mercancia en la factura
---------------------------------------------------------------------
 INSERT INTO ew_sys_movimientos_acumula (
 	idmov1
 	,idmov2

@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -277,7 +277,7 @@ FROM (
 								AND ccmi.idmov2 = ccm.idmov2
 								AND (
 									ccmi.importe > 0
-									OR ct.transaccion NOT IN ('FDA2', 'EDE1')
+									OR ct.transaccion NOT IN ('FDA2')
 								)
 						) > 0
 					FOR XML PATH ('cfdi:Impuestos'), TYPE

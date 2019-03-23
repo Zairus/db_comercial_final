@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -7,33 +7,40 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_facturaSurtir]
 	@idtran AS INT
-	,@cancelacion AS BIT = 0
+	, @cancelacion AS BIT = 0
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@usuario AS VARCHAR(20)
-	,@password AS VARChAR(20)
-	,@transaccion AS VARCHAR(4)
-	,@idsucursal AS INT
-	,@idalmacen AS INT
-	,@sql AS VARCHAR(MAX) = ''
-	,@inv_idtran AS INT
-	,@folio AS VARCHAR(15)
-	,@tipo AS SMALLINT
+	, @password AS VARChAR(20)
+	, @transaccion AS VARCHAR(4)
+	, @idsucursal AS INT
+	, @idalmacen AS INT
+	, @sql AS VARCHAR(MAX) = ''
+	, @inv_idtran AS INT
+	, @folio AS VARCHAR(15)
+	, @tipo AS SMALLINT
 
 DECLARE
 	@error_mensaje AS VARCHAR(1500)
 
 SELECT
 	@usuario = u.usuario
-	,@password = u.[password]
-	,@idsucursal = vt.idsucursal
-	,@idalmacen = vt.idalmacen
-	,@tipo = (CASE WHEN @cancelacion = 0 THEN 2 ELSE 1 END)
+	, @password = u.[password]
+	, @idsucursal = vt.idsucursal
+	, @idalmacen = vt.idalmacen
+	, @tipo = (
+		CASE ISNULL(ct.tipo, 1)
+			WHEN 1 THEN (CASE WHEN @cancelacion = 0 THEN 2 ELSE 1 END)
+			WHEN 2 THEN (CASE WHEN @cancelacion = 0 THEN 1 ELSE 2 END)
+		END
+	)
 FROM
 	ew_ven_transacciones AS vt
+	LEFT JOIN ew_cxc_transacciones AS ct
+		ON ct.idtran = vt.idtran
 	LEFT JOIN evoluware_usuarios AS u
 		ON u.idu = vt.idu
 WHERE
@@ -46,7 +53,14 @@ SELECT TOP 1
 		'Error: '
 		+ 'Para el producto "[' + a.codigo + '] ' + a.nombre + '", '
 		+ 'no se ha indicado la cantidad por lote correctamente. '
-		+ 'Cantidad esperada: ' + CONVERT(VARCHAR(20), vtm.cantidad_facturada) + ', '
+		+ 'Cantidad esperada: ' 
+		+ CONVERT(VARCHAR(20), (
+			CASE 
+				WHEN vt.transaccion = 'EDE1' THEN vtm.cantidad 
+				ELSE vtm.cantidad_facturada 
+			END
+		)) 
+		+ ', '
 		+ 'Cantidad capturada: '
 		+ CONVERT(VARCHAR(20), ISNULL((
 			SELECT SUM(vtml.cantidad) 
@@ -62,11 +76,18 @@ FROM
 	ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_articulos AS a
 		ON a.idarticulo = vtm.idarticulo
+	LEFT JOIN ew_ven_transacciones AS vt
+		ON vt.idtran = vtm.idtran
 WHERE
 	vtm.idtran = @idtran
 	AND a.lotes > 0
 	AND (
-		vtm.cantidad_facturada
+		(
+			CASE 
+				WHEN vt.transaccion = 'EDE1' THEN vtm.cantidad 
+				ELSE vtm.cantidad_facturada 
+			END
+		)
 		<> ISNULL((
 			SELECT SUM(vtml.cantidad) 
 			FROM 
@@ -99,15 +120,15 @@ IF EXISTS(
 BEGIN
 	EXEC _sys_prc_insertarTransaccion
 		@usuario
-		,@password
-		,@transaccion
-		,@idsucursal
-		,'A' --Serie
-		,@sql
-		,6 --Longitod del folio
-		,@inv_idtran OUTPUT
-		,'' --Afolio
-		,'' --Afecha
+		, @password
+		, @transaccion
+		, @idsucursal
+		, 'A' --Serie
+		, @sql
+		, 6 --Longitod del folio
+		, @inv_idtran OUTPUT
+		, '' --Afolio
+		, '' --Afecha
 	
 	IF @@ERROR != 0 OR @inv_idtran IS NULL OR @inv_idtran = 0
 	BEGIN
@@ -179,7 +200,7 @@ BEGIN
 		, [idalmacen] = @idalmacen
 		, [idarticulo] = vtm.idarticulo
 		, [series] = vtm.series
-		, [lote] = ISNULL(ISNULL(vtml.lote, ic.lote), '')
+		, [lote] = COALESCE(vtml.lote, ic.lote, '') --ISNULL(ISNULL(vtml.lote, ic.lote), '')
 		, [fecha_caducidad] = ISNULL(icl.fecha_caducidad, ic.fecha_caducidad)
 		, [idcapa] = ISNULL(icl.idcapa, vtm.idcapa)
 		, [idum] = vtm.idum

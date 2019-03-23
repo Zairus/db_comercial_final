@@ -34,7 +34,7 @@ DECLARE
 -- y deja un solo renglón en la factura porque agrupa por ese consecutivo
 EXEC [dbo].[_sys_prc_genera_consecutivo] @idtran, ''
 
-SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
+SELECT @surtir = [dbo].[_sys_fnc_parametroActivo]('VEN_SURFAC')
 
 SELECT
 	@idtran2 = vt.idtran2
