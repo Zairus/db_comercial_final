@@ -16,7 +16,7 @@ DECLARE
 	, @error_mensaje AS VARCHAR(250)
 
 -- Parametro que indica si las facturas surten.
-SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
+SELECT @surtir = [dbo].[_sys_fnc_parametroActivo]('VEN_SURFAC')
 
 -- Valida si los documentos aplicados son timbrados o no
 -- no puede haber mezcla de documentos timbrados y no timbrados

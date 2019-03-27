@@ -111,11 +111,17 @@ IF EXISTS(
 		ew_ven_transacciones_mov AS m
 		LEFT JOIN ew_articulos AS a 
 			ON a.idarticulo = m.idarticulo
+		LEFT JOIN ew_ven_transacciones AS vt
+			ON vt.idtran = m.idtran
 	WHERE
-		m.cantidad_facturada != 0
-		AND m.cantidad_surtida != 0
+		(
+			CASE 
+				WHEN vt.transaccion = 'EDE1' THEN m.cantidad 
+				ELSE m.cantidad_facturada 
+			END
+		) != 0
 		AND a.inventariable = 1
-		AND idtran = @idtran
+		AND m.idtran = @idtran
 	)
 BEGIN
 	EXEC _sys_prc_insertarTransaccion
@@ -200,11 +206,22 @@ BEGIN
 		, [idalmacen] = @idalmacen
 		, [idarticulo] = vtm.idarticulo
 		, [series] = vtm.series
-		, [lote] = COALESCE(vtml.lote, ic.lote, '') --ISNULL(ISNULL(vtml.lote, ic.lote), '')
+		, [lote] = COALESCE(vtml.lote, ic.lote, '')
 		, [fecha_caducidad] = ISNULL(icl.fecha_caducidad, ic.fecha_caducidad)
 		, [idcapa] = ISNULL(icl.idcapa, vtm.idcapa)
 		, [idum] = vtm.idum
-		, [cantidad] = (ISNULL(vtml.cantidad, vtm.cantidad_surtida) * um.factor)
+		, [cantidad] = (
+			ISNULL(
+				vtml.cantidad
+				, (
+					CASE 
+						WHEN vt.transaccion = 'EDE1' THEN vtm.cantidad 
+						ELSE vtm.cantidad_facturada 
+					END
+				)
+			) 
+			* um.factor
+		)
 		, [costo] = (CASE WHEN @tipo = 2 THEN 0 ELSE vtm.costo END)
 		, [afectainv] = 1
 		, [comentario] = vtm.comentario
@@ -217,15 +234,27 @@ BEGIN
 		LEFT JOIN ew_inv_capas AS ic 
 			ON vtm.idcapa = ic.idcapa 
 			AND vtm.idarticulo = ic.idarticulo
-			
 		LEFT JOIN ew_ven_transacciones_mov_lotes AS vtml
 			ON vtml.idtran = vtm.idtran
 			AND vtml.idarticulo = vtm.idarticulo
 		LEFT JOIN ew_inv_capas AS icl
 			ON ic.idarticulo = vtm.idarticulo
 			AND icl.lote = vtml.lote
+		LEFT JOIN ew_ven_transacciones AS vt
+			ON vt.idtran = vtm.idtran
 	WHERE
-		(ISNULL(vtml.cantidad, vtm.cantidad_surtida) * um.factor) != 0
+		(
+			ISNULL(
+				vtml.cantidad
+				, (
+					CASE 
+						WHEN vt.transaccion = 'EDE1' THEN vtm.cantidad 
+						ELSE vtm.cantidad_facturada 
+					END
+				)
+			) 
+			* um.factor
+		) != 0
 		AND a.inventariable = 1
 		AND vtm.idtran = @idtran
 
