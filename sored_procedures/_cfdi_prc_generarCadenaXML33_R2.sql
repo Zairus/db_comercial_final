@@ -425,7 +425,7 @@ FROM (
 						'1.0' AS '@Version'
 						,(
 							SELECT
-								CONVERT(VARCHAR(19), p.fecha_operacion, 126) AS '@FechaPago'
+								CONVERT(VARCHAR(19), p.fecha, 126) AS '@FechaPago'
 								, ccp.cfd_metodoDePago AS '@FormaDePagoP'
 								, ccp.cfd_moneda AS '@MonedaP'
 								, (CASE WHEN ccp.cfd_moneda = 'MXN' THEN NULL ELSE ccp.cfd_tipocambio END) AS '@TipoCambioP'

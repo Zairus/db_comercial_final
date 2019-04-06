@@ -6,9 +6,9 @@ GO
 -- Description:	Autorizar pago de acreedor
 -- =============================================
 ALTER PROCEDURE [dbo].[_cxp_prc_pagoAutorizar]
-	 @idtran AS BIGINT
-	,@idu AS SMALLINT
-	,@debug AS BIT = 0
+	@idtran AS BIGINT
+	, @idu AS SMALLINT
+	, @debug AS BIT = 0
 AS
 
 SET NOCOUNT ON
@@ -17,36 +17,36 @@ SET NOCOUNT ON
 -- DECLARACION DE VARIABLES ####################################################
 DECLARE
 	@sql AS VARCHAR(2000) = ''
-	,@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@idsucursal AS SMALLINT
-	,@idproveedor AS INT
-	,@identidad AS INT
-	,@fecha AS SMALLDATETIME
+	, @usuario AS VARCHAR(20)
+	, @password AS VARCHAR(20)
+	, @idsucursal AS SMALLINT
+	, @idproveedor AS INT
+	, @identidad AS INT
+	, @fecha AS SMALLDATETIME
 
 DECLARE
 	@idarticulo AS INT
 
 DECLARE
 	@egreso_idtran AS INT
-	,@transaccion AS VARCHAR(4) = 'BDA1'
-	,@folio AS VARCHAR(15)
+	, @transaccion AS VARCHAR(4) = 'BDA1'
+	, @folio AS VARCHAR(15)
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 SELECT
-	 @usuario = usuario
-	,@password = [password]
+	@usuario = usuario
+	, @password = [password]
 FROM 
 	ew_usuarios
 WHERE
 	idu = @idu
 	
 SELECT
-	 @idsucursal = ct.idsucursal
-	,@idproveedor = ct.idproveedor
-	,@identidad = ISNULL(e.identidad, 0)
-	,@fecha = ct.fecha
+	@idsucursal = ct.idsucursal
+	, @idproveedor = ct.idproveedor
+	, @identidad = ISNULL(e.identidad, 0)
+	, @fecha = ct.fecha
 FROM 
 	ew_cxp_transacciones AS ct
 	LEFT JOIN ew_proveedores AS p
@@ -77,16 +77,16 @@ BEGIN
 END
 
 EXEC _sys_prc_insertarTransaccion
-	 @usuario
-	,@password
-	,@transaccion
-	,@idsucursal
-	,'A'
-	,@sql
-	,6 --Longitod del folio
-	,@egreso_idtran OUTPUT
-	,'' --Afolio
-	,@fecha --Afecha
+	@usuario
+	, @password
+	, @transaccion
+	, @idsucursal
+	, 'A'
+	, @sql
+	, 6 --Longitod del folio
+	, @egreso_idtran OUTPUT
+	, '' --Afolio
+	, @fecha --Afecha
 
 SELECT
 	@folio = folio
@@ -102,46 +102,46 @@ BEGIN
 END
 
 INSERT INTO ew_ban_transacciones (
-	 idtran
-	,idtran2
-	,transaccion
-	,idsucursal
-	,idcuenta
-	,folio
-	,fecha
-	,idu
-	,tipo
-	,identidad
-	,idrelacion
-	,idforma
-	,forma_referencia
-	,idmoneda
-	,tipocambio
-	,importe
-	,subtotal
-	,impuesto
-	,comentario
+	idtran
+	, idtran2
+	, transaccion
+	, idsucursal
+	, idcuenta
+	, folio
+	, fecha
+	, idu
+	, tipo
+	, identidad
+	, idrelacion
+	, idforma
+	, forma_referencia
+	, idmoneda
+	, tipocambio
+	, importe
+	, subtotal
+	, impuesto
+	, comentario
 )
 SELECT
 	[idtran] = @egreso_idtran
-	,[idtran2] = ct.idtran
-	,[transaccion] = @transaccion
-	,[idsucursal] = @idsucursal
-	,[idcuenta] = ct.idcuenta
-	,[folio] = @folio
-	,[fecha] = ct.fecha
-	,[idu] = @idu
-	,[tipo] = 2
-	,[identidad] = @identidad
-	,[idrelacion] = 3
-	,[idforma] = ct.idforma
-	,[forma_referencia] = ct.folio
-	,[idmoneda] = ct.idmoneda
-	,[tipocambio] = ct.tipocambio
-	,[importe] = (CASE WHEN ct.idmoneda = bc.idmoneda THEN ct.total ELSE ((ct.total * ct.tipocambio) / bm.tipocambio) END)
-	,[subtotal] = ct.subtotal
-	,[impuesto] = (ct.impuesto1 + ct.impuesto2 + ct.impuesto3 + ct.impuesto4)
-	,[comentario] = ct.comentario
+	, [idtran2] = ct.idtran
+	, [transaccion] = @transaccion
+	, [idsucursal] = @idsucursal
+	, [idcuenta] = ct.idcuenta
+	, [folio] = @folio
+	, [fecha] = ct.fecha
+	, [idu] = @idu
+	, [tipo] = 2
+	, [identidad] = @identidad
+	, [idrelacion] = 3
+	, [idforma] = ct.idforma
+	, [forma_referencia] = ct.folio
+	, [idmoneda] = ct.idmoneda
+	, [tipocambio] = ct.tipocambio
+	, [importe] = (CASE WHEN ct.idmoneda = bc.idmoneda THEN ct.total ELSE ((ct.total * ct.tipocambio) / bm.tipocambio) END)
+	, [subtotal] = ct.subtotal
+	, [impuesto] = (ct.impuesto1 + ct.impuesto2 + ct.impuesto3 + ct.impuesto4)
+	, [comentario] = ct.comentario
 FROM
 	ew_cxp_transacciones AS ct
 	LEFT JOIN ew_ban_cuentas AS bc
@@ -152,20 +152,20 @@ WHERE
 	ct.idtran = @idtran
 	
 INSERT INTO ew_ban_transacciones_mov (
-	 idtran
-	,idtran2
-	,idmov2
-	,consecutivo
-	,idconcepto
-	,importe
+	idtran
+	, idtran2
+	, idmov2
+	, consecutivo
+	, idconcepto
+	, importe
 )
 SELECT
 	[idtran] = @egreso_idtran
-	,[idtran2] = ct.idtran
-	,[idmov2] = ct.idmov
-	,[consecutivo] = 1
-	,[idconcepto] = @idarticulo
-	,[importe] = (CASE WHEN ct.idmoneda = bc.idmoneda THEN ct.total ELSE ((ct.total * ct.tipocambio) / bm.tipocambio) END)
+	, [idtran2] = ct.idtran
+	, [idmov2] = ct.idmov
+	, [consecutivo] = 1
+	, [idconcepto] = @idarticulo
+	, [importe] = (CASE WHEN ct.idmoneda = bc.idmoneda THEN ct.total ELSE ((ct.total * ct.tipocambio) / bm.tipocambio) END)
 FROM
 	ew_cxp_transacciones AS ct
 	LEFT JOIN ew_ban_cuentas AS bc
@@ -182,8 +182,4 @@ EXEC _sys_prc_trnAplicarEstado @idtran, 'AUT', @idu, 1
 --------------------------------------------------------------------------------
 -- PROCESAR EGRESO DE PAGO #####################################################
 EXEC _ban_prc_egresoProcesar @egreso_idtran
-
---------------------------------------------------------------------------------
--- CONTABILIZAR PAGO ###########################################################
-EXEC _ct_prc_polizaAplicarDeConfiguracion @egreso_idtran, 'DDA3', @idtran
 GO

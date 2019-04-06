@@ -11,7 +11,7 @@ SELECT
 	, [codsuc] = b.idsucursal
 	, [idsucursal] = b.idsucursal
 	, [tipo] = b.tipo
-	, [fecha] = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), (CASE WHEN b.transaccion = 'BDC2' THEN b.fecha_operacion ELSE b.fecha END), 3))
+	, [fecha] = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), b.fecha, 3))
 	, [fechacap] = b.fechahora
 	, [importe] = CONVERT(DECIMAL(18,2), b.importe)
 	, [tcbanco] = b.tipocambio
@@ -56,7 +56,7 @@ SELECT
 	, [codsuc] = b.idsucursal
 	, [idsucursal] = b.idsucursal
 	, [tipo] = b.tipo
-	, [fecha] = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), (CASE WHEN b.transaccion = 'BDC2' THEN b.fecha_operacion ELSE b.fecha END), 3))
+	, [fecha] = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), b.fecha, 3))
 	, [fechacap] = b.fechahora
 	, [importe] = CONVERT(DECIMAL(18,2), btm.importe)
 	, [tcbanco] = b.tipocambio

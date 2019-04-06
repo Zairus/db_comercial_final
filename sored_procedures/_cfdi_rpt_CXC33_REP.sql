@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -20,7 +20,7 @@ SELECT
 	,[empresa_banco_nombre] = bb.nombre
 	,[empresa_cuenta] = bc.clabe
 
-	,[fecha_operacion] = ct.fecha_operacion
+	,[fecha_operacion] = ct.fecha
 	,[forma_pago] = '[' + cc.cfd_metodoDePago + ']' + ISNULL(' ' + csf.descripcion, '')
 	,[tipo_cambio] = cc.cfd_tipoCambio
 	,[moneda] = cc.cfd_moneda

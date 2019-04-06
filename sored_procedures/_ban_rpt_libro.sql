@@ -49,12 +49,7 @@ INSERT INTO #_tmp_libro (
 SELECT
 	[cuenta] = bc.no_cuenta + ' - ' + b.nombre
 	, [idcuenta] = bc.idcuenta
-	, [fecha] = (
-		CASE 
-			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
-			ELSE bt.fecha 
-		END
-	)
+	, [fecha] = bt.fecha
 	, [folio] = bt.folio
 	, [movimiento] = o.nombre
 	, [concepto] = ISNULL(c.nombre, '-No Definido-')
@@ -78,12 +73,38 @@ WHERE
 	bt.cancelado = 0
 	AND bt.tipo IN(1,2)
 	AND bt.idcuenta = (CASE @idcuenta WHEN 0 THEN bt.idcuenta ELSE @idcuenta END)
+	AND bt.fecha BETWEEN @fecha1 AND @fecha2
+
+UNION ALL
+
+SELECT
+	[cuenta] = bc.no_cuenta + ' - ' + b.nombre
+	, [idcuenta] = bc.idcuenta
+	, [fecha] = NULL
+	, [folio] = ''
+	, [movimiento] = 'Sin Movimientos'
+	, [concepto] = ''
+	, [saldo_inicial] = 0
+	, [cargos] = 0
+	, [abonos] = 0
+	, [saldo_final] = 0
+	, [idtran] = 0
+FROM
+	ew_ban_cuentas AS bc
+	LEFT JOIN ew_ban_bancos AS b
+		ON b.idbanco = bc.idbanco
+WHERE
+	bc.idcuenta = (CASE @idcuenta WHEN 0 THEN bc.idcuenta ELSE @idcuenta END)
 	AND (
-		CASE 
-			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
-			ELSE bt.fecha 
-		END
-	) BETWEEN @fecha1 AND @fecha2
+		SELECT COUNT(*) 
+		FROM 
+			ew_ban_transacciones AS bt
+		WHERE
+			bt.cancelado = 0
+			AND bt.tipo IN (1,2)
+			AND bt.fecha BETWEEN @fecha1 AND @fecha2
+			AND bt.idcuenta = bc.idcuenta
+	) = 0
 
 UPDATE tl SET
 	tl.saldo_inicial = (

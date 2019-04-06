@@ -7,18 +7,18 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_ticketVentaClienteDatos]
 	@cliente_codigo AS VARCHAR(30)
-	,@idsucursal AS SMALLINT
-	,@idmoneda AS SMALLINT
-	,@idu AS SMALLINT = 0
+	, @idsucursal AS SMALLINT
+	, @idmoneda AS SMALLINT
+	, @idu AS SMALLINT = 0
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@idturno AS INT
-	,@pago_en_caja AS BIT
-	,@idcuenta AS INT
-	,@error_mensaje AS VARCHAR(500)
+	, @pago_en_caja AS BIT
+	, @idcuenta AS INT
+	, @error_mensaje AS VARCHAR(500)
 
 SELECT @idturno = [dbo].[fn_sys_turnoActualR2](@idu, 0)
 SELECT @pago_en_caja = CONVERT(BIT, valor) FROM objetos_datos WHERE grupo = 'GLOBAL' AND codigo = 'PAGO_EN_CAJA'
@@ -36,12 +36,12 @@ BEGIN
 		SELECT
 			@error_mensaje = (
 				'El usuario '
-				+u.nombre
-				+', '
-				+CHAR(13)
-				+'tiene turno abierto con fecha '
-				+CONVERT(VARCHAR(8), st.fecha_inicio, 3)
-				+ISNULL((
+				+ u.nombre
+				+ ', '
+				+ CHAR(13)
+				+ 'tiene turno abierto con fecha '
+				+ CONVERT(VARCHAR(8), st.fecha_inicio, 3)
+				+ ISNULL((
 					', '
 					+CHAR(13)
 					+'en la caja: '
@@ -51,9 +51,9 @@ BEGIN
 					+'sucursal: '
 					+s.nombre
 				), '')
-				+'.'
-				+CHAR(13)
-				+'Es necesario primero cerrar ese turno.'
+				+ '.'
+				+ CHAR(13)
+				+ 'Es necesario primero cerrar ese turno.'
 			)
 		FROM
 			ew_sys_turnos AS st
@@ -79,32 +79,32 @@ END
 
 SELECT
 	[idcliente] = c.idcliente
-	,[cliente] = c.codigo
-	,[idfacturacion] = c.idfacturacion
-	,[nombre] = c.nombre
-	,[rfc] = cf.rfc
-	,[direccion] = cf.direccion1
-	,[noExterior] = cf.noExterior
-	,[colonia] = cf.colonia
-	,[ciudad] = cd.ciudad
-	,[codigo_postal] = cf.codpostal
-	,[telefono1] = cf.telefono1
-	,[idimpuesto1_valor] = ci.valor
-	,[idimpuesto1] = s.idimpuesto
-	,[idlista] = ctr.idlista
-	,[codigo_vendedor] = vv.codigo
-	,[idvendedor] = ctr.idvendedor
-	,[nombre_vendedor] = vv.nombre
-	,[credito] = ctr.credito
-	,[credito_dias] = ctr.credito_plazo
-	,[cliente_saldo] = csa.saldo
+	, [cliente] = c.codigo
+	, [idfacturacion] = c.idfacturacion
+	, [nombre] = c.nombre
+	, [rfc] = cf.rfc
+	, [direccion] = cf.direccion1
+	, [noExterior] = cf.noExterior
+	, [colonia] = cf.colonia
+	, [ciudad] = cd.ciudad
+	, [codigo_postal] = cf.codpostal
+	, [telefono1] = cf.telefono1
+	, [idimpuesto1_valor] = ci.valor
+	, [idimpuesto1] = s.idimpuesto
+	, [idlista] = ctr.idlista
+	, [codigo_vendedor] = vv.codigo
+	, [idvendedor] = ctr.idvendedor
+	, [nombre_vendedor] = vv.nombre
+	, [credito] = (CASE WHEN[dbo].[_sys_fnc_parametroActivo]('CXC_NOTAVENTA_CREDITO') = 1 THEN ctr.credito ELSE 0 END)
+	, [credito_dias] = (CASE WHEN[dbo].[_sys_fnc_parametroActivo]('CXC_NOTAVENTA_CREDITO') = 1 THEN ctr.credito_plazo ELSE 0 END)
+	, [cliente_saldo] = csa.saldo
 
-	,ctr.credito_limite
-	,ctr.credito_suspendido
+	, [credito_limite] = ctr.credito_limite
+	, [credito_suspendido] = ctr.credito_suspendido
 
-	,[idcuenta] = ISNULL((SELECT CASE WHEN t.idcuenta = 0 THEN 3 ELSE t.idcuenta END FROM ew_sys_turnos AS t WHERE t.idturno = @idturno), 0)
-	,[pago_en_caja] = @pago_en_caja
-	,[idturno] = @idturno
+	, [idcuenta] = ISNULL((SELECT CASE WHEN t.idcuenta = 0 THEN 3 ELSE t.idcuenta END FROM ew_sys_turnos AS t WHERE t.idturno = @idturno), 0)
+	, [pago_en_caja] = @pago_en_caja
+	, [idturno] = @idturno
 FROM
 	ew_clientes AS c
 	LEFT JOIN ew_clientes_terminos AS ctr

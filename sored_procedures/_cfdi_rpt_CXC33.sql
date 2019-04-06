@@ -168,7 +168,16 @@ SELECT
 	,[cfd_versionTFD] = cct.cfdi_versionTFD
 	,[cfd_UUID] = cct.cfdi_UUID
 	,[cfd_noCertificadoSAT] = cct.cfdi_noCertificadoSAT
-	,[cfd_selloSAT] = cct.cfdi_selloDigital
+--	,[cfd_selloSAT] = cct.cfdi_selloDigital
+	,[cfd_selloCFDI] = cct.cfdi_selloDigital
+	,[cfd_selloSAT] = (
+		SELECT
+			cco.valor
+		FROM
+			dbo._sys_fnc_separarMultilinea(cct.cfdi_cadenaOriginal, '|') AS cco
+		WHERE
+			cco.idr = 7
+	)
 	,[cfd_cadenaOriginalSAT] = cct.cfdi_cadenaOriginal
 	,[cfd_QRCode] = cct.QRCode
 	,[cfd_fechaCancelacion] = cct.cfdi_fechaCancelacion
@@ -297,7 +306,7 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ISNULL(cum1.sat_unidad_clave, 'EA') + '-' + ccm1.cfd_unidad
-			,[concepto_descripcion] = REPLACE((
+			,[concepto_descripcion] = (
 				CASE 
 					WHEN @concat_nom_corto_articulo = 1 THEN 
 						a.nombre_corto + ' - ' + ccm1.cfd_descripcion 
@@ -342,7 +351,7 @@ FROM
 						), 2, 1000), '')
 					ELSE ''
 				END
-			), CHAR(13), '<br />')
+			)
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -370,13 +379,13 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = 1
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = REPLACE((
+			,[concepto_descripcion] = (
 				'Aplicación a '
 				+ o1.nombre
 				+ ': '
 				+ ccf.cfd_serie
 				+ LTRIM(RTRIM(STR(ccf.cfd_folio)))
-			), CHAR(13), '<br />')
+			)
 			,[concepto_precio_unitario] = ct1.subtotal
 			,[concepto_importe] = ctm1.importe
 		FROM
@@ -412,7 +421,7 @@ FROM
 			,[concepto_claveSAT] = csc.clave
 			,[concepto_cantidad] = ccm1.cfd_cantidad
 			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = REPLACE(ccm1.cfd_descripcion, CHAR(13), '<br />')
+			,[concepto_descripcion] = ccm1.cfd_descripcion
 			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
 			,[concepto_importe] = ccm1.cfd_importe
 		FROM
@@ -437,8 +446,8 @@ FROM
 			,[concepto_claveSAT] = ''
 			,[concepto_cantidad] = NULL
 			,[concepto_unidad] = ''
-			,[concepto_descripcion] = (
-				'Tipo Plan: ' + spt.nombre + '<br />'
+			,[concepto_descripcion] = 
+				'Tipo Plan: ' + spt.nombre + CHAR(13) + CHAR(10)
 				+ (
 					'Periodo: ' 
 					+ LTRIM(RTRIM(STR(vtms.ejercicio))) + '-' 
@@ -449,7 +458,7 @@ FROM
 							spd.grupo = 'meses' 
 							AND spd.id = vtms.periodo
 					)
-				) + '<br />'
+				) + CHAR(13) + CHAR(10)
 				+ (
 					REPLACE((
 						SELECT
@@ -484,9 +493,8 @@ FROM
 						ORDER BY
 							cu.nombre
 						FOR XML PATH ('')
-					), '{13}', '<br />')
+					), '{13}', CHAR(13) + CHAR(10))
 				)
-			)
 			,[concepto_precio_unitario] = NULL
 			,[concepto_importe] = NULL
 		FROM

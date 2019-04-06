@@ -1,10 +1,5 @@
 USE db_comercial_final
 GO
--- =============================================
--- Author:		Paul Monge
--- Create date: 20190131
--- Description:	Obtiene un registro para tabla temporal de datos de articulo
--- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_articuloDatosRegistro]
 	@codarticulo AS VARCHAR(30)
 	, @idlista AS INT
@@ -34,14 +29,14 @@ SELECT
 	, [autorizable] = a.autorizable
 	, [factor] = um.factor
 	, [unidad] = um.codigo
-	, [idmoneda_m] = vlm.idmoneda
+	, [idmoneda_m] = ISNULL(vlm.idmoneda,0)
 	, [tipocambio_m] = ISNULL(bm.tipocambio, 1)
 	, [kit] = 0
 	, [inventariable] = a.inventariable
 	, [serie] = a.series
 
 	, [cantidad_facturada] = (CASE WHEN a.idtipo = 1 THEN 1 ELSE 0 END)
-	, [precio_unitario] = (
+	, [precio_unitario] = ISNULL((
 		(
 			(
 				CASE ISNULL(vp.codprecio, 1)
@@ -55,8 +50,8 @@ SELECT
 			* um.factor
 		)
 		* @precio_factor
-	)
-	, [precio_unitario_m] = (
+	),0)
+	, [precio_unitario_m] = ISNULL((
 		(
 			(
 				CASE ISNULL(vp.codprecio, 1)
@@ -70,8 +65,8 @@ SELECT
 			* um.factor
 		)
 		* @precio_factor
-	)
-	, [precio_unitario_m2] = (
+	),0)
+	, [precio_unitario_m2] = ISNULL((
 		(
 			(
 				CASE ISNULL(vp.codprecio, 1)
@@ -85,7 +80,7 @@ SELECT
 			* um.factor
 		)
 		* @precio_factor
-	)
+	),0)
 	, [precio_minimo] = (
 		[dbo].[_ven_fnc_articuloPrecioMinimoPorSucursal]([as].idarticulo, [as].idsucursal, [as].costo_base)
 		* @precio_factor
@@ -113,7 +108,7 @@ SELECT
 	, [idimpuesto2_ret_cuenta] = ''
 	, [ingresos_cuenta] = ''
 
-	, [cambiar_precio] = [as].cambiar_precio
+	, [cambiar_precio] = (CASE WHEN a.idtipo = 0 THEN [as].cambiar_precio ELSE 1 END)
 	, [precio_congelado] = CONVERT(BIT, (CASE WHEN [as].cambiar_precio = 1 THEN 0 ELSE 1 END))
 	, [cantidad_mayoreo] = [as].mayoreo
 
@@ -138,7 +133,7 @@ SELECT
 		)
 		+ (
 			CASE
-				WHEN csc.clave IS NULL THEN 'No tiene clasificación SAT asignada||'
+				WHEN csc.clave IS NULL THEN 'No tiene clasificacion SAT asignada||'
 				ELSE ''
 			END
 		)
