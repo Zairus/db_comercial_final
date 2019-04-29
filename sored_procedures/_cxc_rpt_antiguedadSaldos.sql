@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Fernanda Corona
@@ -48,7 +48,7 @@ BEGIN
 		, [telefono1] = cf.telefono1
 		, [transaccion] = o.nombre
 		, [folio] = dp.folio
-		, [concepto] = c.nombre
+		, [concepto] = o.nombre --c.nombre
 		, [fecha] = dp.fecha
 		, [dias_emitido] = DATEDIFF(day,dp.fecha,GETDATE())
 		, [tipo] = dp.tipo

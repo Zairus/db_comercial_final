@@ -6,29 +6,45 @@ GO
 -- Description:	Diario de ventas
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_rpt_diario]
-	 @idsucursal AS SMALLINT = 0
-	,@fecha1 AS SMALLDATETIME = NULL
-	,@fecha2 AS SMALLDATETIME = NULL
+	@idsucursal AS SMALLINT = 0
+	, @fecha1 AS SMALLDATETIME = NULL
+	, @fecha2 AS SMALLDATETIME = NULL
+	, @condicionventa AS SMALLINT = -1
+	, @objeto AS INT = -1
 AS
 
 SET NOCOUNT ON
 
+DECLARE 
+	@objetocodigo AS VARCHAR(5) = ''
+
 SELECT @fecha1 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha1, GETDATE()), 3) + ' 00:00')
 SELECT @fecha2 = CONVERT(SMALLDATETIME, CONVERT(VARCHAR(8), ISNULL(@fecha2, GETDATE()), 3) + ' 23:59')
 
+SELECT 
+	@objetocodigo = codigo 
+FROM 
+	objetos 
+WHERE 
+	objeto = @objeto
+
+SELECT @objetocodigo = ISNULL(@objetocodigo, '')
+
 SELECT
-	 [sucursal] = s.nombre
-	,vt.fecha
-	,[folio] = vt.folio
-	,c.codigo
-	,[contado] = (CASE WHEN ct.credito = 0 THEN vt.total ELSE 0 END)
-	,[credito] = (CASE WHEN ct.credito = 1 THEN vt.total ELSE 0 END)
-	,vt.costo
-	,[codvend] = v.codigo
-	,[vendedor] = v.nombre
-	,[total] = vt.total
-	--forma = (CASE WHEN dc.tipopago = 1 THEN ''Efectivo'' WHEN dc.tipopago = 2 THEN ''Cheque'' WHEN dc.tipopago = 3 THEN ''Tarjeta'' WHEN dc.tipopago = 4 THEN ''Depósito'' WHEN dc.tipopago = 5 THEN ''Transferencia'' ELSE '''' END)
-	,[forma] = ISNULL(bf.nombre, '')
+	[sucursal] = s.nombre
+	, [fecha] = CONVERT(DATE, vt.fecha, 103)
+	, [folio] = vt.folio + ' (' + vt.transaccion + ')'
+	, [codigo] = c.codigo + CASE WHEN DB_NAME() NOT IN('db_refriequipos_datos','db_refriequipos_datos2','db_refriservicios_datos2') THEN ' (' + c.nombre + ')' ELSE '' END
+	, [subtotal] = vt.subtotal
+	, [iva] = vt.impuesto1
+	, [contado] = (CASE WHEN ABS([dbo].[_cxc_fnc_documentoSaldoR2] (vt.idtran, CONVERT(SMALLDATETIME, vt.fecha))) > 0.01 THEN 0 ELSE vt.total END)
+	, [credito] = (CASE WHEN ABS([dbo].[_cxc_fnc_documentoSaldoR2] (vt.idtran, CONVERT(SMALLDATETIME, vt.fecha))) > 0.01 THEN vt.total ELSE 0 END)
+	, [costo] = vt.costo
+	, [codvend] = v.codigo
+	, [vendedor] = v.nombre
+	, [total] = vt.total
+	, [forma] = ISNULL(bfa.nombre,bf.nombre)
+	, [idtran] = vt.idtran
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_sys_sucursales AS s
@@ -41,12 +57,46 @@ FROM
 		ON v.idvendedor = vt.idvendedor
 	LEFT JOIN ew_ban_formas AS bf
 		ON bf.idforma = ct.idforma
+	LEFT JOIN ew_cfd_comprobantes AS cc
+		ON cc.idtran = ct.idtran
+	LEFT JOIN ew_ban_formas_aplica bfa
+		ON bfa.codigo=cc.cfd_metodoDePago
+
+	LEFT JOIN objetos AS o 
+		ON o.codigo = ct.transaccion
 WHERE
 	vt.cancelado = 0
 	AND vt.transaccion LIKE 'EFA%'
 	AND vt.idsucursal = (CASE @idsucursal WHEN 0 THEN vt.idsucursal ELSE @idsucursal END)
 	AND vt.fecha BETWEEN @fecha1 AND @fecha2
+	AND vt.credito = (CASE @condicionventa WHEN -1 THEN vt.credito ELSE @condicionventa END)
+	AND o.codigo IN (
+		SELECT ov.codigo 
+		FROM 
+			objetos AS ov 
+		WHERE 
+			ov.codigo LIKE (
+				CASE 
+					WHEN @objeto = -1 THEN ov.codigo 
+					WHEN @objeto = -2 THEN 
+						CASE 
+							WHEN ct.transaccion = 'EFA1' THEN 'EFA1' 
+							ELSE 
+								CASE 
+									WHEN ct.transaccion = 'EFA4' THEN 'EFA4' 
+									ELSE	
+										CASE 
+											WHEN ct.transaccion = 'EFA6' THEN 'EFA6' 
+										END 
+								END 
+							END 
+						ELSE @objetocodigo 
+				END
+			)
+	)
+
 ORDER BY
 	 vt.idsucursal
+	,ct.fechahora
 	,vt.folio
 GO

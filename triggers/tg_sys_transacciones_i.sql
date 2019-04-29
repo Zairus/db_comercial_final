@@ -12,6 +12,9 @@ AS
 
 SET NOCOUNT ON
 
+DECLARE
+	@cmd AS NVARCHAR(4000) = ''
+
 IF NOT EXISTS(SELECT * FROM objetos WHERE codigo IN (SELECT transaccion FROM inserted))
 BEGIN
 	RAISERROR('Error: Transaccion inexistente.', 16, 1)
@@ -39,4 +42,15 @@ SELECT TOP 1
 	,[idu] = dbo._sys_fnc_usuario()
 FROM 
 	inserted AS i
+
+SELECT 
+	@cmd = (
+		SELECT DISTINCT 
+			'EXEC _sys_prc_ejercicioInicializar ' + LTRIM(RTRIM(STR(YEAR(fecha)))) + '; '
+		FROM
+			inserted
+		FOR XML PATH('')
+	)
+
+EXEC sp_executesql @cmd
 GO
