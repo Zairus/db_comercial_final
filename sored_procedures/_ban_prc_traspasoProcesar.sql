@@ -16,34 +16,32 @@ SET NOCOUNT ON
 
 DECLARE	
 	@id AS BIGINT
-	,@idtran2 AS BIGINT
-	,@aplicado AS BIT
-	,@idcuenta1 AS SMALLINT
-	,@idcuenta2 As SMALLINT
-	,@tipo AS TINYINT
-	,@idconcepto AS SMALLINT
-	,@importe AS DECIMAL(15,2)
-	,@fecha AS SMALLDATETIME
-	,@cont AS SMALLINT
-	,@msg AS VARCHAR(250)
-	,@SQL AS VARCHAR(8000)
-	,@salida_idtran AS INT
-	,@entrada_idtran AS INT
-	,@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@idsucursal AS SMALLINT
+	, @idtran2 AS BIGINT
+	, @aplicado AS BIT
+	, @idcuenta1 AS SMALLINT
+	, @idcuenta2 As SMALLINT
+	, @tipo AS TINYINT
+	, @idconcepto AS SMALLINT
+	, @importe AS DECIMAL(15,2)
+	, @fecha AS SMALLDATETIME
+	, @cont AS SMALLINT
+	, @msg AS VARCHAR(250)
+	, @SQL AS VARCHAR(8000)
+	, @salida_idtran AS INT
+	, @entrada_idtran AS INT
+	, @usuario AS VARCHAR(20)
+	, @password AS VARCHAR(20)
+	, @idsucursal AS SMALLINT
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
-
 SELECT
 	@usuario = usuario
-	,@password = [password]
-FROM ew_usuarios
+	, @password = [password]
+FROM 
+	ew_usuarios
 WHERE
 	idu = @idu
-
-SELECT @SQL=CONVERT (varchar(50),@aplicado_fecha)
 	
 -- Obtenemos los datos de la transaccion y se exige que no se encuentre cancelada ó inactiva
 SELECT 
@@ -101,16 +99,16 @@ INSERT INTO ew_ban_transacciones (
 )
 
 SELECT
-	{idtran}
-	, idtran
-	, ''BDA1''
-	, ew_ban_documentos.idsucursal
-	, ''' + CONVERT(VARCHAR(20),@aplicado_fecha)+ '''
-	, idcuenta1
+	[idtran] = {idtran}
+	, [idtran2] = idtran
+	, [transaccion] = ''BDA1''
+	, [idsucursal] = ew_ban_documentos.idsucursal
+	, [fecha] = ''' + CONVERT(VARCHAR(10), @aplicado_fecha, 103)+ '''
+	, [idcuenta] = idcuenta1
 	, tipocambio
 	, ''{folio}''
 	, ''TRAS-''+ folio
-	, ' + CONVERT(VARCHAR(20),@idu)+'
+	, ' + CONVERT(VARCHAR(20), @idu) + '
 	, 2
 	, 5
 	, b.idbanco
@@ -118,7 +116,7 @@ SELECT
 	, folio
 	, forma_moneda
 	, 0
-	, ''' + CONVERT(VARCHAR(20),@aplicado_fecha)+'''
+	, ''' + CONVERT(VARCHAR(20), @aplicado_fecha) + '''
 	, importe
 	, importe
 	, impuesto
@@ -140,13 +138,13 @@ INSERT INTO ew_ban_transacciones_mov (
 	, impuesto_tasa
 )
 SELECT 
-	{idtran}
-	, idmov
+	[idtran] = {idtran}
+	, [idmov2] = idmov
 	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY ew_ban_documentos.idr)
-	, 13
-	, importe
-	, 0
-	, 0
+	, [idconcepto] = 13
+	, [importe] = importe
+	, [idimpuesto] = 0
+	, [impuesto_tasa] = 0
 FROM 
 	ew_ban_documentos
 WHERE 
@@ -161,15 +159,15 @@ END
 
 EXEC _sys_prc_insertarTransaccion
 	@usuario
-	,@password
-	,'BDA1' --Transacción
-	,@idsucursal
-	,'A' --Serie
-	,@sql
-	,6 --Longitod del folio
-	,@salida_idtran OUTPUT
-	,'' --Afolio
-	,@aplicado_fecha --Afecha
+	, @password
+	, 'BDA1' --Transacción
+	, @idsucursal
+	, 'A' --Serie
+	, @sql
+	, 6 --Longitod del folio
+	, @salida_idtran OUTPUT
+	, '' --Afolio
+	, @aplicado_fecha --Afecha
 
 IF @salida_idtran IS NULL OR @salida_idtran = 0
 BEGIN
@@ -212,12 +210,12 @@ INSERT INTO ew_ban_transacciones (
 )
 
 SELECT 
-	{idtran}
-	, idtran
-	, ''BDC1''
-	, ew_ban_documentos.idsucursal
-	, ''' + CONVERT(VARCHAR(20),@aplicado_fecha)+ '''
-	, idcuenta2
+	[idtran] = {idtran}
+	, [idtran2] = idtran
+	, [transaccion] = ''BDC1''
+	, [idsucursal] = ew_ban_documentos.idsucursal
+	, [fecha] = ''' + CONVERT(VARCHAR(10), @aplicado_fecha, 103)+ '''
+	, [idcuenta] = idcuenta2
 	, tipocambio2
 	, ''{folio}''
 	, ''TRAS-''+ folio
@@ -230,8 +228,8 @@ SELECT
 	, forma_moneda
 	, 0
 	, ''' + CONVERT(VARCHAR(20),@aplicado_fecha)+'''
-	, ((importe * tipocambio)/(tipocambio2))
-	, ((importe * tipocambio)/(tipocambio2))
+	, ((importe * tipocambio) / (tipocambio2))
+	, ((importe * tipocambio) / (tipocambio2))
 	, impuesto
 	, ew_ban_documentos.comentario 
 FROM 
@@ -251,11 +249,13 @@ INSERT INTO ew_ban_transacciones_mov (
 	, impuesto_tasa
 )
 SELECT 
-	{idtran}
-	, idmov
+	[idtran] = {idtran}
+	, [idmov2] = idmov
 	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY ew_ban_documentos.idr)
-	, 13
-	, ((importe * tipocambio)/(tipocambio2)),0,0
+	, [idconcepto] = 13
+	, [importe] = ((importe * tipocambio)/(tipocambio2))
+	, [idimpuesto] = 0
+	, [impuesto_tasa] = 0
 FROM 
 	ew_ban_documentos
 WHERE
@@ -270,15 +270,15 @@ END
 
 EXEC _sys_prc_insertarTransaccion
 	@usuario
-	,@password
-	,'BDC1' --Transacción
-	,@idsucursal
-	,'A' --Serie
-	,@sql
-	,6 --Longitod del folio
-	,@entrada_idtran OUTPUT
-	,'' --Afolio
-	,@aplicado_fecha --Afecha
+	, @password
+	, 'BDC1' --Transacción
+	, @idsucursal
+	, 'A' --Serie
+	, @sql
+	, 6 --Longitod del folio
+	, @entrada_idtran OUTPUT
+	, '' --Afolio
+	, @aplicado_fecha --Afecha
 
 IF @entrada_idtran IS NULL OR @entrada_idtran = 0
 BEGIN
@@ -290,9 +290,9 @@ END
 IF NOT EXISTS(SELECT a = 'No' WHERE dbo.fn_sys_estadoActual(@idtran) = dbo.fn_sys_estadoID('APL'))
 BEGIN		
 	INSERT INTO ew_sys_transacciones2
-		(idtran,  idestado, idu)
+		(idtran, idestado, idu)
 	VALUES 
-		(@idtran, dbo.fn_sys_estadoID('APL'), 1)
+		(@idtran, dbo.fn_sys_estadoID('APL'), @idu)
 END
 
 -- Modificando la bandera de aplicado

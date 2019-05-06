@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 ALTER PROCEDURE [dbo].[_ven_prc_articuloDatosRegistro]
 	@codarticulo AS VARCHAR(30)
@@ -109,7 +109,7 @@ SELECT
 	, [ingresos_cuenta] = ''
 
 	, [cambiar_precio] = (CASE WHEN a.idtipo = 0 THEN [as].cambiar_precio ELSE 1 END)
-	, [precio_congelado] = CONVERT(BIT, (CASE WHEN [as].cambiar_precio = 1 THEN 0 ELSE 1 END))
+	, [precio_congelado] = CONVERT(BIT, (CASE WHEN [as].cambiar_precio = 1 OR a.idtipo > 0 THEN 0 ELSE 1 END))
 	, [cantidad_mayoreo] = [as].mayoreo
 
 	, [max_descuento1] = ISNULL(vp.descuento_limite, 0)

@@ -1,11 +1,6 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
-IF OBJECT_ID('ew_ct_articulos_impuestos') IS NOT NULL
-BEGIN
-	DROP VIEW ew_ct_articulos_impuestos
-END
-GO
-CREATE VIEW ew_ct_articulos_impuestos
+ALTER VIEW [dbo].[ew_ct_articulos_impuestos]
 AS
 SELECT
 	cait.idarticulo
@@ -18,7 +13,7 @@ SELECT
 	, [idimpuesto1_c4] = MAX(CASE WHEN cait.grupo IS NULL THEN i1.contabilidad4 WHEN cait.grupo = 'IVA' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.contabilidad4 ELSE '' END)
 	, [idimpuesto1_c5] = MAX(CASE WHEN cait.grupo = 'IVA' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.contabilidad5 ELSE '' END)
 	, [idimpuesto2] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.idimpuesto WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.idimpuesto ELSE 0 END)
-	, [idimpuesto2_valor] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.valor WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.idimpuesto ELSE 0 END)
+	, [idimpuesto2_valor] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.valor WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.tasa ELSE 0 END)
 	, [idimpuesto2_c1] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.contabilidad WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.contabilidad1 ELSE '' END)
 	, [idimpuesto2_c2] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.contabilidad2 WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.contabilidad2 ELSE '' END)
 	, [idimpuesto2_c3] = MAX(CASE WHEN cait.grupo IS NULL THEN i2.contabilidad3 WHEN cait.grupo = 'IEPS' AND cait.tipo = 1 AND (cait.idzona = csz.idzona OR cait.idzona = 0) THEN cait.contabilidad3 ELSE '' END)

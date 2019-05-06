@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_comercial_final]
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -67,6 +67,7 @@ FROM
 WHERE
 	vt.cancelado = 0
 	AND vt.transaccion LIKE 'EFA%'
+	AND vt.transaccion NOT IN ('EFA4', 'EFA7')
 	AND vt.idsucursal = (CASE @idsucursal WHEN 0 THEN vt.idsucursal ELSE @idsucursal END)
 	AND vt.fecha BETWEEN @fecha1 AND @fecha2
 	AND vt.credito = (CASE @condicionventa WHEN -1 THEN vt.credito ELSE @condicionventa END)

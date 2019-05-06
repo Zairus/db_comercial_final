@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -360,13 +360,16 @@ BEGIN
 			BREAK
 		END
 		
-		EXEC _ct_prc_contabilizarBDC2 @pago_idtran
+		EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @pago_idtran, 'BDC2', @pago_idtran, NULL, 0
 	END
 	
 	-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	-- EVITAMOS LA DUPLICIDAD DEL PAGO
 	-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	UPDATE ew_ven_transacciones_pagos SET aplicado=1 WHERE idr=@idr
+	UPDATE ew_ven_transacciones_pagos SET 
+		aplicado = 1 
+	WHERE 
+		idr = @idr
 
 	FETCH NEXT FROM cur_pagos INTO
 		@idr
