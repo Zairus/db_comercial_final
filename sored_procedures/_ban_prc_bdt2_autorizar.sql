@@ -28,4 +28,6 @@ WHERE
 	bd.idtran = @idtran
 
 EXEC [dbo].[_ban_prc_traspasoProcesar] @idtran, @fecha, @idu
+
+EXEC [dbo].[_ban_prc_bdt2_contabilizar] @idtran
 GO

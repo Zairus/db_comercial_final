@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -18,33 +18,33 @@ SET NOCOUNT ON
 
 DECLARE
 	@idsucursal_origen AS SMALLINT
-	,@idsucursal_destino aS SMALLINT
-	,@idalmacen_origen AS SMALLINT
-	,@idalmacen_destino AS SMALLINT
-	,@msg AS VARCHAR(100)
+	, @idsucursal_destino aS SMALLINT
+	, @idalmacen_origen AS SMALLINT
+	, @idalmacen_destino AS SMALLINT
+	, @msg AS VARCHAR(100)
 
 DECLARE
 	@sql AS VARCHAR(max)
-	,@entrada_idtran AS INT
-	,@salida_idtran AS INT
-	,@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@idr AS INT
-	,@idarticulo AS INT
-	,@series AS VARCHAR(4000)
-	,@lote AS VARCHAR(30)
-	,@idcapa AS INT
-	,@cantidad AS INT
-	,@fecha_caducidad AS SMALLDATETIME
+	, @entrada_idtran AS INT
+	, @salida_idtran AS INT
+	, @usuario AS VARCHAR(20)
+	, @password AS VARCHAR(20)
+	, @idr AS INT
+	, @idarticulo AS INT
+	, @series AS VARCHAR(4000)
+	, @lote AS VARCHAR(30)
+	, @idcapa AS INT
+	, @cantidad AS INT
+	, @fecha_caducidad AS SMALLDATETIME
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
 SELECT
 	@idsucursal_origen = idsucursal
-	,@idsucursal_destino = idsucursal_destino
-	,@idalmacen_origen = idalmacen
-	,@idalmacen_destino = idalmacen_destino
+	, @idsucursal_destino = idsucursal_destino
+	, @idalmacen_origen = idalmacen
+	, @idalmacen_destino = idalmacen_destino
 FROM
 	ew_inv_documentos
 WHERE
@@ -52,8 +52,9 @@ WHERE
 
 SELECT
 	@usuario = [usuario]
-	,@password = [password]
-FROM ew_usuarios
+	, @password = [password]
+FROM 
+	ew_usuarios
 WHERE
 	idu = @idu
 
@@ -68,28 +69,28 @@ END
 
 SELECT @sql='INSERT INTO ew_inv_transacciones (
 	idtran
-	,idtran2
-	,idsucursal
-	,idalmacen
-	,fecha
-	,folio
-	,transaccion
-	,referencia
-	,comentario
-	,idconcepto
-	,idu
+	, idtran2
+	, idsucursal
+	, idalmacen
+	, fecha
+	, folio
+	, transaccion
+	, referencia
+	, comentario
+	, idconcepto
+	, idu
 )
 SELECT
 	{idtran}
-	,idtran
-	,idsucursal
-	,idalmacen
-	,fecha
-	,[folio] = ''{folio}''
-	,[transaccion] = ''GDA1''
-	,referencia
-	,comentario
-	,idconcepto
+	, idtran
+	, idsucursal
+	, idalmacen
+	, fecha
+	, [folio] = ''{folio}''
+	, [transaccion] = ''GDA1''
+	, referencia
+	, comentario
+	, idconcepto
 	,' + CONVERT(VARCHAR(10),@idu) + '
 FROM 
 	ew_inv_documentos
@@ -100,14 +101,14 @@ WHERE
 -- DECLARAR UNA TABLA TEMPORAL CON LAS CAMPOS NECESARIOS #######################
 DECLARE @tmp_mov TABLE (
 	idr INT
-	,consecutivo SMALLINT IDENTITY 
-	,idarticulo INT
-	,serie VARCHAR(50)
-	,idcapa INT
-	,cantidad DECIMAL(15,4)
-	,lote VARCHAR(30)
-	,fecha_caducidad SMALLDATETIME
-	,costo DECIMAL(15,4)
+	, consecutivo SMALLINT IDENTITY 
+	, idarticulo INT
+	, serie VARCHAR(50)
+	, idcapa INT
+	, cantidad DECIMAL(15,4)
+	, lote VARCHAR(30)
+	, fecha_caducidad SMALLDATETIME
+	, costo DECIMAL(15,4)
 )
 
 -- INSERTAR ARTICULOS QUE NO TIENEN NUMERO DE SERIE NI LOTE DE FABRICACION
@@ -141,15 +142,15 @@ WHERE
 
 EXEC _sys_prc_insertarTransaccion
 	@usuario
-	,@password
-	,'GDA1' --Transacción
-	,@idsucursal_origen
-	,'A' --Serie
-	,@sql
-	,6 --Longitod del folio
-	,@salida_idtran OUTPUT
-	,'' --Afolio
-	,'' --Afecha
+	, @password
+	, 'GDA1' --Transacción
+	, @idsucursal_origen
+	, 'A' --Serie
+	, @sql
+	, 6 --Longitod del folio
+	, @salida_idtran OUTPUT
+	, '' --Afolio
+	, '' --Afecha
 
 IF @salida_idtran IS NULL OR @salida_idtran = 0
 BEGIN
@@ -164,7 +165,7 @@ DECLARE cur_mov CURSOR FOR
 		, idarticulo
 		, series	
 	FROM
-		ew_inv_documentos_mov idm
+		ew_inv_documentos_mov AS idm
 	WHERE
 		idm.idtran = @idtran
 		AND LEN(idm.series) > 0
@@ -272,8 +273,14 @@ BEGIN
 		, [costo] = ls.costo
 	FROM
 		[dbo].[_inv_fnc_lotesSalida](@idalmacen_origen, @idarticulo, @lote, @cantidad) AS ls
-			
-	FETCH NEXT FROM cur_mov INTO 
+	WHERE
+		(
+			SELECT COUNT(*) 
+			FROM @tmp_mov 
+			WHERE idr = @idr
+		) = 0
+	
+	FETCH NEXT FROM cur_mov INTO
 		@idr
 		, @idarticulo
 		, @lote
@@ -333,29 +340,29 @@ SELECT @sql = ''
 
 SELECT @sql='INSERT INTO ew_inv_transacciones (
 	idtran
-	,idtran2
-	,idsucursal
-	,idalmacen
-	,fecha
-	,folio
-	,transaccion
-	,referencia
-	,comentario
-	,idconcepto
-	,idu
+	, idtran2
+	, idsucursal
+	, idalmacen
+	, fecha
+	, folio
+	, transaccion
+	, referencia
+	, comentario
+	, idconcepto
+	, idu
 )
 SELECT
 	{idtran}
-	,idtran
-	,idsucursal_destino
-	,idalmacen_destino
-	,fecha
-	,[folio] = ''{folio}''
-	,[transaccion] = ''GDC1''
-	,referencia
-	,comentario
-	,idconcepto
-	,' + CONVERT(VARCHAR(10),@idu) + '
+	, idtran
+	, idsucursal_destino
+	, idalmacen_destino
+	, fecha
+	, [folio] = ''{folio}''
+	, [transaccion] = ''GDC1''
+	, referencia
+	, comentario
+	, idconcepto
+	, ' + CONVERT(VARCHAR(10),@idu) + '
 FROM
 	ew_inv_documentos
 WHERE
@@ -363,15 +370,15 @@ WHERE
 	
 EXEC _sys_prc_insertarTransaccion
 	@usuario
-	,@password
-	,'GDC1' --Transacción
-	,@idsucursal_destino
-	,'A' --Serie
-	,@sql
-	,6 --Longitod del folio
-	,@entrada_idtran OUTPUT
-	,'' --Afolio
-	,'' --Afecha
+	, @password
+	, 'GDC1' --Transacción
+	, @idsucursal_destino
+	, 'A' --Serie
+	, @sql
+	, 6 --Longitod del folio
+	, @entrada_idtran OUTPUT
+	, '' --Afolio
+	, '' --Afecha
 
 INSERT INTO ew_inv_transacciones_mov (
 	afectaref
@@ -394,22 +401,22 @@ INSERT INTO ew_inv_transacciones_mov (
 )	
 SELECT
 	[afectaref] = (CASE WHEN itm.idcapa>0 THEN 0 ELSE 1 END)
-	,[idtran] = @entrada_idtran
-	,[idtran2]= itm.idtran
-	,[idmov2] = itm.idmov
-	,[consecutivo] = itm.consecutivo
-	,[tipo] = 1
-	,[idalmacen] = @idalmacen_destino
-	,[idcapa] = itm.idcapa
-	,itm.idarticulo
-	,itm.series
-	,itm.lote
-	,itm.fecha_caducidad
-	,itm.idum
-	,itm.cantidad
-	,[costo] = itm.costo
-	,[afectainv] = 1
-	,itm.comentario
+	, [idtran] = @entrada_idtran
+	, [idtran2]= itm.idtran
+	, [idmov2] = itm.idmov
+	, [consecutivo] = itm.consecutivo
+	, [tipo] = 1
+	, [idalmacen] = @idalmacen_destino
+	, [idcapa] = itm.idcapa
+	, [idarticulo] = itm.idarticulo
+	, [series] = itm.series
+	, [lote] = itm.lote
+	, [fecha_caducidad] = itm.fecha_caducidad
+	, [idum] = itm.idum
+	, [cantidad] = itm.cantidad
+	, [costo] = itm.costo
+	, [afectainv] = 1
+	, [comentario] = itm.comentario
 FROM
 	ew_inv_transacciones_mov AS itm
 WHERE

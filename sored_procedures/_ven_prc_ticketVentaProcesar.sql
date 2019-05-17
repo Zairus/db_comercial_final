@@ -136,5 +136,18 @@ EXEC _ven_prc_facturaPagos @idtran
 
 EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @idtran, 'EFA6', @idtran
 
-SELECT costo = ISNULL(SUM(costo),0) FROM ew_ven_transacciones_mov WHERE idtran = @idtran
+IF EXISTS(SELECT * FROM ew_ven_comprobacion_ventas WHERE ABS(total_documento - total_detalle) > 0.01 AND idtran = @idtran)
+BEGIN
+	SELECT
+		@error_mensaje = (
+			ISNULL(@error_mensaje, '')
+			+ CHAR(13)
+			+ 'Error: El total de la venta no coincide con la suma de sus partidas.'
+		)
+
+	RAISERROR(@error_mensaje, 16, 1)
+	RETURN
+END
+
+SELECT [costo] = ISNULL(SUM(costo),0) FROM ew_ven_transacciones_mov WHERE idtran = @idtran
 GO

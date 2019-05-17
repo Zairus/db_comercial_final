@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Autor:			Laurence Saavedra
@@ -155,14 +155,24 @@ WHERE
 ----------------------------------------------------
 
 SELECT
-	ctr.idr
-	, ctr.idtran
-	, ctr.idtran2
-	, [Folio_dr] = dr.folio
+	[Folio_dr] = dr.folio
+	, [Fecha_dr] = dr.fecha
+	, [Estado_dr] = [dbo].[fn_sys_estadoActualNombre](dr.idtran)
+	, [Documento_dr] = [dbo].[_sys_fnc_objetoGrupoNombre](dr.idtran)
+	, [uuid_dr] = cct.cfdi_UUID
+	, [idtran2] = ctr.idtran2
+	, [idrelacion] = ISNULL(NULLIF(ctr.idrelacion, 0), d.idrelacion)
+	, [idr] = ctr.idr
+	, [idtran] = ctr.idtran
+	, [idmov] = ctr.idmov
 FROM
 	ew_cxc_transacciones_rel AS ctr
+	LEFT JOIN ew_cxc_transacciones AS d
+		ON d.idtran = ctr.idtran
 	LEFT JOIN ew_cxc_transacciones AS dr
 		ON dr.idtran = ctr.idtran2
+	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
+		ON cct.idtran = dr.idtran
 WHERE
 	ctr.idtran = @idtran
 
@@ -446,52 +456,40 @@ WHERE
 -- 20) ew_ven_transacciones_pagos
 ----------------------------------------------------
 SELECT
-	[consecutivo] = ew_ven_transacciones_pagos.consecutivo
-	, ew_ven_transacciones_pagos.idtran
-	, ew_ven_transacciones_pagos.idtran2
-	, ew_ven_transacciones_pagos.idmov
-	, ew_ven_transacciones_pagos.idmov2
-	, ew_ven_transacciones_pagos.idforma
+	[consecutivo] = vtp.consecutivo
+	, vtp.idtran
+	, vtp.idtran2
+	, vtp.idmov
+	, vtp.idmov2
+	, vtp.idforma
 	, [forma_fecha] = ct.fecha
 	, [forma_referencia] = ct.folio
-	, [clabe_origen] = ew_ven_transacciones_pagos.clabe_origen
+	, [clabe_origen] = vtp.clabe_origen
 	, [ref_moneda] = (SELECT nombre FROM ew_ban_monedas WHERE idmoneda = ct.idmoneda)
 	, [saldo_ref]=ct.saldo
-	, ew_ven_transacciones_pagos.forma_moneda
+	, vtp.forma_moneda
 	, forma_tipocambio
-	, ew_ven_transacciones_pagos.subtotal
-	, ew_ven_transacciones_pagos.impuesto1
-	, ew_ven_transacciones_pagos.total
-	, ew_ven_transacciones_pagos.comentario
+	, vtp.subtotal
+	, vtp.impuesto1
+	, vtp.total
+	, vtp.comentario
 	------ por Vladimir (Feb. 07, 2018) --------------
 	, [objidtran] = (
 		CASE 
-			WHEN ew_ven_transacciones_pagos.idtran2 = 0 THEN bt.idtran 
-			ELSE ew_ven_transacciones_pagos.idtran2 
+			WHEN vtp.idtran2 = 0 THEN pago_b.idtran 
+			ELSE vtp.idtran2 
 		END
 	)
-	--------------------------------------------------
-	-------por Vladimir (Dic. 26, 2018)---------------
 	, [folio_pago] = ISNULL(pago.folio,'')
-	--------------------------------------------------
 FROM 
-	ew_ven_transacciones_pagos
-	LEFT JOIN ew_cxc_transacciones AS ct
-		ON ct.idtran = ew_ven_transacciones_pagos.idtran
-	------ por Vladimir (Feb. 07, 2018) --------------
-	LEFT JOIN ew_ban_transacciones bt
-		ON ct.idtran=bt.idtran2 
-		AND ct.idforma=bt.idforma
-	--------------------------------------------------
-	-------por Vladimir (Dic. 26, 2018)---------------
-	LEFT JOIN ew_cxc_transacciones_mov ctm
-		ON ct.idtran = ctm.idtran2
-	LEFT JOIN ew_cxc_transacciones pago
-		ON ctm.idtran = pago.idtran
-	--------------------------------------------------
+	ew_ven_Transacciones_pagos AS vtp
+	LEFT JOIN ew_cxc_transacciones AS ct ON ct.idtran = vtp.idtran
+	LEFT JOIN ew_cxc_transacciones_mov AS ctm ON ctm.idtran2 = ct.idtran AND ctm.importe2 = vtp.total
+	LEFT JOIN ew_cxc_transacciones AS pago ON pago.idtran = ctm.idtran
+	LEFT JOIN ew_ban_transacciones AS pago_b ON pago_b.idtran = pago.idtran
 WHERE
-	ew_ven_transacciones_pagos.cancelado = 0 
-	AND ew_ven_transacciones_pagos.idtran = @idtran 
+	pago.cancelado = 0
+	AND vtp.idtran = @idtran
 
 ----------------------------------------------------
 -- 40) ew_ct_impuestos_transacciones

@@ -1,9 +1,15 @@
 USE db_comercial_final
 GO
-ALTER VIEW ew_cfd_comprobantes_documentos_relacionados
+IF OBJECT_ID('ew_cfd_comprobantes_documentos_relacionados') IS NOT NULL
+BEGIN
+	DROP VIEW ew_cfd_comprobantes_documentos_relacionados
+END
+GO
+CREATE VIEW [dbo].[ew_cfd_comprobantes_documentos_relacionados]
 AS
 SELECT
 	[idtran] = ct.idtran
+	, [idtran2] = COALESCE(ctm.idtran2, nv_rel.idtran2, ctrc.idtran2, ct.idtran2)
 	, [tiporelacion] = ISNULL(cst.c_tiporelacion, csto.c_tiporelacion)
 	, cc1.cfdi_UUID
 FROM
@@ -36,21 +42,13 @@ FROM
 		AND ctrc.idtran = ct.idtran
 
 	LEFT JOIN ew_cfd_comprobantes_timbre AS cc1
-		ON cc1.idtran = (
-			ISNULL(
-				ctm.idtran2
-				, ISNULL(
-					ctrc.idtran2
-					, ISNULL(nv_rel.idtran, ct.idtran2)
-				)
-			)
-		)
+		ON cc1.idtran = COALESCE(ctm.idtran2, ctrc.idtran2, nv_rel.idtran, ct.idtran2)
 	
 	LEFT JOIN objetos AS o
 		ON o.codigo = ct.transaccion
 
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS cst
-		ON cst.idr = ct.idrelacion
+		ON cst.idr = ISNULL(NULLIF(ctrc.idrelacion, 0), ct.idrelacion)
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion_objetos AS csto
 		ON csto.objeto = o.objeto
 WHERE 

@@ -123,8 +123,6 @@ WHERE
 	cantidad_facturada > 0
 	AND idtran = @idtran
 
-EXEC _ven_prc_facturaPagos @idtran
-
 --------------------------------------------------------------------
 -- Cambiamos el estado de la orden
 --------------------------------------------------------------------
@@ -224,4 +222,6 @@ BEGIN
 END
 
 EXEC _ct_prc_polizaAplicarDeconfiguracion @idtran, 'EFA6', @idtran
+
+EXEC _ven_prc_facturaPagos @idtran
 GO

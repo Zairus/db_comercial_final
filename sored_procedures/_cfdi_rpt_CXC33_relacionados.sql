@@ -1,11 +1,16 @@
-USE [db_comercial_final]
+USE db_comercial_final
+GO
+IF OBJECT_ID('_cfdi_rpt_CXC33_relacionados') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfdi_rpt_CXC33_relacionados
+END
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20171212
 -- Description:	Formato de impreison CFDi 33 para CXC
 -- ==============================================
-ALTER PROCEDURE [dbo].[_cfdi_rpt_CXC33_relacionados]
+CREATE PROCEDURE [dbo].[_cfdi_rpt_CXC33_relacionados]
 	@idtran AS INT
 AS
 
@@ -33,6 +38,11 @@ FROM
 		ON o.codigo = f.transaccion
 WHERE 
 	ctm.idtran = @idtran
+	AND (
+		SELECT COUNT(*) 
+		FROM ew_cfd_comprobantes_documentos_relacionados AS ccdr 
+		WHERE ccdr.idtran = @idtran
+	) = 0
 
 UNION ALL
 
@@ -54,59 +64,18 @@ SELECT
 	, [impuesto1_ret] = f.impuesto1_ret
 	, [impuesto2_ret] = f.impuesto2_ret
 	, [total] = f.total
-	, [aplicado] = 0
+	, [aplicado] = f.total
 	, [comentario] = csr.descripcion + ' [' + csr.c_tiporelacion + ']'
 FROM 
-	ew_cxc_transacciones AS ct
+	ew_cfd_comprobantes_documentos_relacionados AS ccdr
 	LEFT JOIN ew_cxc_transacciones AS f
-		ON f.idtran = ct.idtran2
+		ON f.idtran = ccdr.idtran2
 	LEFT JOIN objetos AS o
 		ON o.codigo = f.transaccion
 	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
 		ON cct.idtran = f.idtran
 	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS csr
-		ON csr.idr = ct.idrelacion
-WHERE 
-	ct.idtran = @idtran
-	AND csr.c_tiporelacion IS NOT NULL
-	AND LEN(ISNULL(cct.cfdi_UUID, '')) > 0
-
-UNION ALL
-
-SELECT
-	[transaccion] = f.transaccion
-	, [movimiento] = (
-		o.nombre 
-		+ ': '
-		+ cct.cfdi_uuid
-		+ ', '
-		+ csr.descripcion + ' [' + csr.c_tiporelacion + ']'
-	)
-	, [idconcepto] = f.idconcepto
-	, [fecha] = f.fecha
-	, [folio] = f.folio
-	, [subtotal] = f.subtotal
-	, [impuesto1] = f.impuesto1
-	, [impuesto2] = f.impuesto2
-	, [impuesto1_ret] = f.impuesto1_ret
-	, [impuesto2_ret] = f.impuesto2_ret
-	, [total] = f.total
-	, [aplicado] = 0
-	, [comentario] = csr.descripcion + ' [' + csr.c_tiporelacion + ']'
-FROM
-	ew_cxc_transacciones AS ct
-	LEFT JOIN ew_cxc_transacciones_rel AS ctr
-		ON ctr.idtran = ct.idtran
-	LEFT JOIN ew_cxc_transacciones AS f
-		ON f.idtran = ctr.idtran2
-	LEFT JOIN objetos AS o
-		ON o.codigo = f.transaccion
-	LEFT JOIN ew_cfd_comprobantes_timbre AS cct
-		ON cct.idtran = f.idtran
-	LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion AS csr
-		ON csr.idr = ct.idrelacion
-WHERE 
-	ct.idtran = @idtran
-	AND csr.c_tiporelacion IS NOT NULL
-	AND LEN(ISNULL(cct.cfdi_UUID, '')) > 0
+		ON csr.c_tiporelacion = ccdr.tiporelacion
+WHERE
+	ccdr.idtran = @idtran
 GO

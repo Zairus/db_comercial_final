@@ -114,24 +114,26 @@ FROM (
 		--CfdiRelacionados
 		, (
 			SELECT
-				ISNULL(cst.c_tiporelacion, csto.c_tiporelacion) AS '@TipoRelacion'
-				,(
+				ccdr1.tiporelacion AS '@TipoRelacion'
+				, (
 					SELECT
-						ccdr.cfdi_UUID AS '@UUID'
-					FROM 
-						ew_cfd_comprobantes_documentos_relacionados AS ccdr
+						ccdr2.cfdi_UUID AS '@UUID'
+					FROM
+						ew_cfd_comprobantes_documentos_relacionados AS ccdr2
 					WHERE
-						ccdr.idtran = cc.idtran
+						ccdr2.idtran = cc.idtran
+						AND ccdr2.tiporelacion = ccdr1.tiporelacion
 					FOR XML PATH('cfdi:CfdiRelacionado'), TYPE
 				)
-			WHERE
+			FROM
 				(
-					SELECT COUNT(*) 
-					FROM 
+					SELECT DISTINCT
+						ccdr.tiporelacion
+					FROM
 						ew_cfd_comprobantes_documentos_relacionados AS ccdr
 					WHERE
 						ccdr.idtran = cc.idtran
-				) > 0
+				) AS ccdr1
 			FOR XML PATH('cfdi:CfdiRelacionados'), TYPE
 		) AS '*'
 
@@ -193,7 +195,7 @@ FROM (
 				, (
 					CASE
 						WHEN cc.cfd_tipoDeComprobante = 'P' THEN '0'
-						ELSE dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 6)
+						ELSE dbo._sys_fnc_decimales(ccm.cfd_valorUnitario, 2)
 					END
 				) AS '@ValorUnitario'
 				, (

@@ -5,7 +5,7 @@ GO
 -- Create date: 20190429
 -- Description:	Obtiene datos de proveedor y/o acreedor para Compras y CXP
 -- =============================================
-ALTER PROCEDURE _com_prc_proveedorDatosR2
+ALTER PROCEDURE [dbo].[_com_prc_proveedorDatosR2]
 	@codigo AS VARCHAR(30)
 	, @idsucursal AS SMALLINT
 	, @compra AS BIT = 0
@@ -46,6 +46,7 @@ SELECT
 	, [codacreedor] = p.codigo
 	, [idproveedor] = p.idproveedor
 	, [proveedor] = p.nombre
+	, [acreedor] = p.nombre
 	, [nombre] = p.nombre
 	, [nombre_corto] = p.nombre_corto
 	, [rfc] = p.rfc
