@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cxp_prc_pagoProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cxp_prc_pagoProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20091203
 -- Description:	Procesar pago de acreedor
 -- =============================================
-ALTER PROCEDURE [dbo].[_cxp_prc_pagoProcesar]
+CREATE PROCEDURE [dbo].[_cxp_prc_pagoProcesar]
 	@idtran AS INT
 AS
 
@@ -51,7 +56,6 @@ END
 
 IF @bancos_idtran IS NOT NULL
 BEGIN
-	EXEC _ct_prc_transaccionAnularCT @idtran, 1
-	EXEC _ct_prc_polizaAplicarDeConfiguracion @bancos_idtran, 'DDA3', @idtran
+	EXEC _ct_prc_polizaAplicarDeConfiguracion @bancos_idtran, 'DDA3', @idtran, NULL, 1, @fecha
 END
 GO

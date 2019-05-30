@@ -1,6 +1,11 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
-ALTER PROCEDURE [dbo].[_ven_prc_articuloDatosRegistro]
+IF OBJECT_ID('_ven_prc_articuloDatosRegistro') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_articuloDatosRegistro
+END
+GO
+CREATE PROCEDURE [dbo].[_ven_prc_articuloDatosRegistro]
 	@codarticulo AS VARCHAR(30)
 	, @idlista AS INT
 	, @idcliente AS INT

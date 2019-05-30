@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cfd_prc_enviarEmailContactos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfd_prc_enviarEmailContactos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20170602
 -- Description:	Enviar factura a los contactos de cliente indicados
 -- =============================================
-ALTER PROCEDURE _cfd_prc_enviarEmailContactos
+CREATE PROCEDURE [dbo].[_cfd_prc_enviarEmailContactos]
 	@idtran AS INT
 AS
 
@@ -13,7 +18,7 @@ SET NOCOUNT ON
 
 DECLARE
 	@correo AS VARCHAR(1000)
-	,@idcliente AS INT
+	, @idcliente AS INT
 
 SELECT
 	@idcliente = idcliente
@@ -56,4 +61,16 @@ END
 
 CLOSE cur_enviar
 DEALLOCATE cur_enviar
+
+SELECT
+	@correo = email
+FROM 
+	vew_clientes AS c
+WHERE
+	c.idcliente = @idcliente
+
+IF LEN(ISNULL(@correo, '')) > 0
+BEGIN
+	EXEC [dbo].[_cfd_prc_enviarEmail] @idtran, @correo
+END
 GO

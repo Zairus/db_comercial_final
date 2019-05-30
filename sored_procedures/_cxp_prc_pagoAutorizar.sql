@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cxp_prc_pagoAutorizar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cxp_prc_pagoAutorizar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20091203
 -- Description:	Autorizar pago de acreedor
 -- =============================================
-ALTER PROCEDURE [dbo].[_cxp_prc_pagoAutorizar]
+CREATE PROCEDURE [dbo].[_cxp_prc_pagoAutorizar]
 	@idtran AS BIGINT
 	, @idu AS SMALLINT
 	, @debug AS BIT = 0
@@ -182,4 +187,9 @@ EXEC _sys_prc_trnAplicarEstado @idtran, 'AUT', @idu, 1
 --------------------------------------------------------------------------------
 -- PROCESAR EGRESO DE PAGO #####################################################
 EXEC _ban_prc_egresoProcesar @egreso_idtran
+
+--------------------------------------------------------------------------------
+-- CONTABILIZAR EGRESO DE PAGO #################################################
+
+EXEC _ct_prc_polizaAplicarDeConfiguracion @egreso_idtran, 'DDA3', @idtran, NULL, 1, @fecha
 GO

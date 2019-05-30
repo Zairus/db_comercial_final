@@ -1,12 +1,17 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_ordenProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_ordenProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 200912
 -- Description:	Procesar orden de venta
 -- Modificado Por: Tere Valdez 20091217 	
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_ordenProcesar]
+CREATE PROCEDURE [dbo].[_ven_prc_ordenProcesar]
 	@idtran AS INT
 	,@idu AS INT
 AS
@@ -39,6 +44,21 @@ WHERE
 	AND sa.bajo_costo = 0
 	AND a.inventariable = 1
 	AND vom.cantidad_autorizada > 0
+	AND (
+		(
+			SELECT COUNT(*) 
+			FROM 
+				ew_articulos_insumos AS ai
+			WHERE
+				ai.idarticulo_superior IN (
+					SELECT vom1.idarticulo 
+					FROM 
+						ew_ven_ordenes_mov AS vom1
+					WHERE
+						vom1.idtran = @idtran
+				)
+		) = 0
+	)
 	AND (
 		(vom.importe / vom.cantidad_autorizada)
 		< [dbo].[_ven_fnc_articuloPrecioMinimoPorSucursal](sa.idarticulo, sa.idsucursal, sa.costo_base)

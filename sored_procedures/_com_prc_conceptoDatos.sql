@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_com_prc_conceptoDatos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _com_prc_conceptoDatos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20190406
 -- Description:	Obtener datos de concepto para compra, egreso o provision
 -- =============================================
-ALTER PROCEDURE [dbo].[_com_prc_conceptoDatos]
+CREATE PROCEDURE [dbo].[_com_prc_conceptoDatos]
 	@idarticulo AS VARCHAR(MAX)
 	, @idsucursal AS INT
 	, @idalmacen AS INT
@@ -18,13 +23,26 @@ SET NOCOUNT ON
 
 DECLARE
 	@idzona_fiscal_emisor AS INT
+	, @idzona_fiscal_receptor AS INT
+	, @extranjero AS BIT
 
 SELECT 
 	@idzona_fiscal_emisor = [dbo].[_ct_fnc_idzonaFiscalCP](p.codigo_postal)
+	, @extranjero = p.extranjero
 FROM
 	ew_proveedores AS p
 WHERE
 	p.idproveedor = @idproveedor
+
+SELECT @idzona_fiscal_receptor = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
+
+SELECT @idzona_fiscal_emisor = ISNULL(@idzona_fiscal_emisor, 1)
+SELECT @extranjero = ISNULL(@extranjero, 0)
+
+IF @idzona_fiscal_emisor <> @idzona_fiscal_receptor
+BEGIN
+	SELECT @idzona_fiscal_emisor = 1
+END
 
 SELECT
 	[idarticulo] = a.idarticulo
@@ -63,29 +81,33 @@ SELECT
 	, [cuenta] = a.contabilidad1
 	, [contabilidad1] = a.contabilidad1
 
-	, [idimpuesto1] = cai.idimpuesto1
-	, [idimpuesto1_valor] = cai.idimpuesto1_valor
-	, [idimpuesto1_cuenta] = cai.idimpuesto1_c3
-	, [idimpuesto2] = cai.idimpuesto2
-	, [idimpuesto2_valor] = cai.idimpuesto2_valor
-	, [idimpuesto2_cuenta] = cai.idimpuesto2_c3
-	, [idimpuesto3] = cai.idimpuesto3
-	, [idimpuesto3_valor] = cai.idimpuesto3_valor
-	, [idimpuesto3_cuenta] = cai.idimpuesto3_c3
-	, [idimpuesto4] = cai.idimpuesto4
-	, [idimpuesto4_valor] = cai.idimpuesto4_valor
-	, [idimpuesto4_cuenta] = cai.idimpuesto4_c3
-	, [idimpuesto1_ret] = cai.idimpuesto1_ret
-	, [idimpuesto1_ret_valor] = cai.idimpuesto1_ret_valor
-	, [idimpuesto1_ret_cuenta] = cai.idimpuesto1_ret_c3
-	, [idimpuesto2_ret] = cai.idimpuesto2_ret
-	, [idimpuesto2_ret_valor] = cai.idimpuesto2_ret_valor
-	, [idimpuesto2_ret_cuenta] = cai.idimpuesto2_ret_c3
+	, [idimpuesto1] = ISNULL(cai.idimpuesto1, 0)
+	, [idimpuesto1_valor] = ISNULL(cai.idimpuesto1_valor, 0)
+	, [idimpuesto1_cuenta] = ISNULL(cai.idimpuesto1_c3, '')
+	, [idimpuesto2] = ISNULL(cai.idimpuesto2, 0)
+	, [idimpuesto2_valor] = ISNULL(cai.idimpuesto2_valor, 0)
+	, [idimpuesto2_cuenta] = ISNULL(cai.idimpuesto2_c3, '')
+	, [idimpuesto3] = ISNULL(cai.idimpuesto3, 0)
+	, [idimpuesto3_valor] = ISNULL(cai.idimpuesto3_valor, 0)
+	, [idimpuesto3_cuenta] = ISNULL(cai.idimpuesto3_c3, '')
+	, [idimpuesto4] = ISNULL(cai.idimpuesto4, 0)
+	, [idimpuesto4_valor] = ISNULL(cai.idimpuesto4_valor, 0)
+	, [idimpuesto4_cuenta] = ISNULL(cai.idimpuesto4_c3, '')
+	, [idimpuesto1_ret] = ISNULL(cai.idimpuesto1_ret, 0)
+	, [idimpuesto1_ret_valor] = ISNULL(cai.idimpuesto1_ret_valor, 0)
+	, [idimpuesto1_ret_cuenta] = ISNULL(cai.idimpuesto1_ret_c3, '')
+	, [idimpuesto2_ret] = ISNULL(cai.idimpuesto2_ret, 0)
+	, [idimpuesto2_ret_valor] = ISNULL(cai.idimpuesto2_ret_valor, 0)
+	, [idimpuesto2_ret_cuenta] = ISNULL(cai.idimpuesto2_ret_c3, '')
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_ct_articulos_impuestos AS cai
 		ON cai.idarticulo = a.idarticulo
-		AND cai.idzona = @idzona_fiscal_emisor
+		AND (
+			cai.idzona = @idzona_fiscal_emisor
+			OR cai.idzona = 0
+		)
+		AND @extranjero = 0
 	LEFT JOIN ew_articulos_proveedores AS ap
 		ON ap.idarticulo = a.idarticulo
 		AND ap.idproveedor = @idproveedor

@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_facturaProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20091113
 -- Description:	Procesar factura de cliente.
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaProcesar]
+CREATE PROCEDURE [dbo].[_ven_prc_facturaProcesar]
 	@idtran AS BIGINT
 AS
 
@@ -16,6 +21,7 @@ DECLARE
 	, @registros AS INT
 	, @mayoreo BIT
 	, @error_mensaje AS VARCHAR(MAX)
+	, @saldo DECIMAL(18,6)
 
 DECLARE
 	@idu AS SMALLINT
@@ -224,4 +230,25 @@ END
 EXEC _ct_prc_polizaAplicarDeconfiguracion @idtran, 'EFA6', @idtran
 
 EXEC _ven_prc_facturaPagos @idtran
+
+-- Mayo 13, 2019
+SELECT @saldo = ISNULL(saldo, 0)
+FROM ew_cxc_transacciones 
+WHERE idtran = @idtran
+
+IF @saldo = 0
+BEGIN
+	UPDATE ew_cxc_transacciones SET 
+		idmetodo = 1
+		, credito = 0
+		, vencimiento = fecha 
+	WHERE 
+		idtran = @idtran
+
+	UPDATE ew_ven_transacciones SET
+		credito = 0
+		, credito_plazo = 0
+	WHERE
+		idtran = @idtran
+END
 GO
