@@ -17,73 +17,75 @@ DECLARE
 	, @idmodulo AS INT
 	, @mensaje AS VARCHAR(500)
 
-IF UPDATE(llave) AND UPDATE(consecutivo) AND UPDATE(nivel)
+IF
+	UPDATE(cuenta)
+	OR UPDATE(cuentasup)
+	OR UPDATE(tipo)
+	OR UPDATE(naturaleza)
 BEGIN
-	RETURN
-END
-
-DECLARE cur_valida_modulo CURSOR FOR
-	SELECT
-		i.cuenta
-	FROM
-		inserted AS i
-
-OPEN cur_valida_modulo
-
-FETCH NEXT FROM cur_valida_modulo INTO
-	@cuenta
-
-WHILE @@FETCH_STATUS = 0
-BEGIN
-	SELECT @idmodulo = NULL
-
-	SELECT @idmodulo = emc.idmodulo
-	FROM 
-		db_comercial.dbo.evoluware_modulos_contabilidad  AS emc
-	WHERE
-		emc.cuenta IN (
-			SELECT
-				ca.cuenta
-			FROM 
-				dbo._ct_fnc_arbol(@cuenta) AS ca
-				LEFT JOIN ew_ct_cuentas AS cc
-					ON cc.cuenta = ca.cuenta
-			WHERE
-				cc.nivel > 2
-		)
-		AND emc.editar = 0
-
-	IF @idmodulo IS NOT NULL
-	BEGIN
-		CLOSE cur_valida_modulo
-		DEALLOCATE cur_valida_modulo
-
+	DECLARE cur_valida_modulo CURSOR FOR
 		SELECT
-			@mensaje = (
-				'Error: '
-				+ 'Se intenta modificar la cuenta '
-				+ '[' + cc.cuenta + '] '
-				+ cc.nombre
-				+ ', que pertenece al modulo '
-				+ em.nombre
-				+ ', lo que no se permite para no crear inconsistencias. '
-				+ 'Favor de afectar el modulo correspondiente.'
-			)
+			i.cuenta
 		FROM
-			db_comercial.dbo.evoluware_modulos AS em
-			LEFT JOIN ew_ct_cuentas AS cc
-				ON cc.cuenta = @cuenta
-		WHERE
-			em.idmodulo = @idmodulo
+			inserted AS i
 
-		RAISERROR(@mensaje, 16, 1)
-		RETURN
-	END
+	OPEN cur_valida_modulo
 
 	FETCH NEXT FROM cur_valida_modulo INTO
 		@cuenta
-END
 
-CLOSE cur_valida_modulo
-DEALLOCATE cur_valida_modulo
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @idmodulo = NULL
+
+		SELECT @idmodulo = emc.idmodulo
+		FROM 
+			db_comercial.dbo.evoluware_modulos_contabilidad  AS emc
+		WHERE
+			emc.cuenta IN (
+				SELECT
+					ca.cuenta
+				FROM 
+					dbo._ct_fnc_arbol(@cuenta) AS ca
+					LEFT JOIN ew_ct_cuentas AS cc
+						ON cc.cuenta = ca.cuenta
+				WHERE
+					cc.nivel > 2
+			)
+			AND emc.editar = 0
+
+		IF @idmodulo IS NOT NULL
+		BEGIN
+			CLOSE cur_valida_modulo
+			DEALLOCATE cur_valida_modulo
+
+			SELECT
+				@mensaje = (
+					'Error: '
+					+ 'Se intenta modificar la cuenta '
+					+ '[' + cc.cuenta + '] '
+					+ cc.nombre
+					+ ', que pertenece al modulo '
+					+ em.nombre
+					+ ', lo que no se permite para no crear inconsistencias. '
+					+ 'Favor de afectar el modulo correspondiente.'
+				)
+			FROM
+				db_comercial.dbo.evoluware_modulos AS em
+				LEFT JOIN ew_ct_cuentas AS cc
+					ON cc.cuenta = @cuenta
+			WHERE
+				em.idmodulo = @idmodulo
+
+			RAISERROR(@mensaje, 16, 1)
+			RETURN
+		END
+
+		FETCH NEXT FROM cur_valida_modulo INTO
+			@cuenta
+	END
+
+	CLOSE cur_valida_modulo
+	DEALLOCATE cur_valida_modulo
+END
 GO

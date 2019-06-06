@@ -1,5 +1,10 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ban_prc_reembolsoProcesar') IS NOT NULL
+BEGIN 
+	DROP PROCEDURE _ban_prc_reembolsoProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110518
@@ -19,4 +24,18 @@ FROM
 		ON ct.idtran = btm.idtran2
 WHERE
 	btm.idtran = @idtran
+
+UPDATE bt SET
+	bt.importe = ISNULL((
+		SELECT
+			SUM(btm.importe)
+		FROM
+			ew_ban_transacciones_mov AS btm
+		WHERE
+			btm.idtran = bt.idtran
+	), 0)
+FROM
+	ew_ban_transacciones AS bt
+WHERE
+	bt.idtran = @idtran
 GO
