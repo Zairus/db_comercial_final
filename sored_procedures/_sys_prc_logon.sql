@@ -1,12 +1,17 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_sys_prc_logon') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _sys_prc_logon
+END
+GO
 -- =============================================
 -- Author:		Laurence Saavedra
 -- Create date: 20090801
 -- Description:	Valida el ingreso de un usuario EVOLUWARE
 --              Regresa un query con los menus y objetos a los que puede acceder el usuario
 -- =============================================
-ALTER PROCEDURE [dbo].[_sys_prc_logon]
+CREATE PROCEDURE [dbo].[_sys_prc_logon]
 	@usuario AS VARCHAR(20)
 	, @password AS VARCHAR(20)
 	, @version AS SMALLINT = 0
@@ -16,47 +21,31 @@ SET NOCOUNT ON
 
 DECLARE
 	@user AS VARCHAR(20)
-	, @pass AS VARCHAR(20)
 	, @idu AS SMALLINT
-	, @activo AS BIT
 	, @version2 AS SMALLINT
 	, @msg AS VARCHAR(200)
 	, @idrol AS SMALLINT
 	, @seguridad AS BIT
+	, @cuenta AS VARCHAR(20)
 	
+SELECT
+	@cuenta = sc.codigo
+FROM 
+	dbEVOLUWARE.dbo.ew_sys_cuentas_servicios AS scs
+	LEFT JOIN dbEVOLUWARE.dbo.ew_sys_cuentas AS sc
+		ON sc.cuenta_id = scs.cuenta_id
+WHERE
+	scs.objeto_inicio = DB_NAME()
+
 SELECT 
 	@idu = idu
-	, @pass = [password]
-	, @activo = activo
 	, @idrol = idrol
 FROM
 	evoluware_usuarios
 WHERE
 	usuario = @usuario
 
-IF @@ROWCOUNT = 0
-BEGIN
-	SELECT @msg = 'El usuario ' + @usuario + ' no se encuentra registrado.'
-
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END	
-
-IF @pass != @password 
-BEGIN	
-	SELECT @msg = 'La contraseña es incorrecta.'
-
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END	
-
-IF @activo = 0
-BEGIN	
-	SELECT @msg = 'El usuario se encuentra inactivo.'
-
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END	
+EXEC [dbEVOLUWARE].[dbo].[_sys_prc_auth] @cuenta, @usuario, @password
 
 SELECT TOP 1 @version2 = [version] FROM licencia
 
@@ -69,8 +58,16 @@ BEGIN
 END
 
 -- Registrando la sesion
-INSERT INTO ew_sys_sesiones (spid, usuario) VALUES (@@SPID, @idu)
-
+INSERT INTO ew_sys_sesiones (
+	spid
+	, usuario
+) 
+SELECT 
+	[spid] = @@SPID
+	, [usuario] = @idu 
+WHERE 
+	@idu IS NOT NULL
+	
 -- Tomando el criterio de seguridad segun el rol
 SELECT 
 	@seguridad = seguridad 
