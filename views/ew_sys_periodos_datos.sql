@@ -1,6 +1,6 @@
 USE db_comercial_final
 GO
-ALTER VIEW ew_sys_periodos_datos
+ALTER VIEW [dbo].[ew_sys_periodos_datos]
 AS
 
 SELECT [id] = 0, [descripcion] = '-Seleccione-', [grupo] = 'global'
@@ -67,14 +67,13 @@ SELECT [id] = 31, [descripcion] = '31', [grupo] = 'dias'
 
 UNION ALL
 
-SELECT [id] = 1, [descripcion] = 'Domingo', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 2, [descripcion] = 'Lunes', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 3, [descripcion] = 'Martes', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 4, [descripcion] = 'Miercoles', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 5, [descripcion] = 'Jueves', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 6, [descripcion] = 'Viernes', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 7, [descripcion] = 'Sabado', [grupo] = 'dias_semana' UNION ALL
-SELECT [id] = 8, [descripcion] = 'Domingo', [grupo] = 'dias_semana' 
+SELECT [id] = 1, [descripcion] = 'Lunes', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 2, [descripcion] = 'Martes', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 3, [descripcion] = 'Miercoles', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 4, [descripcion] = 'Jueves', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 5, [descripcion] = 'Viernes', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 6, [descripcion] = 'Sabado', [grupo] = 'dias_semana' UNION ALL
+SELECT [id] = 7, [descripcion] = 'Domingo', [grupo] = 'dias_semana' 
 
 UNION ALL
 
