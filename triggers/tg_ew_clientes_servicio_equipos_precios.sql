@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('tg_ew_clientes_servicio_equipos_precios') IS NOT NULL
+BEGIN
+	DROP TRIGGER tg_ew_clientes_servicio_equipos_precios
+END
+GO
 -- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
--- Description:	<Description,,>
+-- Author:		Paul Monge
+-- Create date: 210190402
+-- Description:	Acutalizar precio de planes de cliente
 -- =============================================
-ALTER TRIGGER [dbo].[tg_ew_clientes_servicio_equipos_precios]
+CREATE TRIGGER [dbo].[tg_ew_clientes_servicio_equipos_precios]
 	ON [dbo].[ew_clientes_servicio_equipos]
 	AFTER INSERT, UPDATE
 AS 
