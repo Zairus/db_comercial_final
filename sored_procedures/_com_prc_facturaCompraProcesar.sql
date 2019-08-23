@@ -1,11 +1,16 @@
-USE [db_comercial_final]
+USE db_comercial_final
+GO
+IF OBJECT_ID('_com_prc_facturaCompraProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _com_prc_facturaCompraProcesar
+END
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110429
 -- Description:	Procesar factura de compra
 -- =============================================
-ALTER PROCEDURE [dbo].[_com_prc_facturaCompraProcesar]
+CREATE PROCEDURE [dbo].[_com_prc_facturaCompraProcesar]
 	@idtran AS INT
 AS
 
@@ -15,34 +20,38 @@ SET NOCOUNT ON
 -- DECLARACION DE VARIABLES ####################################################
 
 DECLARE
-	 @idsucursal AS SMALLINT
-	,@idu AS SMALLINT
+	@idsucursal AS SMALLINT
+	, @idtran_oc AS INT
+	, @idu AS SMALLINT
 
 DECLARE
-	 @sql AS VARCHAR(2000)
-	,@entrada_idtran AS BIGINT
-	,@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
+	@sql AS VARCHAR(2000)
+	, @entrada_idtran AS BIGINT
+	, @usuario AS VARCHAR(20)
+	, @password AS VARCHAR(20)
 
 DECLARE
 	@gastos_incluidos AS DECIMAL(18,6)
-	,@importe_sin_gasto AS DECIMAL(18,6)
-	,@prorratear AS BIT
+	, @importe_sin_gasto AS DECIMAL(18,6)
+	, @prorratear AS BIT
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
 SELECT
-	 @idsucursal = idsucursal
-	,@idu = idu
+	@idsucursal = ct.idsucursal
+	, @idu = ct.idu
+	, @idtran_oc = ISNULL(co.idtran, 0)
 FROM 
-	ew_com_transacciones
+	ew_com_transacciones AS ct
+	LEFT JOIN ew_com_ordenes AS co
+		ON co.idtran = ct.idtran2
 WHERE
-	idtran = @idtran
+	ct.idtran = @idtran
 
 SELECT
-	 @usuario = usuario
-	,@password = [password]
+	@usuario = usuario
+	, @password = [password]
 FROM 
 	ew_usuarios
 WHERE
@@ -78,16 +87,16 @@ SELECT @prorratear = dbo._sys_fnc_parametroActivo('COM_PRORRATEO_EN_FACTURA')
 SELECT @sql = ''
 
 EXEC _sys_prc_insertarTransaccion
-	 @usuario
-	,@password
-	,'GDC1' --Transacción
-	,@idsucursal
-	,'A' --Serie
-	,@sql
-	,6 --Longitod del folio
-	,@entrada_idtran OUTPUT
-	,'' --Afolio
-	,'' --Afecha
+	@usuario
+	, @password
+	, 'GDC1' --Transacción
+	, @idsucursal
+	, 'A' --Serie
+	, @sql
+	, 6 --Longitod del folio
+	, @entrada_idtran OUTPUT
+	, '' --Afolio
+	, '' --Afecha
 
 IF @entrada_idtran IS NULL OR @entrada_idtran = 0
 BEGIN
@@ -96,28 +105,28 @@ BEGIN
 END
 
 INSERT INTO ew_inv_transacciones (
-	 idtran
-	,idtran2
-	,idsucursal
-	,idalmacen
-	,fecha
-	,folio
-	,transaccion
-	,idconcepto
-	,referencia
-	,comentario
+	idtran
+	, idtran2
+	, idsucursal
+	, idalmacen
+	, fecha
+	, folio
+	, transaccion
+	, idconcepto
+	, referencia
+	, comentario
 )
 SELECT
-	 [idtran] = st.idtran
-	,[idtran2] = ct.idtran
-	,[idsucursal] = ct.idsucursal
-	,[idalmacen] = ct.idalmacen
-	,[fecha] = ct.fecha
-	,[folio] = st.folio
-	,[transaccion] = 'GDC1'
-	,[idconcepto] = 16
-	,[referencia] = 'CRE1 - ' + ct.folio
-	,[comentario] = ct.comentario
+	[idtran] = st.idtran
+	, [idtran2] = ct.idtran
+	, [idsucursal] = ct.idsucursal
+	, [idalmacen] = ct.idalmacen
+	, [fecha] = ct.fecha
+	, [folio] = st.folio
+	, [transaccion] = 'GDC1'
+	, [idconcepto] = 16
+	, [referencia] = 'CRE1 - ' + ct.folio
+	, [comentario] = ct.comentario
 FROM 
 	ew_com_transacciones AS ct
 	LEFT JOIN ew_sys_transacciones AS st
@@ -126,35 +135,35 @@ WHERE
 	ct.idtran = @idtran
 
 INSERT INTO ew_inv_transacciones_mov (
-	 idtran
-	,idmov2
-	,consecutivo
-	,tipo
-	,idalmacen
-	,idarticulo
-	,series
-	,lote
-	,fecha_caducidad
-	,idum
-	,cantidad
-	,costo
-	,afectainv
-	,comentario
-	,identidad
+	idtran
+	, idmov2
+	, consecutivo
+	, tipo
+	, idalmacen
+	, idarticulo
+	, series
+	, lote
+	, fecha_caducidad
+	, idum
+	, cantidad
+	, costo
+	, afectainv
+	, comentario
+	, identidad
 )
 SELECT
-	 [idtran] = st.idtran
-	,[idmov2] = ctm.idmov
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY ctm.idr)
-	,[tipo] = 1
-	,[idlamacen] = ctm.idalmacen
-	,[idarticulo] = ctm.idarticulo
-	,[series] = ctm.series
-	,[lote] = ctm.lote
-	,[fecha_caducidad] = ctm.fecha_caducidad
-	,[idum] = a.idum_almacen
-	,[cantidad] = (ctm.cantidad_facturada * ISNULL(auf.factor, 1))
-	,[costo] = (
+	[idtran] = st.idtran
+	, [idmov2] = ctm.idmov
+	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY ctm.idr)
+	, [tipo] = 1
+	, [idlamacen] = ISNULL(NULLIF(ctm.idalmacen, 0), ct.idalmacen)
+	, [idarticulo] = ctm.idarticulo
+	, [series] = ctm.series
+	, [lote] = ctm.lote
+	, [fecha_caducidad] = ctm.fecha_caducidad
+	, [idum] = a.idum_almacen
+	, [cantidad] = (ctm.cantidad_facturada * ISNULL(auf.factor, 1))
+	, [costo] = (
 		CASE
 			WHEN ct.idmoneda = 0 THEN ctm.importe 
 			ELSE (ctm.importe * ct.tipocambio)
@@ -171,9 +180,9 @@ SELECT
 			END
 		)
 	)
-	,[afectainv] = 1
-	,[comentario] = ctm.comentario
-	,ct.idproveedor
+	, [afectainv] = 1
+	, [comentario] = ctm.comentario
+	, [identidad] = ct.idproveedor
 FROM 
 	ew_com_transacciones_mov AS ctm
 	LEFT JOIN ew_com_transacciones AS ct
@@ -193,7 +202,47 @@ WHERE
 	AND ctm.idtran = @idtran
 
 --------------------------------------------------------------------------------
+-- ACTUALIZAR ESTADO ORDEN COMPRA ##############################################
+
+IF @idtran_oc > 0
+BEGIN
+	INSERT INTO ew_sys_movimientos_acumula (
+		idmov1
+		, idmov2
+		, campo
+		, valor
+	)
+	SELECT 
+		[idmov1] = idmov
+		, [idmov2] = idmov2
+		, [campo] = 'cantidad_facturada'
+		, [valor] = cantidad_facturada 
+	FROM
+		ew_com_transacciones_mov
+	WHERE
+		idtran = @idtran
+
+	INSERT INTO ew_sys_movimientos_acumula (
+		idmov1
+		, idmov2
+		, campo
+		, valor
+	)
+	SELECT 
+		[idmov1] = idmov
+		, [idmov2] = idmov2
+		, [campo] = 'cantidad_surtida'
+		, [valor] = cantidad_facturada 
+	FROM
+		ew_com_transacciones_mov
+	WHERE
+		idtran = @idtran
+		
+	EXEC _com_prc_ordenEstado @idtran_oc, @idu
+END
+
+--------------------------------------------------------------------------------
 -- CONTABILIZAR ################################################################
 
-EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
+EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran, 'CFA2', @idtran
 GO

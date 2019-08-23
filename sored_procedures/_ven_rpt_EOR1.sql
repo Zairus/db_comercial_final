@@ -15,6 +15,12 @@ SET NOCOUNT ON
 
 SELECT
 	[sucursal]=s.nombre
+	,[s_direccion] = s.direccion
+	,[s_colonia] = s.colonia
+	,[s_codigopostal] = s.codpostal
+	,[s_telefono] = s.telefono
+	,[s_ciudad] = ISNULL(scd.ciudad+ ', '+scd.estado,'')
+
 	,[fecha] = d.fecha
 	,[folio] = d.folio
 	,razon_social=ISNULL(cf.razon_social,'')
@@ -55,12 +61,30 @@ SELECT
 	,cantidad_letra = dbo.fnNum2Letra(d.total,d.idmoneda)
 
 	,[unidad] = um.nombre
+--	,[comentario_doc] = d.comentario
+	,[comentario_doc] = CASE WHEN dbo.fn_sys_parametro('ECO1_MENSAJE_FORMATO') <>'' THEN (dbo.fn_sys_parametro('ECO1_MENSAJE_FORMATO') + CHAR(13) + CHAR(10) + CONVERT(VARCHAR(MAX),d.comentario)) ELSE d.comentario END
+
+	--Datos del emisor
+	,[e_rfc] = e.rfc
+	,[e_direccion] = ISNULL(e.calle,'')+'  No. ' + e.noExterior
+	,[e_colonia] = ISNULL(e.colonia,'')
+	,[e_codigopostal] = ISNULL(e.codpostal,'')
+	,[e_telefono1] = ISNULL(e.telefono1,'')
+	,[e_telefono2] = ISNULL(e.telefono2,'')
+	,[e_email] = e.email
+	,[e_ciudad]=ISNULL(ecd.ciudad+ ', '+ecd.estado,'')
+
+	,[dias_entrega] = d.dias_entrega
+	,[terminos] = (CASE WHEN d.credito = 1 THEN 'CREDITO' ELSE 'CONTADO' END)
+	,[usuario] = u.nombre
+
+	,[cotizacion_folio] = vd2.folio
 FROM 
 	ew_ven_ordenes_mov AS dm
 	LEFT JOIN ew_articulos AS a 
 		ON a.idarticulo = dm.idarticulo
 	LEFT JOIN ew_ven_ordenes AS d 
-		ON d.idtran=dm.idtran
+		ON d.idtran = dm.idtran
 	LEFT JOIN ew_clientes AS c 
 		ON c.idcliente = d.idcliente
 	LEFT JOIN ew_clientes_terminos AS ct 
@@ -88,6 +112,21 @@ FROM
 		ON cde.idciudad = u.idciudad
 	LEFT JOIN ew_cat_unidadesMedida AS um 
 		ON um.idum = a.idum_venta
+
+
+	LEFT JOIN ew_clientes_facturacion e
+		ON e.idcliente = 0 AND e.idfacturacion=0
+	LEFT JOIN ew_sys_ciudades AS ecd 
+		ON ecd.idciudad=e.idciudad
+
+	LEFT JOIN ew_sys_ciudades AS scd 
+		ON scd.idciudad=s.idciudad
+	
+	LEFT JOIN ew_ven_documentos_mov AS vdm
+		ON vdm.idmov = dm.idmov2
+		AND vdm.idmov > 0
+	LEFT JOIN ew_ven_documentos AS vd2
+		ON vd2.idtran = vdm.idtran
 WHERE
 	dm.idtran = @idtran
 GO

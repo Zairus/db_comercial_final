@@ -69,7 +69,20 @@ SELECT
 	, [saldo60] = CONVERT(DECIMAL(18,6), 0)
 	, [saldo90] = CONVERT(DECIMAL(18,6), 0)
 	, [saldo99] = CONVERT(DECIMAL(18,6), 0)
-	, [saldoxx] = [dbo].[_cxc_fnc_documentoSaldoR2] (ct.idtran, @fecha) * (CASE WHEN ct.tipo = 1 THEN 1 ELSE -1 END)
+	, [saldoxx] = (
+		(
+			CASE
+				WHEN ct.transaccion = 'EFA4' THEN ct.saldo
+				ELSE
+					[dbo].[_cxc_fnc_documentoSaldoR2] (ct.idtran, @fecha)
+			END
+		) * (
+			CASE 
+				WHEN ct.tipo = 1 THEN 1 
+				ELSE -1 
+			END
+		)
+	)
 	, [idtran] = ct.idtran
 
 	, [tractor] = mt.mm_nombre
@@ -126,7 +139,20 @@ WHERE
 	ct.cancelado = 0
 	AND ct.aplicado = 1
 	AND ct.tipo IN (1,2)
-	AND ABS([dbo].[_cxc_fnc_documentoSaldoR2] (ct.idtran, @fecha)) > 0.01
+	AND ABS((
+		(
+			CASE
+				WHEN ct.transaccion = 'EFA4' THEN ct.saldo
+				ELSE
+					[dbo].[_cxc_fnc_documentoSaldoR2] (ct.idtran, @fecha)
+			END
+		) * (
+			CASE 
+				WHEN ct.tipo = 1 THEN 1 
+				ELSE -1 
+			END
+		)
+	)) > 0.01
 
 	AND (
 		(

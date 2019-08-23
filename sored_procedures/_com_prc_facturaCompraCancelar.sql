@@ -1,14 +1,19 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_com_prc_facturaCompraCancelar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _com_prc_facturaCompraCancelar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110429
 -- Description:	Cancelar factura de compra
 -- =============================================
-ALTER PROCEDURE [dbo].[_com_prc_facturaCompraCancelar]
-	 @idtran AS INT
-	,@fecha AS SMALLDATETIME
-	,@idu AS SMALLINT
+CREATE PROCEDURE [dbo].[_com_prc_facturaCompraCancelar]
+	@idtran AS INT
+	, @fecha AS SMALLDATETIME
+	, @idu AS SMALLINT
 AS
 
 SET NOCOUNT ON
@@ -20,29 +25,29 @@ DECLARE
 	@idsucursal AS SMALLINT
 
 DECLARE
-	 @sql AS VARCHAR(2000)
-	,@salida_idtran AS BIGINT
-	,@usuario AS VARCHAR(20)
-	,@password AS VARCHAR(20)
-	,@total AS DECIMAL(18,6)
-	,@saldo AS DECIMAL(18,6)
+	@sql AS VARCHAR(2000)
+	, @salida_idtran AS BIGINT
+	, @usuario AS VARCHAR(20)
+	, @password AS VARCHAR(20)
+	, @total AS DECIMAL(18,6)
+	, @saldo AS DECIMAL(18,6)
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
 SELECT
-	 @idsucursal = idsucursal
-	,@idu = idu
-	,@total = total
-	,@saldo = saldo
+	@idsucursal = idsucursal
+	, @idu = idu
+	, @total = total
+	, @saldo = saldo
 FROM 
 	ew_cxp_transacciones
 WHERE
 	idtran = @idtran
 
 SELECT
-	 @usuario = usuario
-	,@password = password
+	@usuario = usuario
+	, @password = password
 FROM 
 	ew_usuarios
 WHERE
@@ -59,64 +64,66 @@ END
 
 SELECT
 	@sql = 'INSERT INTO ew_inv_transacciones (
-	 idtran
-	,idtran2
-	,idsucursal
-	,idalmacen
-	,fecha
-	,folio
-	,transaccion
-	,idconcepto
-	,referencia
-	,comentario
+	idtran
+	, idtran2
+	, idsucursal
+	, idalmacen
+	, fecha
+	, folio
+	, transaccion
+	, idconcepto
+	, referencia
+	, comentario
 )
 SELECT
-	 {idtran}
-	,idtran
-	,idsucursal
-	,idalmacen
-	,fecha
-	,[folio] = ''{folio}''
-	,[transaccion] = ''GDA1''
-	,[idconcepto] = 16 + 1000
-	,[referencia] = ''CCRE1 - '' + folio
-	,comentario
+	[idtran] = {idtran}
+	, [idtran2] = idtran
+	, [idsucursal] = idsucursal
+	, [idalmacen] = idalmacen
+	, [fecha] = fecha
+	, [folio] = ''{folio}''
+	, [transaccion] = ''GDA1''
+	, [idconcepto] = 16 + 1000
+	, [referencia] = ''CCRE1 - '' + folio
+	,[comentario] = comentario
 FROM 
 	ew_com_transacciones
 WHERE
 	idtran = ' + CONVERT(VARCHAR(20), @idtran) + '
 
 INSERT INTO ew_inv_transacciones_mov (
-	 idtran
-	,idmov2
-	,consecutivo
-	,tipo
-	,idalmacen
-	,idarticulo
-	,series
-	,lote
-	,fecha_caducidad
-	,idum
-	,cantidad
-	,afectainv
-	,comentario
+	idtran
+	, idmov2
+	, consecutivo
+	, tipo
+	, idalmacen
+	, idarticulo
+	, series
+	, lote
+	, fecha_caducidad
+	, idum
+	, cantidad
+	, afectainv
+	, comentario
 )
 SELECT
-	 [idtran] = {idtran}
-	,[idmov2] = ctm.idmov
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY ctm.idr)
-	,[tipo] = 2
-	,[idlamacen] = ctm.idalmacen
-	,[idarticulo] = ctm.idarticulo
-	,[series] = ctm.series
-	,[lote] = ''''
-	,[fecha_caducidad] = ''''
-	,[idum] = a.idum_almacen
-	,[cantidad] = (ctm.cantidad_facturada * ISNULL(auf.factor, 1))
-	,[afectainv] = 1
-	,[comentario] = ctm.comentario
+	[idtran] = {idtran}
+	, [idmov2] = ctm.idmov
+	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY ctm.idr)
+	, [tipo] = 2
+	, [idlamacen] = ISNULL(NULLIF(ctm.idalmacen, 0), ct.idalmacen)
+	, [idarticulo] = ctm.idarticulo
+	, [series] = ctm.series
+	, [lote] = ''''
+	, [fecha_caducidad] = ''''
+	, [idum] = a.idum_almacen
+	, [cantidad] = (ctm.cantidad_facturada * ISNULL(auf.factor, 1))
+	, [afectainv] = 1
+	, [comentario] = ctm.comentario
 FROM 
 	ew_com_transacciones_mov AS ctm
+	LEFT JOIN ew_com_transacciones AS ct
+		ON ct.idtran = ctm.idtran
 	LEFT JOIN ew_articulos AS a
 		ON a.idarticulo = ctm.idarticulo
 	LEFT JOIN ew_articulos_unidades_factores AS auf

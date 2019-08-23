@@ -184,6 +184,23 @@ WHERE
 -- AUTORIZAR PAGO ##############################################################
 EXEC _sys_prc_trnAplicarEstado @idtran, 'AUT', @idu, 1
 
+INSERT INTO ew_sys_transacciones2 (
+	idtran
+	, idestado
+	, idu
+)
+SELECT
+	[idtran] = f.idtran
+	, [idestado] = 50
+	, [idu] = @idu
+FROM
+	ew_cxp_transacciones_mov AS ctm
+	LEFT JOIN ew_cxp_transacciones AS f
+		ON f.idtran = ctm.idtran2
+WHERE
+	ABS(f.saldo) < 0.01
+	AND ctm.idtran = @idtran
+
 --------------------------------------------------------------------------------
 -- PROCESAR EGRESO DE PAGO #####################################################
 EXEC _ban_prc_egresoProcesar @egreso_idtran

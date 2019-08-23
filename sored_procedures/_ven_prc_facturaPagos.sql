@@ -1,4 +1,9 @@
-USE db_comercial_final
+USE [db_comercial_final]
+GO
+IF OBJECT_ID('_ven_prc_facturaPagos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaPagos
+END
 GO
 -- =============================================
 -- Author:		Paul Monge
@@ -6,7 +11,7 @@ GO
 -- Description:	Afectar pagos en facturas.
 -- Modificacion: Arvin 2010 JUL adaptado a la nueva estructura.
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaPagos]
+CREATE PROCEDURE [dbo].[_ven_prc_facturaPagos]
 	@idtran INT
 AS
 
@@ -76,6 +81,12 @@ FROM
 WHERE
 	idu = @idu
 	
+IF @idcuenta <= 0
+BEGIN
+	RAISERROR('Error: El usuario no tiene caja de ventas asignada.', 16, 1)
+	RETURN
+END
+
 --------------------------------------------------------------------------------
 -- EFECTUAR PAGOS Y APLICACIONES ###############################################
 
@@ -123,7 +134,7 @@ BEGIN
 			DEALLOCATE cur_pagos
 			
 			SELECT @error = 1
-			SELECT @error_mensaje = 'Error: No se indicó transacción a aplicar.'
+			SELECT @error_mensaje = 'Error: No se indic? transacci?n a aplicar.'
 			BREAK
 		END
 		
@@ -167,7 +178,7 @@ BEGIN
 			DEALLOCATE cur_pagos
 			
 			SELECT @error = 1
-			SELECT @error_mensaje = 'Error: Ocurrió un error al aplicar saldo.'
+			SELECT @error_mensaje = 'Error: Ocurri? un error al aplicar saldo.'
 			BREAK
 		END
 	END
@@ -236,7 +247,6 @@ BEGIN
 			, ''' + @referencia + '''
 			, ' + CONVERT(VARCHAR(20), @idcuenta) + '
 		)
-
 		INSERT INTO ew_cxc_transacciones_mov (
 			idtran
 			, consecutivo

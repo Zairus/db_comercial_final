@@ -15,4 +15,19 @@ BEGIN
 	RAISERROR('Error: Se deben especificar sucurales de facturasion, servicio y almacen.', 16, 1)
 	RETURN
 END
+
+IF NOT EXISTS(
+	SELECT * 
+	FROM 
+		inserted AS i 
+		LEFT JOIN ew_inv_capas AS ic 
+			ON ic.idarticulo = i.idarticulo 
+			AND ic.serie = i.serie 
+	WHERE 
+		ic.idcapa IS NOT NULL
+)
+BEGIN
+	RAISERROR('Error: No se encuentra capa de inventario para la serie del equipo.', 16, 1)
+	RETURN
+END
 GO

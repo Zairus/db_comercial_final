@@ -1,4 +1,4 @@
-USE db_refriequipos_datos
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -12,7 +12,7 @@ GO
 --              Actualiza información de costo promedio y último costo en ew_articulos_sucursales.
 -- =============================================
 ALTER TRIGGER [dbo].[tg_inv_transacciones_mov_i]
-   ON  [dbo].[ew_inv_transacciones_mov]
+   ON [dbo].[ew_inv_transacciones_mov]
    AFTER INSERT
 AS 
 
@@ -20,66 +20,66 @@ SET NOCOUNT ON
 
 DECLARE 	
 	@comentario AS VARCHAR(4000)
-	,@idtran AS INT
-	,@idr AS INT
-	,@fecha AS SMALLDATETIME
-	,@transaccion AS VARCHAR(5)
-	,@folio AS VARCHAR(15)
-	,@referencia AS VARCHAR(25)
-	,@idalmacen AS SMALLINT
-	,@consecutivo AS SMALLINT
-	,@idcapa AS BIGINT
-	,@idpedimento AS BIGINT
-	,@tipo AS TINYINT
-	,@idarticulo AS INT
-	,@cantidad AS DECIMAL(15,4)
-	,@costo AS DECIMAL(15,4)
-	,@costo2 AS DECIMAL(15,4)
-	,@afectainv AS BIT
-	,@invafectado AS BIT
-	,@series AS VARCHAR(4000)
-	,@lote AS VARCHAR(25)
-	,@fecha_caducidad AS SMALLDATETIME
-	,@maneja_series AS BIT
-	,@maneja_pedimentos AS BIT
-	,@maneja_lotes AS BIT
-	,@caduca AS BIT
-	,@usuario AS SMALLINT
-	,@inventariable AS BIT
-	,@idum AS SMALLINT
-	,@factor AS DECIMAL(15,4)
-	,@idum_almacen AS SMALLINT
-	,@factor_almacen AS DECIMAL(15,4)
-	,@afectaref AS BIT
-	,@tablaref AS VARCHAR(30)
-	,@idtran2 AS BIGINT
-	,@idmov2 AS MONEY
-	,@msg AS VARCHAR(200)
-	,@cont AS SMALLINT
-	,@cont2 AS SMALLINT
-	,@comando AS VARCHAR(4000)
-	,@cant AS DECIMAL(15,4)
-	,@cantidad2 AS DECIMAL(15,4)
-	,@existenciaLote AS DECIMAL(15,4)
-	,@importe AS DECIMAL(15,4)
-	,@importe2 AS DECIMAL(15,4)
-	,@ximporte AS DECIMAL(15,4)
-	,@ximporte2 AS DECIMAL(15,4)
-	,@yimporte AS DECIMAL(15,4)
-	,@yimporte2 AS DECIMAL(15,4)
-	,@serie AS VARCHAR(100)
-	,@idmov AS MONEY
-	,@idr2 AS INT
-	,@actualizarCosto AS BIT
-	,@b AS BIT
-	,@codarticulo AS VARCHAR(50)
+	, @idtran AS INT
+	, @idr AS INT
+	, @fecha AS SMALLDATETIME
+	, @transaccion AS VARCHAR(5)
+	, @folio AS VARCHAR(15)
+	, @referencia AS VARCHAR(25)
+	, @idalmacen AS SMALLINT
+	, @consecutivo AS SMALLINT
+	, @idcapa AS BIGINT
+	, @idpedimento AS BIGINT
+	, @tipo AS TINYINT
+	, @idarticulo AS INT
+	, @cantidad AS DECIMAL(15,4)
+	, @costo AS DECIMAL(15,4)
+	, @costo2 AS DECIMAL(15,4)
+	, @afectainv AS BIT
+	, @invafectado AS BIT
+	, @series AS VARCHAR(4000)
+	, @lote AS VARCHAR(25)
+	, @fecha_caducidad AS SMALLDATETIME
+	, @maneja_series AS BIT
+	, @maneja_pedimentos AS BIT
+	, @maneja_lotes AS BIT
+	, @caduca AS BIT
+	, @usuario AS SMALLINT
+	, @inventariable AS BIT
+	, @idum AS SMALLINT
+	, @factor AS DECIMAL(15,4)
+	, @idum_almacen AS SMALLINT
+	, @factor_almacen AS DECIMAL(15,4)
+	, @afectaref AS BIT
+	, @tablaref AS VARCHAR(30)
+	, @idtran2 AS BIGINT
+	, @idmov2 AS MONEY
+	, @msg AS VARCHAR(200)
+	, @cont AS SMALLINT
+	, @cont2 AS SMALLINT
+	, @comando AS VARCHAR(4000)
+	, @cant AS DECIMAL(15,4)
+	, @cantidad2 AS DECIMAL(15,4)
+	, @existenciaLote AS DECIMAL(15,4)
+	, @importe AS DECIMAL(15,4)
+	, @importe2 AS DECIMAL(15,4)
+	, @ximporte AS DECIMAL(15,4)
+	, @ximporte2 AS DECIMAL(15,4)
+	, @yimporte AS DECIMAL(15,4)
+	, @yimporte2 AS DECIMAL(15,4)
+	, @serie AS VARCHAR(100)
+	, @idmov AS MONEY
+	, @idr2 AS INT
+	, @actualizarCosto AS BIT
+	, @b AS BIT
+	, @codarticulo AS VARCHAR(50)
 	
 --Datos para actualización de costo
 DECLARE
 	@itm_costo AS DECIMAL(12,2)
-	,@itm_costo2 AS DECIMAL(12,2)
-	,@idconcepto SMALLINT
-	,@costo_u AS DECIMAL(18,6)
+	, @itm_costo2 AS DECIMAL(12,2)
+	, @idconcepto SMALLINT
+	, @costo_u AS DECIMAL(18,6)
 
 SELECT @msg = ''
 
@@ -179,7 +179,7 @@ FETCH NEXT FROM cur_inv_transacciones_mov_i INTO
 	, @idmov,@codarticulo
 	, @idconcepto
 
-WHILE @@fetch_status = 0
+WHILE @@FETCH_STATUS = 0
 BEGIN
 	IF @usuario IS NULL
 	BEGIN
@@ -191,30 +191,23 @@ BEGIN
 		CLOSE cur_inv_transacciones_mov_i
 		DEALLOCATE cur_inv_transacciones_mov_i
 		
-		RAISERROR('Error: El identificador de transacción es nulo..', 16, 1)
+		RAISERROR('Error: El identificador de transacción es nulo.', 16, 1)
 		RETURN
 	END
-	
-	IF @factor_almacen IS NULL OR @factor_almacen = 0
-	BEGIN
-		SET @factor_almacen = 1
-	END
-	
-	IF @factor IS NULL OR @factor = 0
-	BEGIN
-		SET @factor = @factor_almacen
-	END
-	
+
+	SELECT @factor_almacen = ISNULL(NULLIF(@factor_almacen, 0), 1)
+	SELECT @factor = ISNULL(NULLIF(@factor, 0), @factor_almacen)
+
 	-- Convirtiendo las unidades de entrada en unidades de almacen
 	SET @cantidad = ROUND(@cant * (@factor / @factor_almacen), 6)
 	
-	IF @maneja_pedimentos = '1' AND @idpedimento = 0
+	IF @maneja_pedimentos = 1 AND @idpedimento = 0
 	BEGIN
 		SELECT @idpedimento = 1
 	END
 	
 	-- Afectando el kardex, para aquellos que la cantidad sea mayor a 0
-	IF @afectainv = '1' AND @invafectado = '0' AND @tipo IN (1,2) AND @cantidad > 0
+	IF @afectainv = 1 AND @invafectado = 0 AND @tipo IN (1,2) AND @cantidad > 0
 	BEGIN
 		SELECT @b = 0
 		SELECT @actualizarCosto = 0
@@ -230,12 +223,15 @@ BEGIN
 			IF @tipo = 2 AND @maneja_lotes = 1
 			BEGIN
 				SELECT @existenciaLote = 0
-				SELECT @existenciaLote = ISNULL(SUM(cantidad),0) 
-				FROM [dbo].[fn_inv_capasSalidaLote] (@idalmacen, @idarticulo, @cantidad, @lote, @idcapa)
+
+				SELECT 
+					@existenciaLote = ISNULL(SUM(cantidad),0) 
+				FROM 
+					[dbo].[fn_inv_capasSalidaLote] (@idalmacen, @idarticulo, @cantidad, @lote, @idcapa)
 				
 				IF @existenciaLote < @cantidad
 				BEGIN
-					SELECT @msg = 'Articulo: [' + @codarticulo + '] Lote=[' + @lote + ']  Existencia=' + CONVERT(VARCHAR(15),@existenciaLote) + '  / Salida='+ CONVERT(VARCHAR(15), @cantidad) 
+					SELECT @msg = 'Articulo: [' + @codarticulo + '] Lote: [' + @lote + ']  Existencia: ' + CONVERT(VARCHAR(15),@existenciaLote) + '  / Salida: '+ CONVERT(VARCHAR(15), @cantidad) 
 					BREAK
 				END
 
@@ -262,26 +258,26 @@ BEGIN
 					, idmov2
 				)				
 				SELECT
-					0
-					, @idtran
-					, @idconcepto
-					, @idpedimento
-					, @consecutivo
-					, cs.idcapa
-					, @idalmacen
-					, @fecha
-					, @transaccion
-					, @folio
-					, @referencia
-					, ''
-					, @tipo
-					, @idarticulo
-					, cs.cantidad
-					, cs.costo
-					, cs.costo2
-					, @usuario
-					, ''
-					, @idmov
+					[idr2] = 0
+					, [idtran] = @idtran
+					, [idconcepto] = @idconcepto
+					, [idpedimento] = @idpedimento
+					, [consecutivo] = @consecutivo
+					, [idcapa] = cs.idcapa
+					, [idalmacen] = @idalmacen
+					, [fecha] = @fecha
+					, [transaccion] = @transaccion
+					, [folio] = @folio
+					, [referencia] = @referencia
+					, [codigo] = ''
+					, [tipo] = @tipo
+					, [idarticulo] = @idarticulo
+					, [cantidad] = cs.cantidad
+					, [costo] = cs.costo
+					, [costo2] = cs.costo2
+					, [usuario] = @usuario
+					, [comentario] = ''
+					, [idmov2] = @idmov
 				FROM
 					dbo.fn_inv_capasSalidaLote(@idalmacen, @idarticulo, @cantidad, @lote, @idcapa) AS cs
 					LEFT JOIN ew_inv_capas AS ic 
@@ -311,46 +307,50 @@ BEGIN
 					, comentario
 					, idmov2
 				)				
-				VALUES (
-					0
-					, @idtran
-					, @idconcepto
-					, @idpedimento
-					, @consecutivo
-					, @idcapa
-					, @idalmacen
-					, @fecha
-					, @transaccion
-					, @folio
-					, @referencia
-					, ''
-					, @tipo
-					, @idarticulo
-					, @cantidad
-					, @costo
-					, @costo2
-					, @usuario
-					, ''
-					, @idmov
-				)
+				SELECT
+					[idr2] = 0
+					, [idtran] = @idtran
+					, [idconcepto] = @idconcepto
+					, [idpedimento] = @idpedimento
+					, [consecutivo] = @consecutivo
+					, [idcapa] = @idcapa
+					, [idalmacen] = @idalmacen
+					, [fecha] = @fecha
+					, [transaccion] = @transaccion
+					, [folio] = @folio
+					, [referencia] = @referencia
+					, [codigo] = ''
+					, [tipo] = @tipo
+					, [idarticulo] = @idarticulo
+					, [cantidad] = @cantidad
+					, [costo] = @costo
+					, [costo2] = @costo2
+					, [usuarios] = @usuario
+					, [comentario] = ''
+					, [idmov2] = @idmov
 			END
 			SELECT @b = 1
 			SELECT @actualizarCosto = (CASE WHEN @tipo = 2 THEN 1 ELSE 0 END)
 
 			IF @tipo = 1 AND @costo = 0
+			BEGIN
 				SELECT @actualizarCosto = 1
+			END
 		END
 
 		-------------------------------------------------------------------------------
 		-- 2) ENTRADA ó SALIDA. Referencia a un movimiento previo en el kardex
 		-------------------------------------------------------------------------------
-			
-		IF (@b = 0) AND (@maneja_series = 0) AND (@idmov2 > 0) AND (@afectaref = '1') 
+		IF (@b = 0) AND (@maneja_series = 0) AND (@idmov2 > 0) AND (@afectaref = 1) 
 		BEGIN
-			SELECT TOP 1 @idr2 = idr
-			FROM ew_inv_movimientos 
-			WHERE idmov2 = @idmov2 
-			ORDER BY idr DESC
+			SELECT TOP 1 
+				@idr2 = idr
+			FROM 
+				ew_inv_movimientos 
+			WHERE 
+				idmov2 = @idmov2 
+			ORDER BY 
+				idr DESC
 			
 			IF @idr2 IS NULL
 			BEGIN
@@ -382,26 +382,26 @@ BEGIN
 				, idmov2
 			)
 			SELECT
-				im.idr
+				[idr2] = im.idr
 				, @idtran
 				, @idconcepto
 				, @idpedimento
 				, im.consecutivo
-				, (CASE WHEN im.idcapa>0 THEN imc.idcapa ELSE (-1) END)
+				, [idcapa] = (CASE WHEN im.idcapa>0 THEN imc.idcapa ELSE (-1) END)
 				, @idalmacen
 				, @fecha
 				, @transaccion
 				, @folio
 				, @referencia
-				, ''
+				, [codigo] = ''
 				, @tipo
 				, @idarticulo
 				, imc.cantidad
 				, imc.costo
 				, imc.costo2
 				, @usuario
-				, ''
-				, @idmov				
+				, [comentario] = ''
+				, [idmov2] = @idmov
 			FROM
 				dbo.fn_inv_capasPorIDMOV(@idmov2,@cantidad) AS imc
 				LEFT JOIN ew_inv_movimientos AS im 
@@ -431,10 +431,13 @@ BEGIN
 			END
 			
 			SELECT @cont = 0
-			SELECT @cont = COUNT(*) 
-			FROM dbo._sys_fnc_series(@series)
+
+			SELECT 
+				@cont = COUNT(*) 
+			FROM 
+				dbo._sys_fnc_series(@series)
 			
-			IF @cont!=@cantidad 
+			IF @cont != @cantidad 
 			BEGIN
 				SELECT @msg = 'Error. no se especificaron todos los no. de serie (inv_transacciones_mov.series) para el articulo: ' + @codarticulo
 				BREAK
@@ -476,17 +479,17 @@ BEGIN
 				-- Creamos una capa por cada serie, si existe la capa con existencia=0 toma ese numero IDCAPA
 				EXEC _inv_prc_capasCrear
 					@idcapa OUTPUT
-					,@idtran
-					,@folio
-					,@fecha
-					,@idarticulo
-					,@serie
-					,1
-					,@yimporte
-					,@yimporte2
-					,@lote
-					,@fecha_caducidad
-					,''
+					, @idtran
+					, @folio
+					, @fecha
+					, @idarticulo
+					, @serie
+					, 1
+					, @yimporte
+					, @yimporte2
+					, @lote
+					, @fecha_caducidad
+					, ''
 				
 				IF @idcapa IS NULL OR @idcapa < 1
 				BEGIN
@@ -582,14 +585,15 @@ BEGIN
 			DECLARE cur_tg_detalle_provee_i2 CURSOR FOR
 				SELECT 
 					serie 
-				FROM dbo._sys_fnc_series(@series)
+				FROM 
+					dbo._sys_fnc_series(@series)
 			
 			OPEN cur_tg_detalle_provee_i2
 			
 			FETCH NEXT FROM cur_tg_detalle_provee_i2 INTO 
 				@serie
 			
-			WHILE @@fetch_status = 0
+			WHILE @@FETCH_STATUS = 0
 			BEGIN
 				SELECT 
 					@idcapa = ic.idcapa
@@ -759,13 +763,13 @@ BEGIN
 				idtran = @idtran 
 				AND idarticulo = @idarticulo
 				AND idmov2 = @idmov
-
+				
 			UPDATE ew_inv_transacciones_mov SET 
 				costo = @itm_costo
 				,costo2 = @itm_costo2
 			WHERE 
 				idr = @idr
-			
+
 			UPDATE ew_inv_transacciones SET
 				total = (
 					SELECT
@@ -801,6 +805,7 @@ BEGIN
 							ON ic.idcapa = ice.idcapa
 					WHERE
 						ice.existencia > 0
+						AND ice.idalmacen = @idalmacen
 						AND ic.idarticulo = @idarticulo
 				)
 			FROM
@@ -823,6 +828,7 @@ BEGIN
 							ON ic.idcapa = ice.idcapa
 					WHERE
 						ice.existencia > 0
+						AND ice.idalmacen = @idalmacen
 						AND ic.idarticulo = @idarticulo
 				)
 			WHERE 
@@ -838,7 +844,7 @@ BEGIN
 				SELECT @costo2 = @costo
 
 			UPDATE [as] SET
-				[as].costo_base = ROUND(itm.costo / itm.cantidad, 2)
+				[as].costo_base = (CASE WHEN [as].costeo = 1 THEN [as].costo_promedio ELSE [as].costo_ultimo END) -- ROUND(itm.costo / itm.cantidad, 2)
 			FROM
 				inserted AS itm
 				LEFT JOIN ew_inv_almacenes AS alm
