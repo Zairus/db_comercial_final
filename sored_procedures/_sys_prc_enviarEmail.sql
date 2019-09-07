@@ -1,11 +1,16 @@
-USE [db_comercial_final]
+USE db_comercial_final
+GO
+IF OBJECT_ID('_sys_prc_enviarEmail') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _sys_prc_enviarEmail
+END
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
 -- Create date: 20120601
--- Description:	Envia un correo electrónico
+-- Description:	Envia un correo electrÃ³nico
 -- =============================================
-ALTER PROCEDURE [dbo].[_sys_prc_enviarEmail]
+CREATE PROCEDURE [dbo].[_sys_prc_enviarEmail]
 	@To AS VARCHAR(200) = ''
 	, @CC AS VARCHAR(200) = ''
 	, @subject AS VARCHAR(100) = ''
@@ -42,6 +47,13 @@ DECLARE
 DECLARE
 	@v AS VARCHAR(100)
 	, @idtran AS INT
+
+DECLARE
+	@file_uuid AS VARCHAR(36)
+
+SELECT @file_uuid = (CONVERT(VARCHAR(36), NEWID()))
+
+SELECT @File_Name = REPLACE(@File_Name, '.pdf', '_' + @file_uuid + '.pdf')
 
 ----------------------------------------------------------------
 -- Generamos el archivo Attachment

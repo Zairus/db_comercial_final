@@ -11,7 +11,7 @@ GO
 -- Description:	Obtener datos de concepto para compra, egreso o provision
 -- =============================================
 CREATE PROCEDURE [dbo].[_com_prc_conceptoDatos]
-	@idarticulo AS VARCHAR(MAX)
+	@codarticulo AS VARCHAR(MAX)
 	, @idsucursal AS INT
 	, @idalmacen AS INT
 	, @idproveedor AS INT = 0
@@ -45,9 +45,9 @@ BEGIN
 END
 
 SELECT
-	[idarticulo] = a.idarticulo
+	[codarticulo] = a.codigo
 	, [codigo] = a.codigo
-	, [codarticulo] = a.codigo
+	, [idarticulo] = a.idarticulo
 	, [descripcion] = a.nombre
 	, [nombre] = a.nombre
 	, [nombre_corto] = a.nombre_corto
@@ -127,9 +127,9 @@ FROM
 	LEFT JOIN ew_ban_monedas AS bm
 		ON bm.idmoneda = vlm.idmoneda
 WHERE
-	a.idarticulo IN (
-		SELECT CONVERT(INT, al.valor)
+	a.codigo IN (
+		SELECT CONVERT(varchar(30), al.valor)
 		FROM
-			[dbo].[_sys_fnc_separarMultilinea](@idarticulo, '	') AS al
+			[dbo].[_sys_fnc_separarMultilinea](@codarticulo, '	') AS al
 	)
 GO

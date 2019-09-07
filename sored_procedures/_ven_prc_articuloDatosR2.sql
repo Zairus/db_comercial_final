@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_articuloDatosR2') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_articuloDatosR2
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20190131
 -- Description:	Obtencion de datos de articulo para venta
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_articuloDatosR2]
+CREATE PROCEDURE [dbo].[_ven_prc_articuloDatosR2]
 	@codarticulo AS VARCHAR(MAX)
 	, @idalmacen AS SMALLINT
 	, @idcliente AS INT
@@ -61,6 +66,33 @@ DECLARE
 	, @idimpuesto2_ret AS INT
 	, @idimpuesto2_ret_valor AS DECIMAL(18, 6)
 	, @idimpuesto2_ret_cuenta AS VARCHAR(50)
+	
+SELECT
+	@idsucursal = alm.idsucursal
+FROM
+	ew_inv_almacenes AS alm
+WHERE
+	alm.idalmacen = @idalmacen
+
+SELECT
+	@idlista = s.idlista
+FROM
+	ew_sys_sucursales AS s
+WHERE
+	s.idsucursal = @idsucursal
+	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_ven_listaprecios 
+		WHERE 
+			idlista = @idlista
+	) = 0
+
+IF NOT EXISTS(SELECT * FROM ew_ven_listaprecios WHERE idlista = @idlista)
+BEGIN
+	RAISERROR('La lista de precios asignada al cliente no existe. Vaya al Catálogo de Términos con Cliente y asígnele una lista válida.', 16, 1)
+	RETURN
+END
 
 CREATE TABLE #_tmp_articulo_datos (
 	[id] INT IDENTITY
@@ -131,13 +163,6 @@ CREATE TABLE #_tmp_articulo_datos (
 SELECT @precio_actual = 0
 
 SELECT @decimales = CONVERT(SMALLINT, ISNULL(dbo.fn_sys_parametro('LISTAPRECIOS_DECIMALES'), '2'))
-
-SELECT
-	@idsucursal = alm.idsucursal
-FROM
-	ew_inv_almacenes AS alm
-WHERE
-	alm.idalmacen = @idalmacen
 
 SELECT @idzona_fiscal_emisor = [dbo].[_ct_fnc_idzonaFiscal](@idsucursal)
 
@@ -379,7 +404,8 @@ BEGIN
 		FROM
 			ew_articulos_insumos
 		WHERE
-			idr > @reg_id
+			idarticulo_superior = @idarticulo
+			AND idr > @reg_id
 
 		SELECT
 			@codarticulo_p = a.codigo

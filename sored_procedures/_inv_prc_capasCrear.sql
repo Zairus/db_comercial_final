@@ -1,16 +1,11 @@
 USE db_comercial_final
 GO
-IF OBJECT_ID('_inv_prc_capasCrear') IS NOT NULL
-BEGIN
-	DROP PROCEDURE _inv_prc_capasCrear
-END
-GO
 -- =============================================
 -- Author:		Laurence Saavedra
 -- Create date: yyyymmdd
 -- Description:	Crear capas
 -- =============================================
-CREATE PROCEDURE [dbo].[_inv_prc_capasCrear]
+ALTER PROCEDURE [dbo].[_inv_prc_capasCrear]
 	@idcapa AS BIGINT OUTPUT
 	, @idtran As INT
 	, @referencia AS VARCHAR(25)
@@ -120,7 +115,7 @@ BEGIN
 
 	SELECT @idcapa = SCOPE_IDENTITY()
 
-	IF LEN(@serie) > 0
+	IF LEN(@serie) > 0 AND NOT EXISTS (SELECT * FROM ew_ser_equipos WHERE serie = @serie)
 	BEGIN
 		SELECT @idequipo = MAX(idequipo) FROM ew_ser_equipos
 		SELECT @idequipo = ISNULL(@idequipo, 0) + 1
@@ -143,14 +138,6 @@ BEGIN
 			, [idsucursal1] = 1
 			, [idsucursal2] = 1
 			, [idsucursal3] = 1
-		WHERE
-			(
-				SELECT COUNT(*) 
-				FROM 
-					ew_ser_equipos AS se 
-				WHERE 
-					se.serie = @serie
-			) = 0
 	END
 END
 GO
