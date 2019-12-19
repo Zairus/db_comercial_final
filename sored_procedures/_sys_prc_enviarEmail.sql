@@ -136,7 +136,7 @@ INSERT INTO [dbEVOLUWARE].[dbo].[ew_sys_email] (
 )
 SELECT
 	[db] = DB_NAME()
-	, [idtran] = 0
+	, [idtran] = ISNULL(@idtran, 0)
 	, [idserver] = @idserver
 	, [message_to] = @To
 	, [message_subject] = @subject

@@ -1,5 +1,10 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ct_fnc_idzonaFiscalCP') IS NOT NULL
+BEGIN
+	DROP FUNCTION _ct_fnc_idzonaFiscalCP
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20190208
@@ -16,7 +21,7 @@ BEGIN
 		@idzona AS INT
 		, @estimulo_autorizado AS BIT
 
-	SELECT @estimulo_autorizado = [dbo].[_sys_fnc_parametroActivo] ('CFDI_ESTIMULO_FRONTERA')
+	SELECT @estimulo_autorizado = CONVERT(BIT, 1)
 
 	SELECT
 		@idzona = scp.idzona

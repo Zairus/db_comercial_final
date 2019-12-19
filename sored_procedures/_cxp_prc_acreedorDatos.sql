@@ -1,17 +1,24 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cxp_prc_acreedorDatos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cxp_prc_acreedorDatos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20170104
 -- Description:	Datos de acreedor para Factura de Gasto
 -- =============================================
-ALTER PROCEDURE [dbo].[_cxp_prc_acreedorDatos]
+CREATE PROCEDURE [dbo].[_cxp_prc_acreedorDatos]
 	 @codigo AS VARCHAR(30)
 	,@idsucursal AS SMALLINT
 	,@idmoneda AS TINYINT = 0
+	,@fecha AS SMALLDATETIME = ''
 AS
 
 SET NOCOUNT ON
+SET DATEFORMAT DMY
 
 SELECT TOP 1
 	 p.idproveedor
@@ -25,15 +32,22 @@ SELECT TOP 1
 	,[acreedor_limite] = ISNULL(pt.credito_limite, 0)
 	,[acreedor_credito] = (ISNULL(pt.credito_limite, 0) - ISNULL(csa.saldo, 0))
 	,[iva] = (
-		SELECT
-			s.iva
-		FROM
-			ew_sys_sucursales AS s
-		WHERE
-			s.idsucursal = @idsucursal
+		CASE
+			WHEN p.extranjero = 1 THEN 0
+			ELSE
+				(
+					SELECT
+						s.iva
+					FROM
+						ew_sys_sucursales AS s
+					WHERE
+						s.idsucursal = @idsucursal
+				)
+			END
 	)
 	,[combustible] = 0
-	,[idmoneda] = (CASE WHEN p.extranjero = 1 THEN 1 ELSE @idmoneda END)
+	,[idmoneda] = @idmoneda
+	,[tipocambio] = dbo.fn_ban_obtenerTC(@idmoneda, @fecha)
 	,[acreedor_cuenta] = (
 		CASE 
 			WHEN p.tipo = 0 THEN

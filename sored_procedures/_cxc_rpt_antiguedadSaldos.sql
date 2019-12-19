@@ -1,16 +1,11 @@
 USE db_comercial_final
 GO
-IF OBJECT_ID('_cxc_rpt_antiguedadSaldos') IS NOT NULL
-BEGIN
-	DROP PROCEDURE _cxc_rpt_antiguedadSaldos
-END
-GO
 -- =============================================
 -- Author:		Fernanda Corona
 -- Create date: 20091122
 -- Description:	Antiguedad de saldos de cuentas por cobrar
 -- =============================================
-CREATE PROCEDURE [dbo].[_cxc_rpt_antiguedadSaldos]
+ALTER PROCEDURE [dbo].[_cxc_rpt_antiguedadSaldos]
 	@idmoneda AS SMALLINT 
 	, @idsucursal AS SMALLINT 
 	, @idcliente AS SMALLINT
@@ -25,6 +20,8 @@ SET NOCOUNT ON
 DECLARE	
 	@hoy AS SMALLDATETIME
 	, @sucursales AS VARCHAR(20)
+	, @dias_cartera AS DECIMAL(18,6)
+	, @facturacion_mensual AS DECIMAL(18,6)
 
 IF @detallado = 0
 BEGIN
@@ -108,6 +105,8 @@ SELECT
 	)
 	, [titulo_fecha] = 'Fecha: ' + CONVERT(VARCHAR(8), GETDATE(), 3)
 	, [titulo_ruta] = [dbo].[_sys_fnc_objetoRuta](ro.objeto)
+
+	, [dias_cartera] = CONVERT(DECIMAL(18,6), 0)
 INTO
 	#_tmp_ant_saldos
 FROM
@@ -200,6 +199,114 @@ UPDATE tas SET
 	, tas.saldo99 = (CASE WHEN tas.vencimiento < @fecha AND tas.dias_vencido > 90 THEN tas.saldoxx ELSE tas.saldo99 END)
 FROM
 	#_tmp_ant_saldos AS tas
+
+SELECT 
+	@dias_cartera = (
+		SUM(saldo30)
+		+ SUM(saldo60)
+		+ SUM(saldo90)
+		+ SUM(saldo99)
+	)
+FROM
+	#_tmp_ant_saldos
+
+SELECT
+	@facturacion_mensual = SUM(ct.total)
+FROM
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_clientes_terminos AS ctr
+		ON ctr.idcliente = ct.idcliente
+	LEFT JOIN ew_ven_vendedores AS v
+		ON v.idvendedor = ISNULL(NULLIF(ct.idvendedor, 0), ctr.idvendedor)
+WHERE
+	ct.cancelado = 0
+	AND ct.aplicado = 1
+	AND ct.tipo IN (1,2)
+	AND ABS((
+		(
+			CASE
+				WHEN ct.transaccion = 'EFA4' THEN ct.saldo
+				ELSE
+					[dbo].[_cxc_fnc_documentoSaldoR2] (ct.idtran, @fecha)
+			END
+		) * (
+			CASE 
+				WHEN ct.tipo = 1 THEN 1 
+				ELSE -1 
+			END
+		)
+	)) > 0.01
+
+	AND (
+		(
+			@idsucursal = 0
+			AND @idu > 0
+			AND (
+				ct.idsucursal IN (SELECT CONVERT(INT, ss.valor) FROM dbo.fn_sys_split(@sucursales, ',') AS ss)
+				OR @sucursales = ''
+			)
+		)
+		OR (
+			@idsucursal > 0
+			AND (
+				ct.idsucursal = @idsucursal
+			)
+		)
+		OR (
+			@idsucursal = 0
+			AND @idu = 0
+		)
+	)
+	AND ct.idmoneda = ISNULL(NULLIF(@idmoneda, -1), ct.idmoneda)
+	AND ct.idcliente = ISNULL(NULLIF(@idcliente, -1), ct.idcliente)
+	AND ISNULL(v.idvendedor, 0) = ISNULL(NULLIF(@idvendedor, 0), ISNULL(v.idvendedor, 0))
+	AND ct.fecha BETWEEN DATEADD(MONTH, -1, @fecha) AND @fecha
+
+SELECT 
+	@dias_cartera = (
+		(
+			CASE 
+				WHEN @facturacion_mensual > 0 THEN @dias_cartera / @facturacion_mensual 
+				ELSE 0.00
+			END
+		)
+		* 30.00
+	)
+
+UPDATE tas SET
+	tas.dias_cartera = @dias_cartera
+FROM
+	#_tmp_ant_saldos AS tas
+
+INSERT INTO #_tmp_ant_saldos (
+	idr
+	, folio
+	, fecha
+	, tipo
+	, idtran
+	, comentario
+	, vendedor
+	, idvendedor
+
+	, sucursal
+	, cliente
+	, dias_vencido
+	, dias_cartera
+)
+SELECT
+	[idr] = -1
+	, [folio] = ''
+	, [fecha] = ISNULL(@fecha, GETDATE())
+	, [tipo] = 0
+	, [idtran] = 0
+	, [comentario] = ''
+	, [vendedor] = ''
+	, [idvendedor]  = 0
+
+	, [sucursal] = 'INDICADORES'
+	, [cliente] = 'DIAS CARTERA'
+	, [dias_vencido] = @dias_cartera
+	, [dias_cartera] = @dias_cartera
 
 SELECT * 
 FROM 

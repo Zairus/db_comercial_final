@@ -1,31 +1,36 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_descuentosValores') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_descuentosValores
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20151030
 -- Description:	Valores de descuentos
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_descuentosValores]
+CREATE PROCEDURE [dbo].[_ven_prc_descuentosValores]
 	@idsucursal AS INT
-	,@idcliente AS INT
-	,@credito AS BIT
-	,@idarticulo AS INT
-	,@cantidad AS DECIMAL(18,6)
-	,@descuento1 AS DECIMAL(18,6) OUTPUT
-	,@descuento2 AS DECIMAL(18,6) OUTPUT
-	,@descuento3 AS DECIMAL(18,6) OUTPUT
-	,@codigos AS VARCHAR(200) OUTPUT
-	,@precio AS DECIMAL(18,6) = 0 OUTPUT
-	,@bajo_costo AS BIT = 0 OUTPUT
+	, @idcliente AS INT
+	, @credito AS BIT
+	, @idarticulo AS INT
+	, @cantidad AS DECIMAL(18,6)
+	, @descuento1 AS DECIMAL(18,6) OUTPUT
+	, @descuento2 AS DECIMAL(18,6) OUTPUT
+	, @descuento3 AS DECIMAL(18,6) OUTPUT
+	, @codigos AS VARCHAR(200) OUTPUT
+	, @precio AS DECIMAL(18,6) = 0 OUTPUT
+	, @bajo_costo AS BIT = 0 OUTPUT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
 	@articulos_descuento_valor AS DECIMAL(18,6) = 100.00
-	,@idpolitica AS INT
-	,@articulo_codigo AS VARCHAR(30)
-	,@iddescuento AS INT
+	, @idpolitica AS INT
+	, @articulo_codigo AS VARCHAR(30)
+	, @iddescuento AS INT
 
 SELECT @descuento1 = 0
 SELECT @descuento2 = 0
@@ -41,7 +46,7 @@ WHERE
 
 SELECT
 	@descuento1 = vp.descuento_linea
-	,@idpolitica = vp.idpolitica
+	, @idpolitica = vp.idpolitica
 FROM 
 	ew_clientes_terminos AS ctr
 	LEFT JOIN ew_ven_politicas AS vp
@@ -50,17 +55,17 @@ WHERE
 	ctr.idcliente = @idcliente
 
 --Articulos
---#1;Artículo|#2;Linea|#3;Sublinea|#255;Todos
+--#1;ArtÃ­culo|#2;Linea|#3;Sublinea|#255;Todos
 
 --Clientes
---#1,Un Cliente|#2,Grupo Políticas de Ventas|#3,Clasificación de Clientes|#255,Todos
+--#1,Un Cliente|#2,Grupo PolÃ­ticas de Ventas|#3,ClasificaciÃ³n de Clientes|#255,Todos
 --idcondicionpago
---0,Credito ó Contado|1,Solo Contado|2,Solo Credito|
+--0,Credito Ã³ Contado|1,Solo Contado|2,Solo Credito|
 
 SELECT
-	@codigos = @codigos + vd.coddescuento + ', '
-	,@articulos_descuento_valor = @articulos_descuento_valor - (@articulos_descuento_valor * (vd.valor / 100))
-	,@iddescuento = vd.iddescuento
+	@codigos = (@codigos + vd.coddescuento + ', ')
+	, @articulos_descuento_valor = (@articulos_descuento_valor - (@articulos_descuento_valor * (vd.valor / 100)))
+	, @iddescuento = vd.iddescuento
 FROM
 	ew_ven_descuentos AS vd
 WHERE
@@ -87,9 +92,29 @@ WHERE
 						)
 						OR (
 							vda.grupo = 2
+							AND vda.codigo = ISNULL((
+								SELECT anl.codigo
+								FROM 
+									ew_articulos AS a
+									LEFT JOIN ew_articulos_niveles AS anl
+										ON anl.nivel = 2
+										AND anl.codigo = a.nivel2
+								WHERE
+									a.codigo = @articulo_codigo
+							), '')
 						)
 						OR (
 							vda.grupo = 3
+							AND vda.codigo = ISNULL((
+								SELECT anl.codigo
+								FROM 
+									ew_articulos AS a
+									LEFT JOIN ew_articulos_niveles AS anl
+										ON anl.nivel = 3
+										AND anl.codigo = a.nivel3
+								WHERE
+									a.codigo = @articulo_codigo
+							), '')
 						)
 						OR vda.grupo = 255
 					)
@@ -145,7 +170,7 @@ WHERE
 			) = 0
 		)
 	)
-
+	
 IF LEN(@codigos) > 0
 	SELECT @codigos = LEFT(@codigos, LEN(@codigos) - 1)
 
@@ -155,7 +180,7 @@ SELECT @iddescuento = ISNULL(@iddescuento, 0)
 
 SELECT
 	@descuento2 = 0
-	,@precio = vda.precio
+	, @precio = vda.precio
 FROM
 	ew_ven_descuentos_articulos AS vda
 WHERE
@@ -174,7 +199,7 @@ WHERE
 
 SELECT
 	@descuento1 = ISNULL(@descuento1, 0)
-	,@descuento2 = ISNULL(@descuento2, 0)
-	,@descuento3 = ISNULL(@descuento3, 0)
-	,@codigos = ISNULL(@codigos, '')
+	, @descuento2 = ISNULL(@descuento2, 0)
+	, @descuento3 = ISNULL(@descuento3, 0)
+	, @codigos = ISNULL(@codigos, '')
 GO

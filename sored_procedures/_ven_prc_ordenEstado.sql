@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 -- =============================================
 -- Author:		Laurence Saavedra
@@ -9,7 +9,7 @@ GO
 -- =============================================
 ALTER PROCEDURE [dbo].[_ven_prc_ordenEstado]
 	@idtran AS INT
-	,@idu AS INT
+	,@idu AS SMALLINT
 AS
 
 SET NOCOUNT ON
@@ -42,7 +42,7 @@ WHERE
 	AND om.cantidad_autorizada != 0
 GROUP BY
 	o.idtran
-
+	
 IF (@cantidad = @surtir) AND (@cantidad = @facturar)
 BEGIN
 	SELECT @idestado = dbo.fn_sys_estadoID('AUT')

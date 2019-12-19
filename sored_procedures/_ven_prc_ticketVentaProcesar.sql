@@ -1,16 +1,11 @@
 USE db_comercial_final
 GO
-IF OBJECT_ID('_ven_prc_ticketVentaProcesar') IS NOT NULL
-BEGIN
-	DROP PROCEDURE _ven_prc_ticketVentaProcesar
-END
-GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20150624
 -- Description:	Procesa ticket de venta
 -- =============================================
-CREATE PROCEDURE [dbo].[_ven_prc_ticketVentaProcesar]
+ALTER PROCEDURE [dbo].[_ven_prc_ticketVentaProcesar]
 	@idtran AS INT
 AS
 
@@ -194,6 +189,23 @@ SELECT
 	[idmov] = idmov
 	, [idmov2] = idmov2
 	, [campo] = 'cantidad_facturada'
+	, [valor] = cantidad_facturada 
+FROM	
+	ew_ven_transacciones_mov
+WHERE 
+	cantidad_facturada > 0
+	AND idtran = @idtran
+
+INSERT INTO ew_sys_movimientos_acumula (
+	idmov1
+	, idmov2
+	, campo
+	, valor
+)
+SELECT 
+	[idmov] = idmov
+	, [idmov2] = idmov2
+	, [campo] = 'cantidad_surtida'
 	, [valor] = cantidad_facturada 
 FROM	
 	ew_ven_transacciones_mov

@@ -1,18 +1,23 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_inv_prc_inventarioTomaObtenerArticulos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _inv_prc_inventarioTomaObtenerArticulos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20170201
 -- Description:	Alimentar toma de inventario con registros
 -- =============================================
-ALTER PROCEDURE [dbo].[_inv_prc_inventarioTomaObtenerArticulos]
+CREATE PROCEDURE [dbo].[_inv_prc_inventarioTomaObtenerArticulos]
 	@idtran AS INT
-	,@idalmacen AS INT
-	,@tipo AS INT --#0,Todos...|#1,Con Existencias|
-	,@filtrar AS INT --#0,Ninguno|#1,Proveedor|#2,Sublínea|#3,Marca|#4,Rango de Articulos|
-	,@parametro AS VARCHAR(100)
-	,@codigo1 AS VARCHAR(30)
-	,@codigo2 AS VARCHAR(30)
+	, @idalmacen AS INT
+	, @tipo AS INT --#0,Todos...|#1,Con Existencias|
+	, @filtrar AS INT --#0,Ninguno|#1,Proveedor|#2,SublÃ­nea|#3,Marca|#4,Rango de Articulos|
+	, @parametro AS VARCHAR(100)
+	, @codigo1 AS VARCHAR(30)
+	, @codigo2 AS VARCHAR(30)
 AS
 
 SET NOCOUNT ON
@@ -39,20 +44,20 @@ DELETE FROM ew_inv_documentos_mov WHERE idtran = @idtran
 
 INSERT INTO ew_inv_documentos_mov (
 	idtran
-	,consecutivo
-	,idarticulo
-	,idalmacen
-	,idum
-	,solicitado
+	, consecutivo
+	, idarticulo
+	, idalmacen
+	, idum
+	, solicitado
 )
 
 SELECT
 	[idtran] = @idtran
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY a.codigo)
-	,[idarticulo] = a.idarticulo
-	,[idalmacen] = @idalmacen
-	,[idum] = a.idum_compra
-	,[solicitado] = ISNULL(aa.existencia, 0)
+	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY a.codigo)
+	, [idarticulo] = a.idarticulo
+	, [idalmacen] = @idalmacen
+	, [idum] = a.idum_compra
+	, [solicitado] = ISNULL(aa.existencia, 0)
 FROM
 	ew_articulos AS a
 	LEFT JOIN ew_inv_almacenes AS alm
@@ -73,30 +78,34 @@ FROM
 		ON an3.nivel = 3
 		AND an3.codigo = a.nivel3
 WHERE
+	a.idtipo = 0
+	AND 
 	(
-		@tipo = 1
-		AND ISNULL(aa.existencia, 0) > 0
-		AND @filtrar = 0
-	)
-	OR (
-		@tipo = 0
-		AND @filtrar = 0
-	)
-	OR (
-		@filtrar = 1
-		AND CONVERT(VARCHAR(100), [as].idproveedor) = @parametro
-	)
-	OR (
-		@filtrar = 2
-		AND ISNULL(an1.codigo, '') = @parametro
-	)
-	OR (
-		@filtrar = 3
-		AND CONVERT(VARCHAR(100), ISNULL(a.idmarca, 0)) = @parametro
-	)
-	OR (
-		@filtrar = 4
-		AND a.codigo BETWEEN @codigo1 AND @codigo2
+		(
+			@tipo = 1
+			AND ISNULL(aa.existencia, 0) > 0
+			AND @filtrar = 0
+		)
+		OR (
+			@tipo = 0
+			AND @filtrar = 0
+		)
+		OR (
+			@filtrar = 1
+			AND CONVERT(VARCHAR(100), [as].idproveedor) = @parametro
+		)
+		OR (
+			@filtrar = 2
+			AND ISNULL(an1.codigo, '') = @parametro
+		)
+		OR (
+			@filtrar = 3
+			AND CONVERT(VARCHAR(100), ISNULL(a.idmarca, 0)) = @parametro
+		)
+		OR (
+			@filtrar = 4
+			AND a.codigo BETWEEN @codigo1 AND @codigo2
+		)
 	)
 ORDER BY
 	a.codigo

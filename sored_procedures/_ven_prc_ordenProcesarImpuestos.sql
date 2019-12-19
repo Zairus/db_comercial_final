@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_ordenProcesarImpuestos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_ordenProcesarImpuestos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180307
 -- Description:	Procesar impuestos por partida
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_ordenProcesarImpuestos]
+CREATE PROCEDURE [dbo].[_ven_prc_ordenProcesarImpuestos]
 	@idtran AS INT
 AS
 
@@ -60,6 +65,7 @@ WHERE
 			citrn.idtran = @idtran
 	)
 	AND vom.idtran = @idtran
+	AND ait.idtasa IS NOT NULL
 
 UPDATE vom1 SET
 	vom1.idimpuesto1 = vom2.idimpuesto1

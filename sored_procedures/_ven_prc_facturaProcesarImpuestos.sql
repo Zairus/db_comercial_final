@@ -23,19 +23,19 @@ WHERE
 
 INSERT INTO ew_ct_impuestos_transacciones (
 	idtran
-	,idmov
-	,idmov2
-	,idtasa
-	,base
-	,importe
+	, idmov
+	, idmov2
+	, idtasa
+	, base
+	, importe
 )
 SELECT
 	[idtran] = vom.idtran
-	,[idmov] = vom.idmov
-	,[idmov2] = vom.idmov2
-	,[idtasa] = ait.idtasa
-	,[base] = CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion))
-	,[importe] = CONVERT(DECIMAL(18,2), (CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion)) * cit.tasa))
+	, [idmov] = vom.idmov
+	, [idmov2] = vom.idmov2
+	, [idtasa] = ait.idtasa
+	, [base] = CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion))
+	, [importe] = CONVERT(DECIMAL(18,2), (CONVERT(DECIMAL(18,2), (vom.importe * cit.base_proporcion)) * cit.tasa))
 FROM
 	ew_ven_transacciones_mov AS vom
 	
@@ -66,22 +66,23 @@ WHERE
 		OR vom.idimpuesto2_ret > 0
 	)
 	AND vom.idtran = @idtran
+	AND ait.idtasa IS NOT NULL
 
 INSERT INTO ew_ct_impuestos_transacciones (
 	idtran
-	,idmov
-	,idmov2
-	,idtasa
-	,base
-	,importe
+	, idmov
+	, idmov2
+	, idtasa
+	, base
+	, importe
 )
 SELECT
 	[idtran] = vom.idtran
-	,[idmov] = vom.idmov
-	,[idmov2] = vom.idmov2
-	,[idtasa] = 0
-	,[base] = CONVERT(DECIMAL(18,2), vom.importe)
-	,[importe] = 0
+	, [idmov] = vom.idmov
+	, [idmov2] = vom.idmov2
+	, [idtasa] = 0
+	, [base] = CONVERT(DECIMAL(18,2), vom.importe)
+	, [importe] = 0
 FROM
 	ew_ven_transacciones_mov AS vom
 WHERE
@@ -98,33 +99,40 @@ WHERE
 		AND vom.idimpuesto1_ret = 0
 		AND vom.idimpuesto2_ret = 0
 	)
+	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_articulos_impuestos_tasas AS ait
+		WHERE
+			ait.idarticulo = vom.idarticulo
+	) > 0
 	AND vom.idtran = @idtran
 
 UPDATE vom1 SET
 	vom1.idimpuesto1 = vom2.idimpuesto1
-	,vom1.idimpuesto2 = vom2.idimpuesto2
-	,vom1.idimpuesto1_ret = vom2.idimpuesto1_ret
-	,vom1.idimpuesto2_ret = vom2.idimpuesto2_ret
+	, vom1.idimpuesto2 = vom2.idimpuesto2
+	, vom1.idimpuesto1_ret = vom2.idimpuesto1_ret
+	, vom1.idimpuesto2_ret = vom2.idimpuesto2_ret
 
-	,vom1.impuesto1 = vom2.impuesto1
-	,vom1.impuesto2 = vom2.impuesto2
-	,vom1.impuesto1_ret = vom2.impuesto1_ret
-	,vom1.impuesto2_ret = vom2.impuesto2_ret
+	, vom1.impuesto1 = vom2.impuesto1
+	, vom1.impuesto2 = vom2.impuesto2
+	, vom1.impuesto1_ret = vom2.impuesto1_ret
+	, vom1.impuesto2_ret = vom2.impuesto2_ret
 FROM
 	ew_ven_transacciones_mov AS vom1
 	LEFT JOIN (
 		SELECT
 			vom.idmov
 
-			,[idimpuesto1] = MAX(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 1 THEN cit.idimpuesto ELSE 0 END), 0))
-			,[idimpuesto2] = MAX(ISNULL((CASE WHEN ci.grupo = 'IEPS' AND cit.tipo = 1 THEN cit.idimpuesto ELSE 0 END), 0))
-			,[idimpuesto1_ret] = MAX(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 2 THEN cit.idimpuesto ELSE 0 END), 0))
-			,[idimpuesto2_ret] = MAX(ISNULL((CASE WHEN ci.grupo = 'ISR' AND cit.tipo = 2 THEN cit.idimpuesto ELSE 0 END), 0))
+			, [idimpuesto1] = MAX(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 1 THEN cit.idimpuesto ELSE 0 END), 0))
+			, [idimpuesto2] = MAX(ISNULL((CASE WHEN ci.grupo = 'IEPS' AND cit.tipo = 1 THEN cit.idimpuesto ELSE 0 END), 0))
+			, [idimpuesto1_ret] = MAX(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 2 THEN cit.idimpuesto ELSE 0 END), 0))
+			, [idimpuesto2_ret] = MAX(ISNULL((CASE WHEN ci.grupo = 'ISR' AND cit.tipo = 2 THEN cit.idimpuesto ELSE 0 END), 0))
 
-			,[impuesto1] = SUM(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 1 THEN citr.importe ELSE 0 END), 0))
-			,[impuesto2] = SUM(ISNULL((CASE WHEN ci.grupo = 'IEPS' AND cit.tipo = 1 THEN citr.importe ELSE 0 END), 0))
-			,[impuesto1_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
-			,[impuesto2_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'ISR' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
+			, [impuesto1] = SUM(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 1 THEN citr.importe ELSE 0 END), 0))
+			, [impuesto2] = SUM(ISNULL((CASE WHEN ci.grupo = 'IEPS' AND cit.tipo = 1 THEN citr.importe ELSE 0 END), 0))
+			, [impuesto1_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'IVA' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
+			, [impuesto2_ret] = SUM(ISNULL((CASE WHEN ci.grupo = 'ISR' AND cit.tipo = 2 THEN citr.importe ELSE 0 END), 0))
 		FROM
 			ew_ven_transacciones_mov AS vom
 			LEFT JOIN ew_ct_impuestos_transacciones AS citr

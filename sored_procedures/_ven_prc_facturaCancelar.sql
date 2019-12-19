@@ -58,7 +58,7 @@ IF @confirmacion = 0
 BEGIN
 	IF (DATEDIFF (hour,@fecha_factura,GETDATE()) > 72 AND (@total*@tipocambio) > 5000)
 	BEGIN
-		RAISERROR('Error: No se pueden cancelar facturas cuya fecha de emisión sea mayor a 72 horas con respecto al dia de cancelación y el importe no debe ser mayor a $5000.00 MXN.', 16, 1)
+		RAISERROR('Error: No se pueden cancelar facturas cuya fecha de emisiÃ³n sea mayor a 72 horas con respecto al dia de cancelaciÃ³n y el importe no debe ser mayor a $5000.00 MXN.', 16, 1)
 		RETURN
 	END
 END
@@ -115,6 +115,13 @@ FROM
 WHERE 
 	idtran = @idtran
 	AND m.cantidad_surtida != 0
+	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_inv_transacciones_mov AS itm 
+		WHERE 
+			itm.idmov2 = m.idmov2
+	) = 0
 
 --------------------------------------------------------------------
 -- Reactivamos la mercancia facturada en la orden 
