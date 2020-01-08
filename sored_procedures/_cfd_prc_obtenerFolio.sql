@@ -1,48 +1,44 @@
 USE db_comercial_final
 GO
--- SP: 	Obtiene el siguiente folio disponible de un comprobante fiscal
--- 		Elaborado por Laurence Saavedra
--- 		Creado en Octubre del 2010
---		Modificado en Mayo del 2011
---		201508 - LAUSAA - El folio se obtiene de la tabla ew_cfd_transacciones por facturacion en 2 tiempos
---
---		
-/*
-DECLARE @idfolio SMALLINT,@noAprobacion VARCHAR(10),@folio INT,@serie VARCHAR(10)
-EXEC _cfd_prc_obtenerFolio 2,'EFA1',@idfolio OUTPUT, @folio OUTPUT, @serie OUTPUT
-PRINT @idfolio;PRINT @folio;PRINT @serie
-*/
-ALTER PROCEDURE [dbo].[_cfd_prc_obtenerFolio]
-	 @idsucursal AS SMALLINT
-	,@transaccion AS VARCHAR(4)
-	,@idfolio AS SMALLINT OUTPUT
-	,@folio AS INT OUTPUT
-	,@serie AS VARCHAR(10) OUTPUT
+IF OBJECT_ID('_cfd_prc_obtenerFolio') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfd_prc_obtenerFolio
+END
+GO
+-- =============================================
+-- Author:		Laurence Saavedra
+-- Create date: 20200102
+-- Description:	Obtiene el siguiente folio disponible de un comprobante fiscal
+-- =============================================
+CREATE PROCEDURE [dbo].[_cfd_prc_obtenerFolio]
+	@idsucursal AS SMALLINT
+	, @transaccion AS VARCHAR(4)
+	, @idfolio AS SMALLINT OUTPUT
+	, @folio AS INT OUTPUT
+	, @serie AS VARCHAR(10) OUTPUT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
-	 @noCertificado AS VARCHAR(20)
-	,@msg AS VARCHAR(100)
-	,@cantidad AS INT
-	,@folio_inicial AS INT
+	@noCertificado AS VARCHAR(20)
+	, @msg AS VARCHAR(100)
+	, @cantidad AS INT
+	, @folio_inicial AS INT
 
 -- Localizamos la transaccion en los folios de los comprobantes
 SELECT TOP 1
 	@idfolio = a.idfolio
-	,@serie = a.serie
-	,@cantidad = a.cantidad
-	,@folio_inicial = a.folio_inicial
-	-- @idCertificado=a.idcertificado
-	--,@noCertificado=c.noCertificado
-	--,@noAprobacion=a.noAprobacion
+	, @serie = a.serie
+	, @cantidad = a.cantidad
+	, @folio_inicial = a.folio_inicial
 FROM
 	ew_cfd_folios AS a
 	LEFT JOIN evoluware_certificados AS c
 		ON c.idcertificado = a.idcertificado
 WHERE
-	a.activo = '1'
+	a.activo = 1
+	AND c.activo = 1
 ORDER BY
 	(
 		SELECT TOP 1 valor 
@@ -68,26 +64,25 @@ BEGIN
 	-- No existe la la transaccion en los folios de los comprobantes
 	SELECT TOP 1
 		@idfolio = @idfolio
-		-- @idCertificado=b.idcertificado
-		--,@noCertificado=c.noCertificado
-		--,@noAprobacion=b.noAprobacion
-		,@serie=b.serie
-		,@cantidad=b.cantidad
-		,@folio_inicial=b.folio_inicial
+		, @serie = b.serie
+		, @cantidad = b.cantidad
+		, @folio_inicial = b.folio_inicial
 	FROM
-		ew_cfd_folios b 
-		LEFT JOIN evoluware_certificados c 
-			ON c.idcertificado=b.idcertificado
+		ew_cfd_folios AS b 
+		LEFT JOIN evoluware_certificados AS c
+			ON c.idcertificado = b.idcertificado
 	WHERE
-		b.activo = '1'
+		b.activo = 1
+		AND c.activo = 1
 	ORDER BY
 		(CASE WHEN b.sucursales = RTRIM(CONVERT(VARCHAR(3),@idsucursal)) THEN 0 ELSE 1 END)
-		,b.fechaVencimiento DESC
+		, b.fechaVencimiento DESC
 		
-	IF @@ROWCOUNT=0
+	IF @@ROWCOUNT = 0
 	BEGIN
-		SELECT @msg='Error. No existe ningún grupo de folios disponibles ...'
-		RAISERROR(@msg,16,1)
+		SELECT @msg='Error. No existe ningÃºn grupo de folios disponibles ...'
+
+		RAISERROR(@msg, 16, 1)
 		RETURN
 	END
 END
@@ -104,7 +99,7 @@ BEGIN
 	UPDATE ew_cfd_folios SET 
 		activo = 0 
 	WHERE 
-		idfolio = @idfolio  -- idcertificado=@idCertificado AND noAprobacion=@noAprobacion AND serie=@serie
+		idfolio = @idfolio
 
 	SELECT @folio = NULL
 END

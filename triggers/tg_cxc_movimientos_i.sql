@@ -38,7 +38,7 @@ DECLARE cur_cxc_movimientos CURSOR FOR
 		, [periodo] = DATEPART(MONTH, i.fecha)
 		, [cargos] = (CASE WHEN i.tipo = 1 THEN i.importe ELSE 0 END)
 		, [abonos] = (CASE WHEN i.tipo = 2 THEN i.importe ELSE 0 END)
-		, [importe] = (i.importe * ISNULL(NULLIF(i.tipo, 2), -1))
+		, [importe] = (i.importe * ISNULL(NULLIF(CONVERT(INT, i.tipo), 2), -1))
 	FROM 
 		inserted AS i
 		LEFT JOIN ew_cxc_transacciones AS ct

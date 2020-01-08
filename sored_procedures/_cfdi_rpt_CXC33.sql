@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cfdi_rpt_CXC33') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfdi_rpt_CXC33
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20171212
 -- Description:	Formato de impreison CFDi 33 para CXC
 -- =============================================
-ALTER PROCEDURE [dbo].[_cfdi_rpt_CXC33]
+CREATE PROCEDURE [dbo].[_cfdi_rpt_CXC33]
 	@idtran AS INT
 AS
 
@@ -17,18 +22,18 @@ SELECT @concat_nom_corto_articulo = ISNULL(dbo.fn_sys_parametro('PDF_CONCAT_NOM_
 
 SELECT
 	[idsucursal] = cc.idsucursal
-	,[sucursal] = s.nombre
-	,[transaccion] = o.codigo
-	,[documento] = (
+	, [sucursal] = s.nombre
+	, [transaccion] = o.codigo
+	, [documento] = (
 		o.nombre
 	)
-	,[documento_tipo] = vt.tipo
-	,[fecha] = cc.cfd_fecha
-	,[folio] = cc.cfd_serie + dbo.fnRellenar(LTRIM(RTRIM(STR(cc.cfd_folio))),6,'0')
+	, [documento_tipo] = vt.tipo
+	, [fecha] = cc.cfd_fecha
+	, [folio] = cc.cfd_serie + dbo.fnRellenar(LTRIM(RTRIM(STR(cc.cfd_folio))),6,'0')
 
-	,[emisor_nombre] = ''
-	,[emisor_rfc] = cc.rfc_emisor
-	,[emisor_domicilio] = (
+	, [emisor_nombre] = ''
+	, [emisor_rfc] = cc.rfc_emisor
+	, [emisor_domicilio] = (
 		SELECT
 			ecfa.razon_social
 			+ ' - '
@@ -51,7 +56,7 @@ SELECT
 			+ ', '
 			+ ' C.P. '
 			+ ccu.cfd_codigoPostal
-			+ CASE WHEN DB_NAME() NOT IN ('db_rafagas_datos2') THEN ' TEL: ' --que excluya teléfono en RAFAGAS DEL PACIFICO
+			+ CASE WHEN DB_NAME() NOT IN ('db_rafagas_datos2') THEN ' TEL: ' --que excluya telefono en RAFAGAS DEL PACIFICO
 			+ s.telefono
 			ELSE '' END
 		FROM 
@@ -60,7 +65,7 @@ SELECT
 			ccu.idtipo = 1 
 			AND ccu.idtran = cc.idtran
 	)
-	,[emisor_expedidoen] = (
+	, [emisor_expedidoen] = (
 		SELECT
 			s.nombre
 			+ CHAR(10)
@@ -78,7 +83,7 @@ SELECT
 			scd.idciudad = s.idciudad
 	)
 	
-	,[emisor_codigopostal] = (
+	, [emisor_codigopostal] = (
 		SELECT
 			s.codpostal
 		FROM
@@ -86,11 +91,11 @@ SELECT
 		WHERE
 			scd.idciudad = s.idciudad
 	)
-	,[receptor_no_orden] = ISNULL(vt2.no_orden,'') --ORDEN DE COMPRA DEL CLIENTE
-	,[receptor_codigo] = c.codigo
-	,[receptor_nombre] = cf.razon_social
-	,[receptor_rfc] = cc.rfc_receptor
-	,[receptor_domicilio] = (
+	, [receptor_no_orden] = ISNULL(vt2.no_orden,'') --ORDEN DE COMPRA DEL CLIENTE
+	, [receptor_codigo] = c.codigo
+	, [receptor_nombre] = cf.razon_social
+	, [receptor_rfc] = cc.rfc_receptor
+	, [receptor_domicilio] = (
 		SELECT
 			ccu.cfd_calle 
 			+ ' '
@@ -114,7 +119,7 @@ SELECT
 			ccu.idtipo = 2
 			AND ccu.idtran = cc.idtran
 	)
-	,[receptor_telefono] = ISNULL((
+	, [receptor_telefono] = ISNULL((
 		SELECT TOP 1
 			cfat.telefono1
 		FROM 
@@ -122,7 +127,7 @@ SELECT
 		WHERE 
 			cfat.idcliente = doc.idcliente
 	), '')
-	,[receptor_cuenta] = ISNULL((
+	, [receptor_cuenta] = ISNULL((
 		SELECT TOP 1
 			bb.nombre + ' ' +doc.clabe_origen
 		FROM
@@ -134,7 +139,7 @@ SELECT
 			AND  ccb.clabe = doc.clabe_origen
 	), '')
 	
-	,[receptor_contacto] = (
+	, [receptor_contacto] = (
 		SELECT TOP 1 
 			(cc.nombre + ' ' + cc.apellido)
 		FROM
@@ -144,33 +149,32 @@ SELECT
 		WHERE
 			ccc.idcliente = c.idcliente AND LTRIM(RTRIM(cc.nombre)) <>''
 	)
-	,[condicionesDePago] = cc.cdf_condicionesDePago
-	,[Moneda] = cc.cfd_Moneda
-	,[TipoCambio] = CONVERT(VARCHAR(20),CONVERT(NUMERIC(18,2),cc.cfd_TipoCambio))
-	,[formaDePago] = csfp.descripcion + ' [' + cc.cfd_metodoDePago + ']'
-	,[metodoDePago] = csmp.descripcion + ' [' + cc.cfd_formaDePago + ']'
+	, [condicionesDePago] = cc.cdf_condicionesDePago
+	, [Moneda] = cc.cfd_Moneda
+	, [TipoCambio] = CONVERT(VARCHAR(20),CONVERT(NUMERIC(18,2),cc.cfd_TipoCambio))
+	, [formaDePago] = csfp.descripcion + ' [' + cc.cfd_metodoDePago + ']'
+	, [metodoDePago] = csmp.descripcion + ' [' + cc.cfd_formaDePago + ']'
 
-	,[subtotal] = cc.cfd_subTotal
-	,[total] = cc.cfd_total
+	, [subtotal] = cc.cfd_subTotal
+	, [total] = cc.cfd_total
 
-	,[cfd_version] = cc.cfd_version
-	,[cfd_uso] = csu.descripcion + ' [' + cc.cfd_uso + ']'
-	,[cfd_tiporelacion] = ISNULL(ISNULL('[' + cst.c_tiporelacion + '] ' + cst.descripcion, '[' + csto_cst.c_tiporelacion + '] ' + csto_cst.descripcion), '')
-	,[cfd_noCertificado] = cc.cfd_noCertificado
-	,[cfd_tipoDeComprobante] = cc.cfd_tipoDeComprobante
-	,[cfd_cadenaOriginal] = ccs.cadenaOriginal
-	,[cfd_certificado] = ccs.cfd_certificado
-	,[cfd_sello] = ccs.cfd_sello
-	,[cfd_pac] = ccc.pac
-	,[cfd_acuse] = ccc.acuse
+	, [cfd_version] = cc.cfd_version
+	, [cfd_uso] = csu.descripcion + ' [' + cc.cfd_uso + ']'
+	, [cfd_tiporelacion] = ISNULL(ISNULL('[' + cst.c_tiporelacion + '] ' + cst.descripcion, '[' + csto_cst.c_tiporelacion + '] ' + csto_cst.descripcion), '')
+	, [cfd_noCertificado] = cc.cfd_noCertificado
+	, [cfd_tipoDeComprobante] = cc.cfd_tipoDeComprobante
+	, [cfd_cadenaOriginal] = ccs.cadenaOriginal
+	, [cfd_certificado] = ccs.cfd_certificado
+	, [cfd_sello] = ccs.cfd_sello
+	, [cfd_pac] = ccc.pac
+	, [cfd_acuse] = ccc.acuse
 
-	,[cfd_FechaTimbrado] = cct.cfdi_FechaTimbrado
-	,[cfd_versionTFD] = cct.cfdi_versionTFD
-	,[cfd_UUID] = cct.cfdi_UUID
-	,[cfd_noCertificadoSAT] = cct.cfdi_noCertificadoSAT
---	,[cfd_selloSAT] = cct.cfdi_selloDigital
-	,[cfd_selloCFDI] = cct.cfdi_selloDigital
-	,[cfd_selloSAT] = (
+	, [cfd_FechaTimbrado] = cct.cfdi_FechaTimbrado
+	, [cfd_versionTFD] = cct.cfdi_versionTFD
+	, [cfd_UUID] = cct.cfdi_UUID
+	, [cfd_noCertificadoSAT] = cct.cfdi_noCertificadoSAT
+	, [cfd_selloCFDI] = cct.cfdi_selloDigital
+	, [cfd_selloSAT] = (
 		SELECT
 			cco.valor
 		FROM
@@ -178,30 +182,32 @@ SELECT
 		WHERE
 			cco.idr = 7
 	)
-	,[cfd_cadenaOriginalSAT] = cct.cfdi_cadenaOriginal
-	,[cfd_QRCode] = cct.QRCode
-	,[cfd_fechaCancelacion] = cct.cfdi_fechaCancelacion
-	,[cfd_respuesta_mensaje] = cct.cfdi_respuesta_mensaje
+	, [cfd_cadenaOriginalSAT] = cct.cfdi_cadenaOriginal
+	, [cfd_QRCode] = cct.QRCode
+	, [cfd_fechaCancelacion] = cct.cfdi_fechaCancelacion
+	, [cfd_respuesta_mensaje] = cct.cfdi_respuesta_mensaje
 
-	,[concepto_consecutivo] = ccm.concepto_consecutivo
-	,[concepto_idarticulo] = ccm.concepto_idarticulo
-	,[concepto_codarticulo] = ccm.concepto_codarticulo
-	,[concepto_claveSAT] = ccm.concepto_claveSAT
-	,[concepto_cantidad] = ccm.concepto_cantidad
-	,[concepto_unidad] = ccm.concepto_unidad
-	,[concepto_descripcion] = REPLACE(ccm.concepto_descripcion, CHAR(13), '<br />')
-	,[concepto_precio_unitario] = ccm.concepto_precio_unitario
-	,[concepto_importe] = ccm.concepto_importe
+	, [concepto_consecutivo] = ccm.concepto_ordenamiento
+	, [concepto_idarticulo] = ccm.concepto_idarticulo
+	, [concepto_codarticulo] = ccm.concepto_codarticulo
+	, [concepto_claveSAT] = ccm.concepto_claveSAT
+	, [concepto_cantidad] = ccm.concepto_cantidad
+	, [concepto_unidad] = ccm.concepto_unidad
+	, [concepto_descripcion] = REPLACE(ccm.concepto_descripcion, CHAR(13), '<br />')
+	, [concepto_precio_unitario] = ccm.concepto_precio_unitario
+	, [concepto_importe] = ccm.concepto_importe
 
-	,[total_texto] = [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
+	, [total_texto] = [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
 
-	,[vendedor] = ISNULL(v.nombre,'')
+	, [vendedor] = ISNULL(v.nombre,'')
 
-	,[pagare] = (
+	, [credito_plazo] = ct.credito_plazo
+
+	, [pagare] = (
 		CASE WHEN DB_NAME()='db_conexionpc_datos' THEN
 		(
 			SELECT
-				'Por éste pagaré me(nos) obligo(amos) a pagar incondicionalmente en la ciudad de '
+				'Por este pagare me(nos) obligo(amos) a pagar incondicionalmente en la ciudad de '
 				+ ccu.cfd_municipio
 				+ ', '
 				+ ccu.cfd_estado
@@ -215,7 +221,7 @@ SELECT
 				+ CHAR(13) + CHAR(10)
 				+ 'Con vencimiento el '
 				+ CONVERT(VARCHAR(10), DATEADD(day,ct.credito_plazo,cc.cfd_fecha), 103)
-				+ ' este pagaré causará intereses moratorios del 5% mensual a partir de su vencimiento. Cubriendo, además, costos y gastos originados.'
+				+ ' este pagara causara intereses moratorios del 5% mensual a partir de su vencimiento. Cubriendo, ademas, costos y gastos originados.'
 				+ CHAR(13) + CHAR(10)
 				+ 'Se extiende en la ciudad de '
 				+ ccu.cfd_municipio
@@ -245,7 +251,7 @@ SELECT
 				+ CONVERT(VARCHAR(20), cc.cfd_total)
 				+ ' (Son: '
 				+ [db_comercial].[dbo].[_sys_fnc_monedaTexto](cc.cfd_total, csm.c_moneda)
-				+ ' VALOR RECIBIDO A MI (NUESTRA) ENTERA SATISFACCIÓN, ESTE PAGARÉ ES MERCANTIL Y ESTA REGIDO POR LA LEY GENERAL DE TITULOS Y OPERACIONES DE CREDITO, '
+				+ ' VALOR RECIBIDO A MI (NUESTRA) ENTERA SATISFACCION, ESTE PAGARE ES MERCANTIL Y ESTA REGIDO POR LA LEY GENERAL DE TITULOS Y OPERACIONES DE CREDITO, '
 				+ 'EN SU ART. 173 PARTE FINAL POR NO SER DOMICILIADO Y ARTICULOS CORRELATIVOS QUEDA EXPRESAMENTE CONVENIDO QUE SI NO ES PAGADO ESTE DOCUMENTO A SU VENCIMIENTO '
 				+ 'CAUSARA UN INTERESES MORATORIO DE '
 				+ '6%'
@@ -262,10 +268,10 @@ SELECT
 		)
 		END
 	)
-	,[observaciones] = CASE WHEN doc.transaccion IN('EFA1','EFA6') THEN (CONVERT(VARCHAR(MAX),doc.comentario) + ISNULL(dbo.fn_sys_parametro('VEN_MENSAJE_COMENTARIO'),'')) ELSE doc.comentario END
-	,[cancelado] = ISNULL(vt.cancelado,0)
+	, [observaciones] = CASE WHEN doc.transaccion IN('EFA1','EFA4','EFA6') THEN (CONVERT(VARCHAR(MAX),doc.comentario) + CHAR(10) + CHAR(13) + ISNULL(dbo.fn_sys_parametro('VEN_MENSAJE_COMENTARIO'),'')) ELSE doc.comentario END
+	, [cancelado] = ISNULL(vt.cancelado,0)
 
-	,[vendedor] = ISNULL(v.nombre,'')
+	, [vendedor] = ISNULL(v.nombre,'')
 FROM 
 	ew_cfd_comprobantes AS cc
 	LEFT JOIN ew_cfd_comprobantes_cancelados AS ccc
@@ -299,14 +305,20 @@ FROM
 	LEFT JOIN (
 		SELECT
 			[idtran] = ccm1.idtran
-			,[concepto_consecutivo] = ccm1.consecutivo
-			,[concepto_ordenamiento] = ccm1.consecutivo
-			,[concepto_idarticulo] = ccm1.idarticulo
-			,[concepto_codarticulo] = a.codigo
-			,[concepto_claveSAT] = csc.clave
-			,[concepto_cantidad] = ccm1.cfd_cantidad
-			,[concepto_unidad] = ISNULL(cum1.sat_unidad_clave, 'EA') + '-' + ccm1.cfd_unidad
-			,[concepto_descripcion] = (
+			, [concepto_consecutivo] = ccm1.consecutivo
+			, [concepto_ordenamiento] = (
+				CASE [dbo].[_sys_fnc_parametroTexto]('CFDI_IMPRESION_ORDEN_CONCEPTOS')
+					WHEN 'COD_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.codigo)
+					WHEN 'NOM_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.nombre)
+					ELSE ROW_NUMBER() OVER (ORDER BY ccm1.consecutivo)
+				END
+			)
+			, [concepto_idarticulo] = ccm1.idarticulo
+			, [concepto_codarticulo] = a.codigo
+			, [concepto_claveSAT] = csc.clave
+			, [concepto_cantidad] = ccm1.cfd_cantidad
+			, [concepto_unidad] = ISNULL(cum1.sat_unidad_clave, 'EA') + '-' + ccm1.cfd_unidad
+			, [concepto_descripcion] = (
 				CASE 
 					WHEN @concat_nom_corto_articulo = 1 THEN 
 						a.nombre_corto + ' - ' + ccm1.cfd_descripcion 
@@ -352,8 +364,8 @@ FROM
 					ELSE ''
 				END
 			)
-			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
-			,[concepto_importe] = ccm1.cfd_importe
+			, [concepto_precio_unitario] = ccm1.cfd_valorUnitario
+			, [concepto_importe] = ccm1.cfd_importe
 		FROM
 			ew_cfd_comprobantes_mov AS ccm1
 			LEFT JOIN ew_articulos AS a
@@ -372,22 +384,28 @@ FROM
 
 		SELECT
 			[idtran] = ctm1.idtran
-			,[concepto_consecutivo] = ccm1.consecutivo
-			,[concepto_ordenamiento] = ccm1.consecutivo
-			,[concepto_idarticulo] = ccm1.idarticulo
-			,[concepto_codarticulo] = a.codigo
-			,[concepto_claveSAT] = csc.clave
-			,[concepto_cantidad] = 1
-			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = (
-				'Aplicación a '
+			, [concepto_consecutivo] = ccm1.consecutivo
+			, [concepto_ordenamiento] = (
+				CASE [dbo].[_sys_fnc_parametroTexto]('CFDI_IMPRESION_ORDEN_CONCEPTOS')
+					WHEN 'COD_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.codigo)
+					WHEN 'NOM_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.nombre)
+					ELSE ROW_NUMBER() OVER (ORDER BY ccm1.consecutivo)
+				END
+			)
+			, [concepto_idarticulo] = ccm1.idarticulo
+			, [concepto_codarticulo] = a.codigo
+			, [concepto_claveSAT] = csc.clave
+			, [concepto_cantidad] = 1
+			, [concepto_unidad] = ccm1.cfd_unidad
+			, [concepto_descripcion] = (
+				'Aplicacion a '
 				+ o1.nombre
 				+ ': '
 				+ ccf.cfd_serie
 				+ LTRIM(RTRIM(STR(ccf.cfd_folio)))
 			)
-			,[concepto_precio_unitario] = ct1.subtotal
-			,[concepto_importe] = ctm1.importe
+			, [concepto_precio_unitario] = ct1.subtotal
+			, [concepto_importe] = ctm1.importe
 		FROM
 			ew_cfd_comprobantes_mov AS ccm1
 			LEFT JOIN ew_cxc_transacciones_mov AS ctm1
@@ -414,16 +432,22 @@ FROM
 		SELECT
 			[idtran] = ccm1.idtran
 
-			,[concepto_consecutivo] = ccm1.consecutivo
-			,[concepto_ordenamiento] = ccm1.consecutivo
-			,[concepto_idarticulo] = ccm1.idarticulo
-			,[concepto_codarticulo] = ccm1.cfd_noIdentificacion
-			,[concepto_claveSAT] = csc.clave
-			,[concepto_cantidad] = ccm1.cfd_cantidad
-			,[concepto_unidad] = ccm1.cfd_unidad
-			,[concepto_descripcion] = ccm1.cfd_descripcion
-			,[concepto_precio_unitario] = ccm1.cfd_valorUnitario
-			,[concepto_importe] = ccm1.cfd_importe
+			, [concepto_consecutivo] = ccm1.consecutivo
+			, [concepto_ordenamiento] = (
+				CASE [dbo].[_sys_fnc_parametroTexto]('CFDI_IMPRESION_ORDEN_CONCEPTOS')
+					WHEN 'COD_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.codigo)
+					WHEN 'NOM_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.nombre)
+					ELSE ROW_NUMBER() OVER (ORDER BY ccm1.consecutivo)
+				END
+			)
+			, [concepto_idarticulo] = ccm1.idarticulo
+			, [concepto_codarticulo] = ccm1.cfd_noIdentificacion
+			, [concepto_claveSAT] = csc.clave
+			, [concepto_cantidad] = ccm1.cfd_cantidad
+			, [concepto_unidad] = ccm1.cfd_unidad
+			, [concepto_descripcion] = ccm1.cfd_descripcion
+			, [concepto_precio_unitario] = ccm1.cfd_valorUnitario
+			, [concepto_importe] = ccm1.cfd_importe
 		FROM
 			ew_cfd_comprobantes_mov AS ccm1
 			LEFT JOIN ew_cxc_transacciones AS ct
@@ -439,14 +463,20 @@ FROM
 
 		SELECT
 			[idtran] = vtms.idtran
-			,[concepto_consecutivo] = ISNULL(ccm1.consecutivo, 0) + 10
-			,[concepto_ordenamiento] = ISNULL(ccm1.consecutivo, 0)
-			,[concepto_idarticulo] = ISNULL(ccm1.idarticulo, 0)
-			,[concepto_codarticulo] = ''
-			,[concepto_claveSAT] = ''
-			,[concepto_cantidad] = NULL
-			,[concepto_unidad] = ''
-			,[concepto_descripcion] = 
+			, [concepto_consecutivo] = ISNULL(ccm1.consecutivo, 0) + 10
+			, [concepto_ordenamiento] = (
+				CASE [dbo].[_sys_fnc_parametroTexto]('CFDI_IMPRESION_ORDEN_CONCEPTOS')
+					WHEN 'COD_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.codigo)
+					WHEN 'NOM_ALFA' THEN ROW_NUMBER() OVER (ORDER BY a.nombre)
+					ELSE ROW_NUMBER() OVER (ORDER BY ISNULL(ccm1.consecutivo, 0))
+				END
+			) --ISNULL(ccm1.consecutivo, 0)
+			, [concepto_idarticulo] = ISNULL(ccm1.idarticulo, 0)
+			, [concepto_codarticulo] = ''
+			, [concepto_claveSAT] = ''
+			, [concepto_cantidad] = NULL
+			, [concepto_unidad] = ''
+			, [concepto_descripcion] = 
 				'Tipo Plan: ' + spt.nombre + CHAR(13) + CHAR(10)
 				+ (
 					'Periodo: ' 
@@ -495,8 +525,8 @@ FROM
 						FOR XML PATH ('')
 					), '{13}', CHAR(13) + CHAR(10))
 				)
-			,[concepto_precio_unitario] = NULL
-			,[concepto_importe] = NULL
+			, [concepto_precio_unitario] = NULL
+			, [concepto_importe] = NULL
 		FROM
 			ew_ven_transacciones_mov_servicio AS vtms
 			LEFT JOIN ew_cfd_comprobantes_mov AS ccm1

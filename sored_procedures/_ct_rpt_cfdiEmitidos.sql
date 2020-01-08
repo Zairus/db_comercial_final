@@ -12,6 +12,7 @@ GO
 -- =============================================
 CREATE PROCEDURE [dbo].[_ct_rpt_cfdiEmitidos]
 	@idsucursal SMALLINT = 0
+	, @idcliente AS INT = 0
 	, @tipo AS VARCHAR(1) = '-'
 	, @fecha1 AS DATETIME = NULL
 	, @fecha2 AS DATETIME = NULL
@@ -97,6 +98,7 @@ FROM
 		ON ccc.idtran = cfdi.idtran
 WHERE
 	cxc.idsucursal = ISNULL(NULLIF(@idsucursal, 0), cxc.idsucursal)
+	AND cxc.idcliente = ISNULL(NULLIF(@idcliente, 0), cxc.idcliente)
 	AND cxc.fecha BETWEEN @fecha1 AND @fecha2
 	AND SUBSTRING(cfd.cfd_tipoDeComprobante, 1, 1) = (
 		CASE 

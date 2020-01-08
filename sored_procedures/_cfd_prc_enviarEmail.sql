@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cfd_prc_enviarEmail') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfd_prc_enviarEmail
+END
+GO
 -- =============================================
 -- Author:		Laurence Saavedra
 -- Create date: 20100101
 -- Description:	Envia por correo un Comprobante Fiscal Digital
 -- =============================================
-ALTER PROCEDURE [dbo].[_cfd_prc_enviarEmail]
+CREATE PROCEDURE [dbo].[_cfd_prc_enviarEmail]
 	@idtran AS INT
 	, @email AS VARCHAR(200) = ''
 	, @mensaje AS VARCHAR(4000) = ''
@@ -29,7 +34,13 @@ DECLARE
 
 	, @folio VARCHAR(20) = ''
 	, @empresa VARCHAR(200) = ''
-	, @receptor_nombre VARCHAR(200)=''
+	, @receptor_nombre VARCHAR(200) = ''
+
+	, @directorio AS VARCHAR(150)
+	, @cfd_emisor_rfc AS VARCHAR(13)
+	, @cfd_folio AS INT
+	, @cfd_serie AS VARCHAR(10)
+	, @cfd_uuid AS VARCHAR(50)
 
 -- Obtener folio y empresa para anexarlo al ASUNTO del Correo
 SELECT 
@@ -40,7 +51,7 @@ WHERE
 	idtran = @idtran
 
 SELECT 
-	@empresa = (CASE WHEN c.nombre = '' THEN cf.razon_social ELSE c.nombre END)
+	@empresa = (CASE WHEN LTRIM(RTRIM(c.nombre)) = '' THEN cf.razon_social ELSE c.nombre END)
 FROM 
 	ew_clientes_facturacion cf
 	LEFT JOIN ew_clientes AS c 
@@ -70,7 +81,7 @@ END
 
 ----------------------------------------------------------------------
 -- Porque siempre agarra los parametros de la EFA1 para generar el PDF
--- Tuve que agregar 2 campos más
+-- Tuve que agregar 2 campos mas
 -- 1 para la ruta de la EDE1 y otro para la ruta de la FDA2
 ----------------------------------------------------------------------
 SELECT 
@@ -87,26 +98,9 @@ SELECT TOP 1
 	@XML_email = p.XML_email
 	, @PDF_guardar = p.PDF_guardar
 	, @PDF_email = p.PDF_email
-	, @PDF_rs = '' /*ISNULL((
-		dbo.fn_sys_obtenerDato('DEFAULT', '?50')
-		+ 'Pages/ReportViewer.aspx?/'
-		+ od.valor
-		+ '&rs:Command=Render'
-		+ '&rc:Toolbar=true'
-		+ '&rc:parameters=false'
-		+ '&dsu:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?52')
-		+ '&dsp:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?53')
-		+ '&rs:format=PDF'
-		+ '&ServidorSQL=Data Source=erp.evoluware.com,1093;Initial Catalog=' + DB_NAME()
-		+ '&idtran={idtran}'
-	), p.PDF_RS)*/
+	, @PDF_rs = ''
 FROM
 	ew_cfd_parametros AS p
-	--LEFT JOIN objetos AS o
-		--ON o.codigo = @transaccion
-	--LEFT JOIN objetos_datos AS od
-		--ON od.objeto = o.objeto
-		--AND od.codigo = 'REPORTERS'
 
 SELECT 
 	@archivoXML = ISNULL(archivoXML, '')
@@ -114,20 +108,25 @@ FROM
 	ew_cfd_comprobantes_sello AS s
 WHERE
 	idtran = @idtran
+	
+SELECT
+	@cfd_emisor_rfc = c.rfc_emisor
+	, @cfd_serie = c.cfd_serie
+	, @cfd_folio = c.cfd_folio
+	, @directorio = cer.directorio
+FROM
+	ew_cfd_comprobantes AS c
+	LEFT JOIN ew_cfd_folios AS f 
+		ON f.idfolio = c.idfolio
+	LEFT JOIN evoluware_certificados AS cer 
+		ON cer.idcertificado = f.idcertificado
+WHERE
+	c.idtran = @idtran
 
 IF @archivoXML = ''
 BEGIN
-	SELECT
-		@archivoXML = cer.directorio + c.rfc_emisor + '_' + c.cfd_serie + '-' + CONVERT(VARCHAR(10),c.cfd_folio) + '.xml'
-		, @XML_email = 0
-	FROM
-		ew_cfd_comprobantes AS c
-		LEFT JOIN ew_cfd_folios AS f 
-			ON f.idfolio = c.idfolio
-		LEFT JOIN evoluware_certificados AS cer 
-			ON cer.idcertificado = f.idcertificado
-	WHERE
-		c.idtran = @idtran
+	SELECT @archivoXML = @directorio + @cfd_emisor_rfc + '_' + @cfd_serie + '-' + CONVERT(varchar(10), @cfd_folio) + '.xml'
+	SELECT @XML_email = 0
 END
 
 IF @archivoXML IS NULL
@@ -141,14 +140,16 @@ END
 IF @PDF_guardar = 1
 BEGIN
 	SELECT @cadena = ''
+
 	EXEC [dbo].[_cfdi_prc_generarPDF] @idtran, @cadena OUTPUT
+	
 	SELECT @success = 1
 END
 
 ----------------------------------------------------------------
 -- Enviamos por correo electronico
 ----------------------------------------------------------------
-IF (@email != '') AND (@XML_email = 1 OR @PDF_email = 1)
+IF @email != '' AND (@XML_email = 1 OR @PDF_email = 1)
 BEGIN
 	SELECT @pdf_rs = ''
 
@@ -159,9 +160,9 @@ BEGIN
 
 	IF @PDF_email = 1 
 	BEGIN
-		SELECT @pdf_rs = @pdf_rs + (CASE WHEN @pdf_rs = '' THEN '' ELSE ';' END) + @cadena
+		SELECT @PDF_rs = REPLACE(@cadena, '.pdf', '.xml') + ';' + @cadena
 	END
-
+	
 	SELECT @cadena = 'Mensaje generado automaticamente por el servidor: ' + CONVERT(VARCHAR(20),GETDATE(),0) + '' + @mensaje
 	
 	DECLARE
@@ -171,7 +172,7 @@ BEGIN
 		, @message_body AS VARCHAR(MAX)
 		, @message_bodyHTML AS VARCHAR(200)
 		, @message_cc AS VARCHAR(200)
-
+		
 	SELECT @idserver = CONVERT(SMALLINT, dbo.fn_sys_parametro('EMAIL_IDSERVER'))
 	SELECT @message_subject = dbo.fn_sys_parametro('EMAIL_SUBJECT') + ' Folio ' + @folio + ' de ' + @empresa
 	SELECT @message_bodyHTML = CONVERT(BIT, dbo.fn_sys_parametro('EMAIL_BODYHTML'))
@@ -183,14 +184,14 @@ BEGIN
 			+ '<html>'
 			+ '<body>'
 			+ (
-				'Estimado Cliente' + CASE WHEN @receptor_nombre = '' THEN ':' ELSE ' ' + @receptor_nombre + ':' END
+				'Estimado Cliente' + (CASE WHEN @receptor_nombre = '' THEN ':' ELSE ' ' + @receptor_nombre + ':' END)
 				+ '<br>'
 				+ '<br>'
-				+ 'Adjunto se envía ' 
+				+ 'Adjunto se envia ' 
 				+ o.nombre 
 				+ ' ' 
 				+ ct.folio 
-				+ ', generado el día '
+				+ ', generado el dia '
 				+ CONVERT(VARCHAR(8), ct.fecha, 3)
 				+ '<br>'
 				+ '<br>'
@@ -198,7 +199,7 @@ BEGIN
 					CASE
 						WHEN ct.tipo = 1 AND ct.vencimiento IS NOT NULL THEN
 							(
-								'Programación de pago: '
+								'Programacion de pago: '
 								+ CONVERT(VARCHAR(8), ct.vencimiento, 3)
 								+ '<br>'
 							)
@@ -254,9 +255,12 @@ BEGIN
 			+ '<br>'
 			+ '<br>'
 			+ @mensaje
+			+ '<br>'
+			+ CASE WHEN DB_NAME() LIKE '%innova%' THEN '* Favor de confirmar de recibido *' ELSE '* Este correo se envï¿½a de forma automï¿½tica. Favor de no responder.' END
+			+ '<br>'
 			+ '</body></html>'
 		)
-
+	
 	INSERT INTO dbEVOLUWARE.dbo.ew_sys_email (
 		db
 		, idtran
@@ -281,7 +285,7 @@ BEGIN
 		, @urgente
 		, @message_cc
 	)
-
+	
 	IF @urgente = 1
 	BEGIN
 		DECLARE @id INT
@@ -294,7 +298,7 @@ BEGIN
 			idtran = @idtran 
 		ORDER BY 
 			idr DESC
-
+		
 		IF @id > 0
 		BEGIN
 			EXEC dbEVOLUWARE.dbo._adm_prc_enviarEmail @id

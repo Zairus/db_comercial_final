@@ -1,16 +1,16 @@
-USE db_refriequipos_datos
+USE db_comercial_final
 GO
-IF OBJECT_ID('_cfdi_prc_generarPDF') IS NOT NULL
+IF OBJECT_ID('_cfdi_prc_generarXML') IS NOT NULL
 BEGIN
-	DROP PROCEDURE _cfdi_prc_generarPDF
+	DROP PROCEDURE _cfdi_prc_generarXML
 END
 GO
 -- =============================================
 -- Author:		Paul Monge
--- Create date: 20170814
--- Description:	Generar Archivo PDF
+-- Create date: 20200106
+-- Description:	Generar XML para descarga
 -- =============================================
-CREATE PROCEDURE [dbo].[_cfdi_prc_generarPDF]
+CREATE PROCEDURE [dbo].[_cfdi_prc_generarXML]
 	@idtran AS INT
 	, @ruta AS VARCHAR(1000) = NULL OUTPUT
 AS
@@ -18,13 +18,9 @@ AS
 SET NOCOUNT ON
 
 DECLARE
-	@PDF_rs AS VARCHAR(4000)
-	, @transaccion AS VARCHAR(5)
-	, @msg AS VARCHAR(200)
-	, @success AS BIT
-	, @presentar AS BIT = 1
-	, @ruta_temp AS VARCHAR(1000)
+	@ruta_temp AS VARCHAR(1000)
 	, @cmd AS NVARCHAR(500)
+	, @presentar AS BIT = 1
 	, @archivo_plantilla AS VARCHAR(200)
 
 	, @directorio AS VARCHAR(150)
@@ -37,13 +33,6 @@ IF @ruta IS NOT NULL
 BEGIN
 	SELECT @presentar = 0
 END
-
-SELECT
-	@transaccion = transaccion
-FROM
-	ew_sys_transacciones
-WHERE
-	idtran = @idtran
 
 SELECT
 	@cfd_emisor_rfc = c.rfc_emisor
@@ -86,55 +75,7 @@ SELECT @cmd = 'copy "' + @ruta + '.xml" "' + @ruta_temp + @archivo_plantilla + '
 
 EXEC master.dbo.xp_cmdshell @cmd, 'no_output'
 
-SELECT TOP 1
-	@PDF_rs = ISNULL((
-		dbo.fn_sys_obtenerDato('DEFAULT', '?50')
-		+ 'Pages/ReportViewer.aspx?/'
-		+ od.valor
-		+ '&rs:Command=Render'
-		+ '&rc:Toolbar=true'
-		+ '&rc:parameters=false'
-		+ '&dsu:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?52')
-		+ '&dsp:Conexion_servidor=' + dbo.fn_sys_obtenerDato('DEFAULT', '?53')
-		+ '&rs:format=PDF'
-		+ '&ServidorSQL=Data Source=erp.evoluware.com,1093;Initial Catalog=' + DB_NAME()
-		+ '&idtran={idtran}'
-	), p.PDF_RS)
-FROM
-	ew_cfd_parametros AS p
-	LEFT JOIN objetos AS o
-		ON o.codigo = @transaccion
-	LEFT JOIN objetos_datos AS od
-		ON od.objeto = o.objeto
-		AND od.codigo = 'REPORTERS'
-	
-IF NOT EXISTS(SELECT idtran FROM dbo.ew_cfd_comprobantes_timbre WHERE idtran = @idtran)
-BEGIN
-	SELECT @msg = '[2001] La transaccion no se encuentra timbrada'
-	RAISERROR(@msg, 16, 1)
-
-	RETURN
-END
-
-SELECT @ruta = @ruta_temp + @archivo_plantilla + '.pdf'
-
-SELECT @pdf_rs = REPLACE(@pdf_rs, '{idtran}', RTRIM(CONVERT(VARCHAR(15), @idtran)))
-
-IF [dbEVOLUWARE].[dbo].[file_exists](@ruta) = 1
-BEGIN
-	SELECT @success = 1
-END
-	ELSE
-BEGIN
-	SELECT @success = [dbEVOLUWARE].[dbo].[web_download_v2](@PDF_rs, @ruta, '', '')
-END
-
-IF @success != 1
-BEGIN
-	SELECT @msg = 'No se pudo generar el archivo PDF...'
-	RAISERROR(@msg, 16, 1)
-	RETURN
-END
+SELECT @ruta = @ruta_temp + @archivo_plantilla + '.xml'
 
 IF @presentar = 1
 BEGIN
