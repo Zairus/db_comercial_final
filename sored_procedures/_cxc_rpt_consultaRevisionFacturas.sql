@@ -47,6 +47,7 @@ SELECT
 	), 103))
 	, [total] = ct.total
 	, [saldo] = ct.saldo
+	, [idtran] = ct.idtran
 FROM 
 	ew_cxc_transacciones AS ct 
 	LEFT JOIN ew_clientes AS c

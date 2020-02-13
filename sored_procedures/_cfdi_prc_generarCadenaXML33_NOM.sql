@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cfdi_prc_generarCadenaXML33_NOM') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfdi_prc_generarCadenaXML33_NOM
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180430
 -- Description:	Generar Cadena XML CFDi 3.3 Nomina
 -- =============================================
-ALTER PROCEDURE [dbo].[_cfdi_prc_generarCadenaXML33_NOM]
+CREATE PROCEDURE [dbo].[_cfdi_prc_generarCadenaXML33_NOM]
 	@idtran AS INT
 	, @comprobante AS VARCHAR(MAX) OUTPUT
 AS
@@ -133,7 +138,7 @@ FROM (
 				, 1 AS '@Cantidad'
 				, 'ACT' AS '@ClaveUnidad'
 				, NULL AS '@Unidad'
-				, 'Pago de nómina' AS '@Descripcion'
+				, 'Pago de nÃ³mina' AS '@Descripcion'
 				, dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@ValorUnitario'
 				, dbo._sys_fnc_decimales(cc.cfd_subtotal, csm.decimales) AS '@Importe'
 				, (
@@ -187,17 +192,46 @@ FROM (
 						) AS '@FechaPago'
 						, DATEDIFF(DAY, nt.fecha_inicial, nt.fecha_final) AS '@NumDiasPagados'
 						, 'O' AS '@TipoNomina'
-						, 0 AS '@TotalOtrosPagos'
-						, ISNULL(
-							CONVERT(DECIMAL(18,2), (
-								SELECT SUM(ABS(ccm.cfd_importe)) 
-								FROM ew_cfd_comprobantes_mov AS ccm 
-								WHERE 
-									ccm.cfd_importe > 0 
-									AND ccm.idtran = cc.idtran
-							))
-							, 0
-						) AS '@TotalPercepciones'
+						, ISNULL((
+							SELECT
+								CONVERT(
+									DECIMAL(18,2)
+									, SUM(ABS(
+										CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
+										+ CONVERT(DECIMAL(18,2), ntm.importe_exento)
+									))
+								)
+							FROM
+								ew_nom_transacciones_mov AS ntm
+								LEFT JOIN ew_nom_conceptos AS nc
+									ON nc.idconcepto = ntm.idconcepto
+								LEFT JOIN ew_nom_conceptos_tipos AS nct
+									ON nct.idtipo = nc.idtipo
+							WHERE
+								nc.tipo = 0
+								AND nct.clave IN ('038')
+								AND ntm.idtran = cc.idtran
+						), 0) AS '@TotalOtrosPagos'
+						, ISNULL((
+							SELECT
+								CONVERT(
+									DECIMAL(18,2)
+									, SUM(ABS(
+										CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
+										+ CONVERT(DECIMAL(18,2), ntm.importe_exento)
+									))
+								)
+							FROM
+								ew_nom_transacciones_mov AS ntm
+								LEFT JOIN ew_nom_conceptos AS nc
+									ON nc.idconcepto = ntm.idconcepto
+								LEFT JOIN ew_nom_conceptos_tipos AS nct
+									ON nct.idtipo = nc.idtipo
+							WHERE
+								nc.tipo = 0
+								AND nct.clave NOT IN ('038')
+								AND ntm.idtran = cc.idtran
+						), 0) AS '@TotalPercepciones'
 						, (
 							SELECT
 								CONVERT(
@@ -230,7 +264,7 @@ FROM (
 						--Receptor
 						,(
 							SELECT
-								'P' + LTRIM(RTRIM(STR( ((DATEDIFF(DAY, ne.fecha_alta, nt.fecha_final) + 1) / 7) ))) + 'W' AS '@Antigüedad'
+								'P' + LTRIM(RTRIM(STR( ((DATEDIFF(DAY, ne.fecha_alta, nt.fecha_final) + 1) / 7) ))) + 'W' AS '@AntigÃ¼edad'
 								, 'SON' AS '@ClaveEntFed'
 								, ne.clabe AS '@CuentaBancaria'
 								, ne.curp AS '@Curp'
@@ -276,7 +310,7 @@ FROM (
 											ON nct.idtipo = nc.idtipo
 									WHERE
 										nc.tipo = 0
-										AND nct.clave NOT IN ('022', '023', '025', '039', '044', '017')
+										AND nct.clave NOT IN ('022', '023', '025', '039', '044', '017', '038')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalSueldos'
 								, (
@@ -319,7 +353,7 @@ FROM (
 											ON nct.idtipo = nc.idtipo
 									WHERE
 										nc.tipo = 0
-										AND nct.clave NOT IN ('022', '023', '039', '044', '017')
+										AND nct.clave NOT IN ('022', '023', '039', '044', '017', '038')
 										AND ntm.idtran = cc.idtran
 								) AS '@TotalExento'
 								, (
@@ -350,7 +384,7 @@ FROM (
 											ON nct.idtipo = nc.idtipo
 									WHERE
 										nc.tipo = 0
-										AND nct.clave NOT IN ('022', '023', '039', '044', '017')
+										AND nct.clave NOT IN ('022', '023', '039', '044', '017', '038')
 										AND ntm.idtran = cc.idtran
 									FOR XML PATH('nomina12:Percepcion'), TYPE
 								) AS '*'
@@ -360,7 +394,7 @@ FROM (
 											CONVERT(DECIMAL(18,2), ntm.importe_gravado) 
 											+ CONVERT(DECIMAL(18,2), ntm.importe_exento)
 										) AS '@TotalPagado'
-										, CONVERT(INT, ROUND((DATEDIFF(MONTH, ne.fecha_alta, nt.fecha) / 12.0), 0)) AS '@NumAñosServicio'
+										, CONVERT(INT, ROUND((DATEDIFF(MONTH, ne.fecha_alta, nt.fecha) / 12.0), 0)) AS '@NumAÃ±osServicio'
 										, CONVERT(DECIMAL(18,2), (ne.sueldo_diario_integrado * 30.4)) AS '@UltimoSueldoMensOrd'
 										, 0 AS '@IngresoAcumulable'
 										, (
@@ -459,6 +493,34 @@ FROM (
 								) > 0
 							FOR XML PATH('nomina12:Deducciones'), TYPE
 						) AS '*'
+
+						--OtrosPagos
+						,(
+							SELECT
+								(
+									SELECT
+										'002' AS '@TipoOtroPago'
+										, '002' AS '@Clave'
+										, 'Subsidio al empleo' AS '@Concepto'
+										, CONVERT(DECIMAL(18,2), ntm.importe_exento) AS '@Importe'
+										, (
+											SELECT
+												CONVERT(DECIMAL(18,2), ntm.importe_exento) AS '@SubsidioCausado'
+											FOR XML PATH('nomina12:SubsidioAlEmpleo'), TYPE
+										)
+									FOR XML PATH('nomina12:OtroPago'), TYPE
+								)
+							FROM
+								ew_nom_transacciones_mov AS ntm
+								LEFT JOIN ew_nom_conceptos AS nc
+									ON nc.idconcepto = ntm.idconcepto
+								LEFT JOIN ew_nom_conceptos_tipos AS nct
+									ON nct.idtipo = nc.idtipo
+							WHERE
+								nct.clave IN ('038')
+								AND ntm.idtran = cc.idtran
+							FOR XML PATH('nomina12:OtrosPagos'), TYPE
+						) AS '*'
 						
 					FOR XML PATH('nomina12:Nomina'), TYPE
 				)
@@ -495,7 +557,7 @@ FROM (
 		LEFT JOIN ew_nom_periodicidad_pago AS pp
 			ON pp.idperiodicidad = ne.idperiodicidad
 		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_pais AS csat_p 
-			ON csat_p.descripcion = 'México'
+			ON csat_p.descripcion = 'MÃ©xico'
 		LEFT JOIN objetos AS o
 			ON o.codigo = nt.transaccion
 		LEFT JOIN db_comercial.dbo.evoluware_cfd_sat_tiporelacion_objetos AS csto

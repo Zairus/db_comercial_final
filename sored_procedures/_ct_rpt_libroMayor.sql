@@ -190,8 +190,8 @@ WHERE
 	cc.cuenta BETWEEN @cuenta1 AND @cuenta2
 ORDER BY
 	cc.llave
-	,mov.fecha
-	,mov.consecutivo
+	, mov.fecha
+	, mov.consecutivo
 
 --------------------------------------------------------------------------------
 -- OBTENER SALDOS INICIALES ####################################################
@@ -204,7 +204,16 @@ INSERT INTO #_tmp_ct_libroSaldosIniciales (
 SELECT DISTINCT
 	[cuenta] = tcl.cuenta
 	, [saldo_inicial] = (
-		csg1.saldo_inicial
+		ISNULL(
+			csg1.saldo_inicial
+			, (
+				SELECT csi.saldo 
+				FROM 
+					ew_ct_saldos_iniciales AS csi 
+				WHERE 
+					csi.cuenta = tcl.cuenta
+			)
+		)
 		+ ISNULL((
 			CASE @dia1
 				WHEN 1 THEN 0
@@ -228,7 +237,16 @@ SELECT DISTINCT
 		), 0)
 	)
 	, [saldo_final] = (
-		csg2.saldo_inicial
+		ISNULL(
+			csg2.saldo_inicial
+			, (
+				SELECT csi.saldo 
+				FROM 
+					ew_ct_saldos_iniciales AS csi 
+				WHERE 
+					csi.cuenta = tcl.cuenta
+			)
+		)
 		+ ISNULL((
 			CASE @dia2
 				WHEN 1 THEN 0
@@ -269,8 +287,8 @@ ORDER BY
 	tcl.cuenta
 
 UPDATE tcl SET
-	tcl.saldo_inicial = tcls.saldo_inicial
-	,tcl.saldo_final = tcls.saldo_final
+	tcl.saldo_inicial = ISNULL(tcls.saldo_inicial, tcl.saldo_inicial)
+	, tcl.saldo_final = ISNULL(tcls.saldo_final, tcl.saldo_final)
 FROM 
 	#_tmp_ct_libroSaldosIniciales AS tcls
 	LEFT JOIN #_tmp_ct_libroMayor AS tcl
@@ -400,7 +418,6 @@ SELECT
 	, [saldo_final] = tcl.saldo_final
 	, [conceptos] = tcl.concepto
 	, [idtran] = tcl.idtran
-
 	--, [poliza_idr] = tcl.poliza_idr
 	, [cp_cuenta] = tcl.cp_cuenta
 	, [cp_nombre] = tcl.cp_nombre

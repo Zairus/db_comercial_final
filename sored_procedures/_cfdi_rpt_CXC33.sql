@@ -376,12 +376,15 @@ FROM
 				ON vtm.idmov = ccm1.idmov2
 			LEFT JOIN ew_cat_unidadesMedida AS cum1
 				ON cum1.idum = a.idum_venta
+			LEFT JOIN ew_cxc_transacciones AS ctd1
+				ON ctd1.idtran = ccm1.idtran
 		WHERE
 			ccm1.cfd_unidad <> 'ACT'
 			AND ccm1.consecutivo_padre = 0
+			AND ctd1.transaccion NOT IN ('EFA4')
 
 		UNION ALL
-
+		
 		SELECT
 			[idtran] = ctm1.idtran
 			, [concepto_consecutivo] = ccm1.consecutivo
@@ -460,7 +463,7 @@ FROM
 			ct.transaccion IN ('EFA4')
 
 		UNION ALL
-
+		
 		SELECT
 			[idtran] = vtms.idtran
 			, [concepto_consecutivo] = ISNULL(ccm1.consecutivo, 0) + 10

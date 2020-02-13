@@ -5,7 +5,7 @@ BEGIN
 	DROP VIEW ew_od_cxp_conceptos_pagados
 END
 GO
-CREATE VIEW ew_od_cxp_conceptos_pagados
+CREATE VIEW [dbo].[ew_od_cxp_conceptos_pagados]
 AS
 SELECT
 	[cxp_idtran] = f.idtran
@@ -18,7 +18,12 @@ SELECT
 	, [factura_folio] = f.folio
 	, [factura_total] = f.total
 	, [factura_saldo] = f.saldo
-	, [factura_proporcion_pago] = 1.00 - (f.saldo / f.total)
+	, [factura_proporcion_pago] = (
+		CASE
+			WHEN f.total = 0 THEN 1.00
+			ELSE 1.00 - (f.saldo / f.total)
+		END
+	)
 	, [factura_idmoneda] = f.idmoneda
 	, [factura_tipocambio] = f.tipocambio
 

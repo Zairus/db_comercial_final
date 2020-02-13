@@ -1,19 +1,23 @@
 USE db_comercial_final
 GO
-
+IF OBJECT_ID('_ban_rpt_movimientos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ban_rpt_movimientos
+END
+GO
 -- =============================================
 -- Author:		Fernanda Corona
 -- Create date: FEBRERO 2010
 -- Description:	Auxiliar de Movimientos de Bancos
 -- Ejemplo:     EXEC _ban_rpt_movimientos 1, '01/05/10', '01/11/10', -1, -1
 -- =============================================
-ALTER PROCEDURE [dbo].[_ban_rpt_movimientos]
+CREATE PROCEDURE [dbo].[_ban_rpt_movimientos]
 	@idsucursal AS SMALLINT
 	, @fecha1 AS VARCHAR(50)
 	, @fecha2 AS VARCHAR(50)
 	, @idcuenta AS SMALLINT
 	, @aplicados  AS SMALLINT
-	, @quefecha AS SMALLINT = 0 --0=fecha de registro, 1=fecha de operacion
+	, @quefecha AS SMALLINT = 0 -- DESCONTINUADO... QUITAR.
 AS
 
 SET NOCOUNT ON
@@ -27,13 +31,9 @@ SELECT
 	, [idsucursal] = bt.idsucursal
 	, [transaccion] = RTRIM(o.nombre)
 	, [idcuenta] = bt.idcuenta 
-	, beneficiario=ISNULL(ve.nombre, '')
-	,[fecha] = (
-		CASE 
-			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
-			ELSE bt.fecha 
-		END
-	)
+	, [beneficiario] = ISNULL(ve.nombre, '')
+	, [fecha] = bt.fecha
+	, [concepto]=ISNULL(a.nombre, ISNULL(c.nombre, bc.no_cuenta))
 	, [folio] = bt.folio
 	, [ingresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo = 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
 	, [egresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo <> 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
@@ -45,6 +45,8 @@ SELECT
 	, [empresa] = dbo.fn_sys_empresa()	
 FROM 
 	ew_ban_transacciones AS bt
+	LEFT JOIN ew_ban_transacciones_mov btm
+		ON btm.idtran=bt.idtran
 	LEFT JOIN ew_sys_sucursales	AS s
 		ON s.idsucursal = bt.idsucursal 
 	LEFT JOIN ew_ban_cuentas AS bc 
@@ -52,26 +54,24 @@ FROM
 	LEFT JOIN vew_entidades	AS b
 		ON b.identidad = bc.idbanco AND b.idrelacion=5
 	LEFT JOIN conceptos AS c
-		ON c.idconcepto = bt.idconcepto
+		ON c.idconcepto = btm.idconcepto
 	LEFT JOIN estados AS e
 		ON e.idestado = dbo.fn_sys_estadoActual(bt.idtran)
 	LEFT JOIN objetos AS o
 		ON o.codigo = bt.transaccion
 	LEFT JOIN vew_entidades ve 
-		ON ve.idrelacion=bt.idrelacion and ve.identidad=bt.identidad	
+		ON ve.idrelacion=bt.idrelacion and ve.identidad=bt.identidad
+	LEFT JOIN ew_articulos AS a
+		ON a.idtipo = 2
+		AND a.idarticulo = btm.idconcepto
 WHERE
 	bt.tipo IN (1, 2)
 	AND bt.idsucursal = (CASE @idsucursal WHEN 0 THEN bt.idsucursal ELSE @idsucursal END)
 	AND bt.idcuenta = (CASE @idcuenta WHEN -1 THEN bt.idcuenta ELSE @idcuenta END)
-	AND (
-		CASE 
-			WHEN @quefecha = 1 AND bt.transaccion IN ('BDC2') THEN bt.fecha_operacion 
-			ELSE bt.fecha 
-		END
-	) BETWEEN @fecha1 AND @fecha2
+	AND bt.fecha BETWEEN @fecha1 AND @fecha2
 	AND bt.aplicado = (CASE @aplicados WHEN -1 THEN bt.aplicado ELSE @aplicados END)
 ORDER BY
 	cuenta
-	, fecha
-	, transaccion
+	,bt.fecha
+	,transaccion
 GO

@@ -35,6 +35,7 @@ SELECT
 	, [cancelado_fecha] = ct.cancelado_fecha
 	, [idu] = ct.idu
 	, [caja_chica] = ct.caja_chica
+	, [comprobante_fiscal] = ct.comprobante_fiscal
 	, [idconcepto] = ct.idconcepto
 	, [concepto_cuenta] = ISNULL(oc.contabilidad, '')
 	, [idr] = ct.idr
@@ -137,5 +138,4 @@ EXEC [dbo].[_xac_CONTABILIDAD_cargarDoc] @idtran
 -- 4) bitacora
 ----------------------------------------------------
 EXEC [dbo].[_xac_BITACORA_cargarDoc] @idtran
-
 GO
