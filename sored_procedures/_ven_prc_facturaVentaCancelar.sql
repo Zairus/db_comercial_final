@@ -1,14 +1,20 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_facturaVentaCancelar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaVentaCancelar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110224
 -- Description:	Cancelar factura de venta
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaVentaCancelar]
-	 @idtran AS INT
-	,@fecha AS DATETIME
-	,@idu AS SMALLINT
+CREATE PROCEDURE [dbo].[_ven_prc_facturaVentaCancelar]
+	@idtran AS INT
+	, @fecha AS DATETIME
+	, @idu AS SMALLINT
+	, @confirmacion AS BIT = 0
 AS
 
 SET NOCOUNT ON
@@ -17,39 +23,42 @@ SET NOCOUNT ON
 -- DECLARACION DE VARIABLES ####################################################
 
 DECLARE
-	 @tipo AS TINYINT
-	,@idalmacen AS SMALLINT
-	,@idconcepto AS INT
-	,@inv_idtran AS INT
-	,@fecha_factura AS DATETIME
+	@tipo AS TINYINT
+	, @idalmacen AS SMALLINT
+	, @idconcepto AS INT
+	, @inv_idtran AS INT
+	, @fecha_factura AS DATETIME
 
 DECLARE
-	 @idcliente AS INT
-	,@inventario_partes AS BIT
+	@idcliente AS INT
+	, @inventario_partes AS BIT
 
 DECLARE
-	 @idmoneda AS TINYINT
-	,@importe AS DECIMAL(18,6)
-	,@saldo AS DECIMAL(18,6)
-	,@total AS DECIMAL(18,6)
-	,@credito AS BIT
+	@idmoneda AS TINYINT
+	, @importe AS DECIMAL(18,6)
+	, @saldo AS DECIMAL(18,6)
+	, @tipocambio AS DECIMAL(18,6)
+	, @total AS DECIMAL(18,6)
+	, @credito AS BIT
+	, @transaccion AS VARCHAR(5)
 
 --------------------------------------------------------------------------------
 -- OBTENER DATOS ###############################################################
 
 SELECT
-	 @tipo = 1
-	,@idalmacen = vt.idalmacen
-	,@idconcepto = 1012
-	,@idu = vt.idu
-	,@idcliente = vt.idcliente
-	,@inventario_partes = c.inventario_partes
-	,@fecha_factura = vt.fecha
+	@tipo = 1
+	, @idalmacen = vt.idalmacen
+	, @idconcepto = 1012
+	--, @idu = vt.idu
+	, @idcliente = vt.idcliente
+	, @inventario_partes = c.inventario_partes
+	, @fecha_factura = vt.fecha
 
-	,@total = ct.total
-	,@saldo = ct.saldo
+	, @total = ct.total
+	, @saldo = ct.saldo
 
-	,@credito = ct.credito
+	, @credito = ct.credito
+	, @transaccion = vt.transaccion
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_cxc_transacciones AS ct
@@ -60,12 +69,24 @@ WHERE
 	vt.idtran = @idtran
 
 SELECT
-	 @idmoneda = idmoneda
-	,@importe = (total * -1)
+	@idmoneda = idmoneda
+	, @tipocambio = tipocambio
+	, @importe = (total * -1)
 FROM
 	ew_cxc_transacciones 
 WHERE
 	idtran = @idtran
+
+EXEC [dbo].[_sys_prc_usuarioPuedeCancelar] @idu, @transaccion
+
+IF @confirmacion = 0
+BEGIN
+	IF (DATEDIFF (hour,@fecha_factura,GETDATE()) > 72 AND (@total*@tipocambio) > 5000)
+	BEGIN
+		RAISERROR('Error: No se pueden cancelar facturas cuya fecha de emisión sea mayor a 72 horas con respecto al dia de cancelación y el importe no debe ser mayor a $5000.00 MXN.', 16, 1)
+		RETURN
+	END
+END
 
 IF (@saldo <> @total)
 BEGIN
@@ -88,60 +109,60 @@ END
 --------------------------------------------------------------------------------
 -- AFECTAR CARTERA #############################################################
 
-EXEC _cxc_prc_afectarCartera 
-	 @idtran
-	,@idtran
-	,1
-	,@idconcepto
-	,@idcliente
-	,@fecha
-	,@idmoneda
-	,@importe
-	,@idu
+EXEC [dbo].[_cxc_prc_afectarCartera]
+	@idtran
+	, @idtran
+	, 1
+	, @idconcepto
+	, @idcliente
+	, @fecha
+	, @idmoneda
+	, @importe
+	, @idu
 
 --------------------------------------------------------------------------------
 -- EFECTUAR ENTRADA A ALMACEN ##################################################
 
-EXEC _inv_prc_transaccionCrear
-	 @idtran
-	,@fecha
-	,@tipo
-	,@idalmacen
-	,@idconcepto
-	,@idu
-	,@inv_idtran OUTPUT
+EXEC [dbo].[_inv_prc_transaccionCrear]
+	@idtran
+	, @fecha
+	, @tipo
+	, @idalmacen
+	, @idconcepto
+	, @idu
+	, @inv_idtran OUTPUT
 
 INSERT INTO ew_inv_transacciones_mov (
-	 idtran
-	,idmov2
-	,consecutivo
-	,tipo
-	,idalmacen
-	,idarticulo
-	,series
-	,lote
-	,fecha_caducidad
-	,idum
-	,cantidad
-	,costo
-	,afectainv
-	,comentario
+	idtran
+	, idmov2
+	, consecutivo
+	, tipo
+	, idalmacen
+	, idarticulo
+	, series
+	, lote
+	, fecha_caducidad
+	, idum
+	, cantidad
+	, costo
+	, afectainv
+	, comentario
 )
 SELECT
-	 [idtran] = @inv_idtran
-	,[idmov2] = vtm.idmov
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY vtm.idr)
-	,[tipo] = @tipo
-	,[idalmacen] = @idalmacen
-	,vtm.idarticulo
-	,vtm.series
-	,[lote] = ''
-	,[fecha_caducidad] = NULL
-	,vtm.idum
-	,[cantidad] = vtm.cantidad_facturada
-	,vtm.costo
-	,[afectainv] = 1
-	,vtm.comentario
+	[idtran] = @inv_idtran
+	, [idmov2] = vtm.idmov
+	, [consecutivo] = ROW_NUMBER() OVER (ORDER BY vtm.idr)
+	, [tipo] = @tipo
+	, [idalmacen] = @idalmacen
+	, [idarticulo] = vtm.idarticulo
+	, [series] = vtm.series
+	, [lote] = ''
+	, [fecha_caducidad] = NULL
+	, [idum] = vtm.idum
+	, [cantidad] = vtm.cantidad_facturada
+	, [costo] = vtm.costo
+	, [afectainv] = 1
+	, [comentario] = vtm.comentario
 FROM
 	ew_ven_transacciones_mov AS vtm
 	LEFT JOIN ew_articulos AS a
@@ -174,22 +195,26 @@ END
 --EXEC _ven_prc_facturaPagosCancelar @idtran, @fecha, @idu
 
 --------------------------------------------------------------------------------
--- CONTABILIZAR CANCELACI�N DE VENTA ###########################################
+-- CONTABILIZAR CANCELACIÓN DE VENTA ###########################################
 
-EXEC _ct_prc_transaccionCancelarContabilidad @idtran, 3, @fecha, @idu
+EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad] @idtran, 3, @fecha, @idu
+
+--------------------------------------------------------------------------------
+-- REACTIVAR ORDENES ###########################################################
+EXEC [dbo].[_ven_prc_facturaOrdenesReactivar] @idtran, @idu
 
 --------------------------------------------------------------------------------
 -- CANCELAR DOCUMENTO ##########################################################
 
 UPDATE ew_ven_transacciones SET
-	 cancelado = 1
-	,cancelado_fecha = @fecha
+	cancelado = 1
+	, cancelado_fecha = @fecha
 WHERE
 	idtran = @idtran
 
 UPDATE ew_cxc_transacciones SET
-	 cancelado = 1
-	,cancelado_fecha = @fecha
+	cancelado = 1
+	, cancelado_fecha = @fecha
 WHERE
 	idtran = @idtran
 GO

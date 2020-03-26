@@ -1,6 +1,16 @@
 USE db_comercial_final
 GO
-ALTER PROCEDURE [dbo].[_ven_prc_facturaCancelar]
+IF OBJECT_ID('_ven_prc_facturaCancelar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaCancelar
+END
+GO
+-- =============================================
+-- Author:		Paul Monge
+-- Create date: 20110224
+-- Description:	Cancelar factura de venta
+-- =============================================
+CREATE PROCEDURE [dbo].[_ven_prc_facturaCancelar]
 	@idtran AS BIGINT
 	, @fecha AS SMALLDATETIME
 	, @idu AS SMALLINT
@@ -27,12 +37,16 @@ DECLARE
 	, @tipocambio AS DECIMAL(18,6)
 	, @fecha_factura AS DATETIME
 	, @credito AS BIT
-	
+
+DECLARE
+	@error_mensaje AS VARCHAR(1000)
+
 SELECT 
 	@usuario = usuario 
 FROM 
 	ew_usuarios 
-WHERE idu = @idu
+WHERE 
+	idu = @idu
 
 SELECT 
 	@transaccion = transaccion
@@ -54,15 +68,20 @@ FROM
 WHERE
 	idtran = @idtran
 
+EXEC [dbo].[_sys_prc_usuarioPuedeCancelar] @idu, @transaccion
+
 IF @confirmacion = 0
 BEGIN
 	IF (DATEDIFF (hour,@fecha_factura,GETDATE()) > 72 AND (@total*@tipocambio) > 5000)
 	BEGIN
-		RAISERROR('Error: No se pueden cancelar facturas cuya fecha de emisión sea mayor a 72 horas con respecto al dia de cancelación y el importe no debe ser mayor a $5000.00 MXN.', 16, 1)
+		SELECT
+			@error_mensaje = 'Error: No se pueden cancelar facturas cuya fecha de emisión sea mayor a 72 horas con respecto al dia de cancelación y el importe no debe ser mayor a $5000.00 MXN.'
+
+		RAISERROR(@error_mensaje, 16, 1)
 		RETURN
 	END
 END
-	
+
 IF @credito = 0 AND MONTH(@fecha) <> MONTH(@fecha_factura)
 BEGIN
 	RAISERROR('Error: No se puede cancelar factura de periodos anteriores.', 16, 1)
@@ -81,10 +100,10 @@ BEGIN
 	RETURN
 END
 
-SELECT @surtir = dbo.fn_sys_parametro('VEN_SURFAC')
+SELECT @surtir = [dbo].[fn_sys_parametro]('VEN_SURFAC')
 
 -- cancelamos el cargo en CXC
-EXEC _cxc_prc_cancelarTransaccion @idtran, @fecha, @idu
+EXEC [dbo].[_cxc_prc_cancelarTransaccion] @idtran, @fecha, @idu
 
 --------------------------------------------------------------------
 -- Afectamos el inventario
@@ -95,80 +114,9 @@ BEGIN
 END
 
 --------------------------------------------------------------------
--- Reactivamos la mercancia surtida en la orden 
+-- Reactivar Ordenes
 --------------------------------------------------------------------
-INSERT INTO ew_sys_movimientos_acumula (
-	idmov1
-	, idmov2
-	, campo
-	, valor
-)
-SELECT 
-	[idmov1] = m.idmov
-	, [idmov2] = m.idmov2
-	, [campo] = 'cantidad_surtida'
-	, [valor] = m.cantidad_surtida * (-1)
-FROM
-	ew_ven_transacciones_mov m
-	LEFT JOIN ew_articulos a 
-		ON a.idarticulo = m.idarticulo
-WHERE 
-	idtran = @idtran
-	AND m.cantidad_surtida != 0
-	AND (
-		SELECT COUNT(*) 
-		FROM 
-			ew_inv_transacciones_mov AS itm 
-		WHERE 
-			itm.idmov2 = m.idmov2
-	) = 0
-
---------------------------------------------------------------------
--- Reactivamos la mercancia facturada en la orden 
---------------------------------------------------------------------
-INSERT INTO ew_sys_movimientos_acumula (
-	idmov1
-	, idmov2
-	, campo
-	, valor
-)
-SELECT 
-	[idmov1] = idmov
-	, [idmov2] = idmov2
-	, [campo] = 'cantidad_facturada'
-	, [valor] = cantidad_facturada  * (-1)
-FROM
-	ew_ven_transacciones_mov
-WHERE 
-	idtran = @idtran
-	AND cantidad_facturada!=0
-
---------------------------------------------------------------------
--- Reabrimos los pedidos
---------------------------------------------------------------------
-DECLARE cur_detalle1 CURSOR FOR
-	SELECT DISTINCT 
-		[idtran] = CONVERT(INT, FLOOR(fm.idmov2))
-	FROM
-		ew_ven_transacciones_mov fm 
-	WHERE
-		fm.cantidad_facturada > 0
-		AND CONVERT(INT, FLOOR(fm.idmov2)) > 0
-		AND fm.idtran = @idtran
-
-OPEN cur_detalle1
-
-FETCH NEXT FROM cur_detalle1 INTO @idtran2
-
-WHILE @@fetch_status = 0
-BEGIN
-	EXEC _ven_prc_ordenEstado @idtran2, @idu
-
-	FETCH NEXT FROM cur_detalle1 INTO @idtran2
-END
-
-CLOSE cur_detalle1
-DEALLOCATE cur_detalle1
+EXEC [dbo].[_ven_prc_facturaOrdenesReactivar] @idtran, @idu
 
 UPDATE ew_cxc_transacciones SET 
 	cancelado = 1
@@ -187,4 +135,6 @@ IF @confirmacion = 1
 BEGIN
 	EXEC [dbo].[_sys_prc_transaccionCancelacionEstado] @idtran, @idu, @fecha
 END
+
+EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad] @idtran, 3, @fecha, @idu
 GO

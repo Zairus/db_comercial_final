@@ -196,7 +196,18 @@ UPDATE #_tmp_conciliacion_cv SET
 WHERE
 	ABS(com_nota_cantidad) <> 0
 
-SELECT * FROM #_tmp_conciliacion_cv ORDER BY idr
+SELECT * 
+FROM 
+	#_tmp_conciliacion_cv 
+WHERE
+	ven_factura_importe > 0
+	OR ven_nota_importe > 0
+	OR com_factura_importe > 0
+	OR com_nota_importe > 0
+	OR gasto_factura > 0
+	OR gasto_nota > 0
+ORDER BY 
+	idr
 
 DROP TABLE #_tmp_conciliacion_cv
 GO

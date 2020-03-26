@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_ticketVentaClienteDatos') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_ticketVentaClienteDatos
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20150615
 -- Description:	Datos de cliente en nuevo ticket de venta
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_ticketVentaClienteDatos]
+CREATE PROCEDURE [dbo].[_ven_prc_ticketVentaClienteDatos]
 	@cliente_codigo AS VARCHAR(30)
 	, @idsucursal AS SMALLINT
 	, @idmoneda AS SMALLINT
@@ -21,7 +26,7 @@ DECLARE
 	, @error_mensaje AS VARCHAR(500)
 
 SELECT @idturno = [dbo].[fn_sys_turnoActualR2](@idu, 0)
-SELECT @pago_en_caja = CONVERT(BIT, valor) FROM objetos_datos WHERE grupo = 'GLOBAL' AND codigo = 'PAGO_EN_CAJA'
+SELECT @pago_en_caja = [dbo].[fn_sys_obtenerDato]('GLOBAL', 'PAGO_EN_CAJA')
 
 IF @idu > 0 AND @idturno IS NULL AND @pago_en_caja = 0
 BEGIN

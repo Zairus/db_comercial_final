@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_cfdi_prc_insertarComprobanteCXC') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _cfdi_prc_insertarComprobanteCXC
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20171113
 -- Description:	Insertar documento de cliente para comprobante fiscal
 -- =============================================
-ALTER PROCEDURE [dbo].[_cfdi_prc_insertarComprobanteCXC]
+CREATE PROCEDURE [dbo].[_cfdi_prc_insertarComprobanteCXC]
 	@idtran AS INT 
 AS
 
@@ -20,11 +25,34 @@ DECLARE
 	, @formas_pago AS VARCHAR(500) = ''
 	, @transaccion AS VARCHAR(5)
 
+DECLARE
+	@cliente_idfacturacion AS INT
+
 SELECT
 	@idfolio = ct.cfd_idfolio
 	, @folio = ct.cfd_folio
 FROM
 	ew_cfd_transacciones AS ct
+WHERE
+	ct.idtran = @idtran
+
+SELECT
+	@cliente_idfacturacion = ISNULL((
+		SELECT TOP 1
+			f.idfacturacion
+		FROM
+			ew_cxc_transacciones_mov AS ctm
+			LEFT JOIN ew_cxc_transacciones AS f
+				ON f.idtran = ctm.idtran2
+		WHERE
+			ctm.idtran = ct.idtran
+			AND ct.tipo = 2
+	), ISNULL(cf.idfacturacion, 0))
+FROM
+	ew_cxc_transacciones AS ct
+	LEFT JOIN ew_clientes_facturacion AS cf
+		ON cf.idcliente = ct.idcliente
+		AND cf.idfacturacion = ct.idfacturacion
 WHERE
 	ct.idtran = @idtran
 
@@ -36,7 +64,7 @@ FROM
 	dbo.ew_cxc_transacciones AS ct
 	LEFT JOIN dbo.ew_clientes_facturacion AS f 
 		ON f.idcliente = ct.idcliente
-		AND f.idfacturacion = ct.idfacturacion
+		AND f.idfacturacion = @cliente_idfacturacion
 WHERE
 	ct.idtran = @idtran
 
@@ -195,17 +223,17 @@ SELECT
 	, [cfd_total] = ct.total
 	, [cfd_tipoDeComprobante] = (
 		CASE
-			WHEN ct.tipo = 1 THEN 'ingreso'
+			WHEN ct.tipo = 1 THEN 'I'
 			ELSE
 				CASE
 					WHEN ct.transaccion = 'BDC2' THEN 'P'
-					ELSE 'egreso'
+					ELSE 'E'
 				END
 		END
 	)
 	, [rfc_emisor] = dbo.fn_sys_parametro('RFC')
 	, [rfc_receptor] = @rfc
-	, [receptor_nombre]=cf.razon_social
+	, [receptor_nombre] = cf.razon_social
 	, [comentario] = ''
 	, [cfd_metodoDePago] = ISNULL(@formas_pago, ISNULL(bf.codigo, '99'))
 	, [cfd_NumCtaPago] = '' --#####################
@@ -245,7 +273,8 @@ FROM
 		ON csu.id = ct.cfd_iduso
 
 	LEFT JOIN ew_clientes_facturacion cf
-		ON cf.idcliente = ct.idcliente AND cf.idfacturacion=0
+		ON cf.idcliente = ct.idcliente 
+		AND cf.idfacturacion = @cliente_idfacturacion
 WHERE
 	ct.idtran = @idtran
 	
@@ -312,7 +341,7 @@ FROM
 	dbo.ew_cxc_transacciones AS cxc
 	LEFT JOIN dbo.ew_clientes_facturacion AS f 
 		ON f.idcliente = cxc.idcliente 
-		AND f.idfacturacion = ISNULL(cxc.idfacturacion, 0)
+		AND f.idfacturacion = @cliente_idfacturacion
 	LEFT JOIN dbo.ew_sys_ciudades AS c 
 		ON c.idciudad = f.idciudad
 WHERE

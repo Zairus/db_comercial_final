@@ -36,6 +36,7 @@ DECLARE
 	, @idforma AS INT
 	, @referencia AS VARCHAR(50)
 	, @idturno AS INT
+	, @pago_en_caja AS BIT
 	, @idcuenta AS INT
 
 DECLARE
@@ -52,6 +53,7 @@ WHERE
 SELECT
 	@usuario = u.usuario
 	, @password = u.[password]
+	, @idcuenta = u.idcuenta_ventas
 	, @idsucursal = ct.idsucursal
 	, @ticket_total = ct.total
 FROM
@@ -62,8 +64,9 @@ WHERE
 	ct.idtran = @idtran
 
 SELECT @idturno = dbo.fn_sys_turnoActual(@idu)
+SELECT @pago_en_caja = [dbo].[fn_sys_obtenerDato]('GLOBAL', 'PAGO_EN_CAJA')
 
-IF @idturno IS NULL
+IF @idturno IS NULL AND @pago_en_caja = 0
 BEGIN
 	RAISERROR('Error: No se cuenta con turno iniciado.', 16, 1)
 	RETURN
@@ -75,6 +78,13 @@ FROM
 	ew_sys_turnos
 WHERE
 	idturno = @idturno
+	AND @pago_en_caja = 0
+
+IF NULLIF(@idcuenta, 0) IS NULL
+BEGIN
+	RAISERROR('Error: No se ha indicado cuenta de pagos para el usuario.', 16, 1)
+	RETURN
+END
 
 IF @total1 <> 0
 BEGIN
@@ -355,7 +365,7 @@ BEGIN
 		, [tipo] = 2
 		, [idcliente] = ct.idcliente
 		, [idfacturacion] = ct.idfacturacion
-		, [idforma] = vtp.idforma
+		, [idforma] = vtp.idforma2
 		, [idmoneda] = ct.idmoneda
 		, [tipocambio] = ct.tipocambio
 		, [idimpuesto1] = ct.idimpuesto1

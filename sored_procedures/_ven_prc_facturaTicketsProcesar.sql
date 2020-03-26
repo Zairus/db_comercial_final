@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_facturaTicketsProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaTicketsProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20121112
 -- Description:	Procesar factura de tickets
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaTicketsProcesar]
+CREATE PROCEDURE [dbo].[_ven_prc_facturaTicketsProcesar]
 	@idtran AS INT
 	, @idu SMALLINT
 AS
@@ -142,7 +147,7 @@ GROUP BY
 	, vt.idalmacen
 HAVING
 	SUM(t.redondeo) <> 0
-
+	SELECT * FROM ew_cxc_transacciones WHERE transaccion = 'EFA3'
 SELECT
 	@fecha = ct.fecha
 FROM
@@ -150,7 +155,7 @@ FROM
 WHERE
 	ct.idtran = @idtran
 
-EXEC _cxc_prc_desaplicarTransaccion @idtran, @idu
+EXEC [dbo].[_cxc_prc_desaplicarTransaccion] @idtran, @idu
 
 EXEC [dbo].[_ven_prc_facturaProcesarImpuestos] @idtran
 
@@ -167,13 +172,54 @@ UPDATE ct SET
 	ct.subtotal = vt.subtotal
 	, ct.impuesto1 = vt.impuesto1
 	, ct.impuesto2 = vt.impuesto2
+	, ct.saldo = vt.total
+	/*
+	, ct.cfd_iduso = ISNULL((
+		SELECT TOP 1
+			tv.cfd_iduso
+		FROM
+			ew_cxc_transacciones_rel AS ctrel
+			LEFT JOIN ew_cxc_transacciones AS tv
+				ON tv.idtran = ctrel.idtran2
+		WHERE
+			ctrel.idtran = ct.idtran
+		ORDER BY
+			tv.total DESC
+	), c.cfd_iduso)
+	*/
+	, ct.idmetodo = ISNULL((
+		SELECT TOP 1
+			(
+				CASE 
+					WHEN tv.credito = 0 THEN 1 
+					ELSE 2 
+				END
+			)
+		FROM
+			ew_cxc_transacciones_rel AS ctrel
+			LEFT JOIN ew_cxc_transacciones AS tv
+				ON tv.idtran = ctrel.idtran2
+		WHERE
+			ctrel.idtran = ct.idtran
+		ORDER BY
+			tv.total DESC
+	), (
+		CASE
+			WHEN ctr.credito = 0 THEN 1
+			ELSE 2
+		END
+	))
 FROM
 	ew_cxc_transacciones AS ct
 	LEFT JOIN ew_ven_transacciones AS vt
 		ON vt.idtran = ct.idtran
+	LEFT JOIN ew_clientes AS c
+		ON c.idcliente = ct.idcliente
+	LEFT JOIN ew_clientes_terminos AS ctr
+		ON ctr.idcliente = c.idcliente
 WHERE
 	ct.idtran = @idtran
-
+	
 UPDATE ct SET
 	ct.saldo = (
 		ct.total 
@@ -199,7 +245,7 @@ FROM
 WHERE
 	ct.idtran = @idtran
 
-EXEC _cxc_prc_aplicarTransaccion @idtran, @fecha, @idu
+EXEC [dbo].[_cxc_prc_aplicarTransaccion] @idtran, @fecha, @idu
 
 SELECT
 	@total_documento = ct.total -- - ct.redondeo
@@ -231,7 +277,7 @@ BEGIN
 	RETURN
 END
 
-EXEC _ven_prc_existenciaComprometer
+EXEC [dbo].[_ven_prc_existenciaComprometer]
 
 INSERT INTO ew_sys_transacciones2 (
 	idtran
@@ -247,5 +293,5 @@ FROM
 WHERE
 	idtran = @idtran
 
-EXEC _cxc_prc_ticketSaldoTrasladarFactura @idtran
+EXEC [dbo].[_cxc_prc_ticketSaldoTrasladarFactura] @idtran
 GO

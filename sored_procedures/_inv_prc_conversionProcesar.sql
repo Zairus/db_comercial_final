@@ -1,18 +1,23 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_inv_prc_conversionProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _inv_prc_conversionProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20160114
 -- Description:	Procesar conversion
 -- =============================================
-ALTER PROCEDURE [dbo].[_inv_prc_conversionProcesar]
+CREATE PROCEDURE [dbo].[_inv_prc_conversionProcesar]
 	@idtran AS INT
 AS
 
 SET NOCOUNT ON
 
 DECLARE
-	@idconcepto AS SMALLINT = 8
+	@idconcepto AS SMALLINT = 34
 	,@idsucursal AS SMALLINT
 	,@serie AS VARCHAR(3) = 'A'
 	,@usuario AS VARCHAR(20)
