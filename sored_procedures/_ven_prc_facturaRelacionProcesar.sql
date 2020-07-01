@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ven_prc_facturaRelacionProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaRelacionProcesar
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180731
 -- Description:	Procesar factura de relacion
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaRelacionProcesar]
+CREATE PROCEDURE [dbo].[_ven_prc_facturaRelacionProcesar]
 	@idtran AS INT
 AS
 
@@ -16,6 +21,7 @@ DECLARE
 	, @idforma AS INT
 	, @relacion_idtran AS INT
 	, @relacion_cancelado AS BIT
+	, @relacion_saldo AS DECIMAL(18,6)
 	, @idu AS INT
 
 UPDATE ct SET
@@ -32,6 +38,7 @@ SELECT
 	, @idforma  = ct.idforma
 	, @relacion_idtran = vt.idtran2
 	, @relacion_cancelado = r.cancelado
+	, @relacion_saldo = r.saldo
 	, @idu = vt.idu
 FROM
 	ew_cxc_transacciones AS ct
@@ -63,7 +70,7 @@ BEGIN
 			FROM ew_ban_formas_aplica AS bf
 			WHERE codigo = '99'
 		)
-		,ct.idmetodo = 2
+		, ct.idmetodo = 2
 	FROM
 		ew_cxc_transacciones AS ct
 	WHERE
@@ -91,8 +98,8 @@ BEGIN
 	END
 END
 
-IF @relacion_cancelado = 0
+IF @relacion_cancelado = 0 OR @relacion_saldo = 0
 BEGIN
-	EXEC _cxc_prc_desaplicarTransaccion @relacion_idtran, @idu
+	EXEC [dbo].[_cxc_prc_desaplicarTransaccion] @relacion_idtran, @idu
 END
 GO

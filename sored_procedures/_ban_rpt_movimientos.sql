@@ -7,9 +7,8 @@ END
 GO
 -- =============================================
 -- Author:		Fernanda Corona
--- Create date: FEBRERO 2010
+-- Create date: 20100201
 -- Description:	Auxiliar de Movimientos de Bancos
--- Ejemplo:     EXEC _ban_rpt_movimientos 1, '01/05/10', '01/11/10', -1, -1
 -- =============================================
 CREATE PROCEDURE [dbo].[_ban_rpt_movimientos]
 	@idsucursal AS SMALLINT
@@ -17,7 +16,6 @@ CREATE PROCEDURE [dbo].[_ban_rpt_movimientos]
 	, @fecha2 AS VARCHAR(50)
 	, @idcuenta AS SMALLINT
 	, @aplicados  AS SMALLINT
-	, @quefecha AS SMALLINT = 0 -- DESCONTINUADO... QUITAR.
 AS
 
 SET NOCOUNT ON
@@ -33,7 +31,7 @@ SELECT
 	, [idcuenta] = bt.idcuenta 
 	, [beneficiario] = ISNULL(ve.nombre, '')
 	, [fecha] = bt.fecha
-	, [concepto]=ISNULL(a.nombre, ISNULL(c.nombre, bc.no_cuenta))
+	, [concepto] = ISNULL(c.nombre, ISNULL(a.nombre, bc.no_cuenta)) -- ISNULL(a.nombre, ISNULL(c.nombre, bc.no_cuenta))
 	, [folio] = bt.folio
 	, [ingresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo = 1 THEN bt.importe ELSE 0 END) ELSE 0 END)
 	, [egresos] = (CASE WHEN Cancelado = 0 THEN (CASE WHEN bt.tipo <> 1 THEN bt.importe ELSE 0 END) ELSE 0 END)

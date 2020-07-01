@@ -26,6 +26,35 @@ SELECT
 
 	, [MedicoOrdenante] = ISNULL(sto.nombre, '')
 	, [MedicoOrdenanteCodigo] = ISNULL(sto.codigo, '')
+
+	, [Files] = (
+		'['
+		+ ISNULL((
+			SELECT
+				(
+					CASE
+						WHEN ROW_NUMBER() OVER (ORDER BY sca.nombre) > 1 THEN ','
+						ELSE ''
+					END
+				)
+				+ '{'
+				+ 'name:"' + sca.nombre + '",'
+				+ 'size:' + LTRIM(RTRIM(STR(sca.tamano))) + ','
+				+ 'extension:"' + sca.extension + '",'
+				+ 'locationUrl:"' + '/Calendar/GetFile?fileuid=' + sca.archivo_uid + '",'
+				+ 'icon:"' + sca.icono + '",'
+				+ 'uid:"' + sca.archivo_uid + '"'
+				+ '}'
+			FROM
+				ew_ser_calendario_archivos AS sca
+			WHERE
+				sca.idevento = sc.idevento
+			ORDER BY
+				sca.nombre
+			FOR XML PATH('')
+		), '')
+		+ ']'
+	)
 FROM
 	ew_ser_calendario AS sc
 	LEFT JOIN ew_articulos_niveles AS f
@@ -38,4 +67,3 @@ FROM
 WHERE
 	sc.cancelado = 0
 GO
-SELECT * FROM [dbo].[ew_ser_web_calendario_citas]

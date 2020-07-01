@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE db_brafermaz_datos
 GO
 IF OBJECT_ID('_ct_rpt_cfdiEmitidos') IS NOT NULL
 BEGIN

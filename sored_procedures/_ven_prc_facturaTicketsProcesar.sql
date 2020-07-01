@@ -98,7 +98,7 @@ WHERE
 		FROM ew_cxc_transacciones_rel AS ctr 
 		WHERE ctr.idtran = @idtran
 	)
-
+	
 INSERT INTO ew_ven_transacciones_mov (
 	idtran
 	, consecutivo
@@ -147,7 +147,7 @@ GROUP BY
 	, vt.idalmacen
 HAVING
 	SUM(t.redondeo) <> 0
-	SELECT * FROM ew_cxc_transacciones WHERE transaccion = 'EFA3'
+	
 SELECT
 	@fecha = ct.fecha
 FROM

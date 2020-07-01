@@ -40,7 +40,8 @@ WHERE
 	st.idturno = @idturno
 
 SELECT
-	[idcliente] = vo.idcliente
+	[idalmacen] = vo.idalmacen
+	, [idcliente] = vo.idcliente
 	, [idfacturacion] = c.idfacturacion
 	, [rfc] = cfa.rfc
 	, [direccion] = cfa.direccion1

@@ -1,6 +1,6 @@
 USE db_comercial_final
 GO
-IF OBJECT_ID('_com_prc_facturaReferenciaConceptos') IS NOT NULL
+IF OBJECT_ID('_com_prc_facturaReferenciaDatos') IS NOT NULL
 BEGIN
 	DROP PROCEDURE _com_prc_facturaReferenciaConceptos
 END
@@ -25,7 +25,7 @@ IF EXISTS (
 		cancelado = 0 
 		AND transaccion IN ('CDC1') 
 		AND idsucursal = @idsucursal 
-		AND folio = @referencia
+		AND folio = 'NC' + @referencia
 )
 BEGIN
 	SELECT

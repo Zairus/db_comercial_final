@@ -36,6 +36,7 @@ FROM
 	ew_ban_transacciones
 WHERE
 	tipo = 1
+	AND cancelado = 0
 	AND idtran2 = @idtran
 
 SELECT
@@ -44,6 +45,7 @@ FROM
 	ew_ban_transacciones
 WHERE
 	tipo = 2
+	AND cancelado = 0
 	AND idtran2 = @idtran
 
 UPDATE ew_ban_documentos SET
@@ -54,17 +56,27 @@ WHERE
 
 IF @cargo_idtran IS NOT NULL
 BEGIN
-	EXEC _ban_prc_cancelarTransaccion @cargo_idtran, @cancelado_fecha, @idu, 1, 1
+	EXEC [dbo].[_ban_prc_cancelarTransaccion]
+		@idtran = @cargo_idtran
+		, @cancelado_fecha = @cancelado_fecha
+		, @idu = @idu
+		, @desaplicar_referencias = 1
+		, @forzar = 1
 END
 
 IF @abono_idtran IS NOT NULL
 BEGIN
-	EXEC _ban_prc_cancelarTransaccion @abono_idtran, @cancelado_fecha, @idu, 1, 1
+	EXEC [dbo].[_ban_prc_cancelarTransaccion]
+		@idtran = @abono_idtran
+		, @cancelado_fecha = @cancelado_fecha
+		, @idu = @idu
+		, @desaplicar_referencias = 1
+		, @forzar = 1
 END
 
-EXEC _ct_prc_transaccionCancelarContabilidad
-	@idtran
-	, 1
-	, @cancelado_fecha
-	, @idu
+EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad]
+	@idtran = @idtran
+	, @tipo = 1
+	, @cancelado_fecha = @cancelado_fecha
+	, @idu = @idu
 GO

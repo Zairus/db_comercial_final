@@ -21,7 +21,6 @@ DECLARE
 	, @registros AS INT
 	, @mayoreo BIT
 	, @error_mensaje AS VARCHAR(MAX)
-	, @saldo DECIMAL(18,6)
 
 DECLARE
 	@idu AS SMALLINT
@@ -37,8 +36,10 @@ DECLARE
 	, @idfacturacion AS INT
 
 -- Re-Generar consecutivo porque a veces pasa que se repiten 
--- y deja un solo renglón en la factura porque agrupa por ese consecutivo
-EXEC [dbo].[_sys_prc_genera_consecutivo] @idtran, ''
+-- y deja un solo renglÃ³n en la factura porque agrupa por ese consecutivo
+EXEC [dbo].[_sys_prc_genera_consecutivo] 
+	@idtran = @idtran
+	, @transaccion = ''
 
 SELECT @surtir = [dbo].[_sys_fnc_parametroActivo]('VEN_SURFAC')
 
@@ -46,8 +47,25 @@ SELECT
 	@idtran2 = vt.idtran2
 	, @idu = vt.idu
 	, @idcliente = vt.idcliente
-	, @idfacturacion = (SELECT TOP 1 cfa.idfacturacion FROM ew_clientes_facturacion AS cfa WHERE cfa.idcliente = vt.idcliente)
-	, @surtir = (CASE WHEN @surtir = 0 THEN 0 ELSE (CASE WHEN ISNULL(vo.remisionar, 0) = 1 THEN 0 ELSE @surtir END) END)
+	, @idfacturacion = (
+		SELECT TOP 1 
+			cfa.idfacturacion 
+		FROM 
+			ew_clientes_facturacion AS cfa 
+		WHERE 
+			cfa.idcliente = vt.idcliente
+	)
+	, @surtir = (
+		CASE 
+			WHEN @surtir = 0 THEN 0 
+			ELSE (
+				CASE 
+					WHEN ISNULL(vo.remisionar, 0) = 1 THEN 0 
+					ELSE @surtir 
+				END
+			)
+		END
+	)
 FROM 
 	ew_ven_transacciones AS vt
 	LEFT JOIN ew_ven_ordenes AS vo
@@ -145,7 +163,7 @@ IF EXISTS(
 BEGIN
 	SELECT
 		@error_mensaje = (
-			'Error: La descripción del artículo es demasiado larga y excede los 1000 caracteres que el SAT especifica. '
+			'Error: La descripciÃ³n del artÃ­culo es demasiado larga y excede los 1000 caracteres que el SAT especifica. '
 			+ ISNULL(a.nombre, '') + CONVERT(VARCHAR(MAX), vtm.comentario)
 		)
 	FROM
@@ -176,7 +194,9 @@ FETCH NEXT FROM cur_detalle INTO
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-	EXEC _ven_prc_ordenEstado @idtran2, @idu
+	EXEC [dbo].[_ven_prc_ordenEstado] 
+		@idtran = @idtran2
+		, @idu = @idu
 	
 	FETCH NEXT FROM cur_detalle INTO 
 		@idtran2
@@ -219,7 +239,10 @@ END
 --------------------------------------------------------------------------------
 -- VERIFICAR MARGENES ##########################################################
 
-EXEC _ven_prc_facturaPreciosValidar @idtran, 1, @error_mensaje
+EXEC [dbo].[_ven_prc_facturaPreciosValidar] 
+	@idtran = @idtran
+	, @mostrar_costo = 1
+	, @error_mensaje = @error_mensaje
 
 IF @error_mensaje IS NOT NULL
 BEGIN
@@ -227,28 +250,11 @@ BEGIN
 	RETURN
 END
 
-EXEC _ct_prc_polizaAplicarDeconfiguracion @idtran, 'EFA6', @idtran
+EXEC [dbo].[_ct_prc_polizaAplicarDeconfiguracion] 
+	@idtran = @idtran
+	, @objeto_codigo = 'EFA6'
+	, @idtran2 = @idtran
 
-EXEC _ven_prc_facturaPagos @idtran
-
--- Mayo 13, 2019
-SELECT @saldo = ISNULL(saldo, 0)
-FROM ew_cxc_transacciones 
-WHERE idtran = @idtran
-
-IF @saldo = 0
-BEGIN
-	UPDATE ew_cxc_transacciones SET 
-		idmetodo = 1
-		, credito = 0
-		, vencimiento = fecha 
-	WHERE 
-		idtran = @idtran
-
-	UPDATE ew_ven_transacciones SET
-		credito = 0
-		, credito_plazo = 0
-	WHERE
-		idtran = @idtran
-END
+EXEC [dbo].[_ven_prc_facturaPagos]
+	@idtran = @idtran
 GO

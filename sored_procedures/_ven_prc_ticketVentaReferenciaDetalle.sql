@@ -38,7 +38,8 @@ SELECT
 	, [descripcion] = a.nombre
 	, [comentario] = vom.comentario
 	, [idum] = a.idum_venta
-	, [existencia] = aa.existencia
+	, [inventariable] = a.inventariable
+	, [existencia] = (aa.existencia * a.inventariable)
 	, [cantidad_autorizada] = vom.cantidad_autorizada
 	, [cantidad_ordenada] = vom.cantidad_autorizada
 	, [cantidad_facturada] = vom.cantidad_autorizada

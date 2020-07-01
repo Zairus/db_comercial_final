@@ -153,9 +153,9 @@ END
 
 SELECT @cfd_version = dbo._sys_fnc_parametroTexto('CFDI_VERSION')
 
-------------------------------------------------------------------
+-- ########################################################
 -- Insertar en EW_CFD_COMPROBANTES
-------------------------------------------------------------------
+
 INSERT INTO [dbo].[ew_cfd_comprobantes] (
 	[idtran]
 	, [idsucursal]
@@ -209,7 +209,7 @@ SELECT
 			THEN 
 				(
 					CASE 
-						WHEN ABS(ct.saldo) < 0.01 THEN 'CONTADO' 
+						WHEN ct.credito = 0 THEN 'CONTADO' --ABS(ct.saldo) < 0.01
 						ELSE 'CREDITO' 
 					END
 				)
@@ -278,9 +278,10 @@ FROM
 WHERE
 	ct.idtran = @idtran
 	
-------------------------------------------------------------------
+
+-- ########################################################
 -- Insertar en EW_CFD_COMPROBANTES_UBICACION
-------------------------------------------------------------------
+
 INSERT INTO [dbo].[ew_cfd_comprobantes_ubicacion] (
 	[idtran]
 	, [idtipo]
@@ -347,17 +348,16 @@ FROM
 WHERE
 	cxc.idtran = @idtran
 
------------------------------------------------------------------------
+-- ########################################################
 -- Insertando el registro del Sello en EW_CFD_COMPROBANTES_SELLO
------------------------------------------------------------------------	
+
 INSERT INTO dbo.ew_cfd_comprobantes_sello
 	(idtran)
 VALUES
 	(@idtran)
 
------------------------------------------------------------------------
+-- ########################################################
 -- Insertando los conceptos en EW_CFD_COMPROBANTES_MOV
------------------------------------------------------------------------	
 
 CREATE TABLE #_tmp_venta_detalle (
 	idr INT IDENTITY
@@ -385,9 +385,9 @@ CREATE TABLE #_tmp_venta_detalle (
 	, idmov MONEY
 ) ON [PRIMARY]
 
-------------------------------------------
+-- ########################################################
 -- # PREPARANDO DETALLE NORMAL DE VENTA ##
-------------------------------------------
+
 INSERT INTO #_tmp_venta_detalle (
 	consecutivo
 	, consecutivo_padre
@@ -609,9 +609,9 @@ WHERE
 	)
 	AND vtm.idtran = @idtran
 
---------------------------------------
+-- ########################################################
 -- # PREPARANDO AGRUPADOR DE SERIES ##
---------------------------------------
+
 INSERT INTO #_tmp_venta_detalle (
 	consecutivo
 	, consecutivo_padre
@@ -668,9 +668,9 @@ WHERE
 ORDER BY 
 	m.consecutivo
 
--------------------------------------
+-- ########################################################
 -- # PREPARANDO DETALLE CON SERIES ##
--------------------------------------
+
 INSERT INTO #_tmp_venta_detalle (
 	consecutivo
 	, consecutivo_padre
@@ -719,9 +719,9 @@ WHERE
 ORDER BY 
 	m.consecutivo
 
-------------------------------------------
+-- ########################################################
 -- # PREPARANDO DETALLE NOTA DE CREDITO ##
-------------------------------------------
+
 INSERT INTO #_tmp_venta_detalle (
 	consecutivo
 	, consecutivo_padre
@@ -768,9 +768,9 @@ WHERE
 	ct.transaccion = 'FDA2'
 	AND ct.idtran = @idtran
 
------------------------------------------
+-- ########################################################
 -- # PREPARANDO DETALLE FACTURA GLOBAL ##
------------------------------------------
+
 INSERT INTO #_tmp_venta_detalle (
 	consecutivo
 	, consecutivo_padre
@@ -823,9 +823,9 @@ WHERE
 	) > 1
 	AND efa4.idtran = @idtran
 
---------------------------------------------
+-- ########################################################
 -- ### INSERTANDO DETALLE DE COMPROBANTE ###
---------------------------------------------
+
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	idtran
 	, consecutivo_padre
@@ -856,7 +856,9 @@ FROM
 ORDER BY
 	tvd.idr
 
---Pagos
+-- ########################################################
+-- Pagos
+
 INSERT INTO dbo.ew_cfd_comprobantes_mov (
 	idtran
 	, consecutivo_padre
@@ -894,9 +896,9 @@ WHERE
 	ct.transaccion = 'BDC2'
 	AND ct.idtran = @idtran
 
------------------------------------------------------------------------
+-- ########################################################
 -- Insertando los conceptos en EW_CFD_COMPROBANTES_MOV_IMPUESTO
------------------------------------------------------------------------	
+
 INSERT INTO ew_cfd_comprobantes_mov_impuesto (
 	idtran
 	, idmov2
@@ -1064,9 +1066,8 @@ WHERE
 
 DROP TABLE #_tmp_venta_detalle
 
------------------------------------------------------------------------
+-- ########################################################
 -- Insertando los impuestos en EW_CFD_COMPROBANTES_IMPUESTO
------------------------------------------------------------------------
 
 INSERT INTO ew_cfd_comprobantes_impuesto (
 	idtran
@@ -1097,8 +1098,8 @@ GROUP BY
 	, ci.grupo
 	, CONVERT(DECIMAL(18,6), ABS(ISNULL(cit.tasa, ci.valor) * 100))
 
------------------------------------------------------------------------
+-- ########################################################
 -- Generar XML y Sellar
------------------------------------------------------------------------	
+
 EXEC [dbo].[_cfdi_prc_sellarComprobante] @idtran, ''
 GO

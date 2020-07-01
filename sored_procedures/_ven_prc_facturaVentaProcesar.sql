@@ -1,11 +1,16 @@
-USE [db_comercial_final]
+USE db_comercial_final
+GO
+IF OBJECT_ID('_ven_prc_facturaVentaProcesar') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_facturaVentaProcesar
+END
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20110224
 -- Description:	Procesar factura de venta
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_facturaVentaProcesar]
+CREATE PROCEDURE [dbo].[_ven_prc_facturaVentaProcesar]
 	@idtran AS INT
 AS
 
@@ -91,7 +96,7 @@ END
 
 IF @credito = 1 AND (@cliente_saldo > @credito_limite)
 BEGIN
-	RAISERROR('Error: El cliente ha exedido su lÌmite de crÈdito', 16, 1)
+	RAISERROR('Error: El cliente ha exedido su l√≠mite de cr√©dito', 16, 1)
 	RETURN
 END
 
@@ -101,8 +106,8 @@ BEGIN
 	RETURN
 END
 
---------------------------------------------------------------------------------
--- VALIDAR REGISTROS DE VENTA ##################################################
+-- ########################################################
+-- VALIDAR REGISTROS DE VENTA
 
 SELECT
 	@registros = COUNT(*)
@@ -117,17 +122,17 @@ BEGIN
 	RETURN
 END
 
---------------------------------------------------------------------------------
--- EFECTUAR SALIDA DE ALMACEN ##################################################
+-- ########################################################
+-- EFECTUAR SALIDA DE ALMACEN
 
-EXEC _inv_prc_transaccionCrear
-	@idtran
-	, @fecha
-	, @tipo
-	, @idalmacen
-	, @idconcepto
-	, @idu
-	, @inv_idtran OUTPUT
+EXEC [dbo].[_inv_prc_transaccionCrear]
+	@idtran2 = @idtran
+	, @fecha = @fecha
+	, @tipo = @tipo
+	, @idalmacen = @idalmacen
+	, @idconcepto = @idconcepto
+	, @idu = @idu
+	, @inv_idtran = @inv_idtran OUTPUT
 
 INSERT INTO ew_inv_transacciones_mov (
 	idtran
@@ -166,8 +171,8 @@ WHERE
 	a.inventariable = 1
 	AND vtm.idtran = @idtran
 
---------------------------------------------------------------------------------
--- ACTUALIZAR COSTO DE VENTAS ##################################################
+-- ########################################################
+-- ACTUALIZAR COSTO DE VENTAS
 
 UPDATE vtm SET
 	vtm.costo = itm.costo
@@ -193,10 +198,13 @@ UPDATE ew_ven_transacciones SET
 WHERE
 	idtran = @idtran
 
---------------------------------------------------------------------------------
--- VERIFICAR MARGENES ##########################################################
+-- ########################################################
+-- VERIFICAR MARGENES
 
-EXEC _ven_prc_facturaPreciosValidar @idtran, 1, @error_mensaje
+EXEC [dbo].[_ven_prc_facturaPreciosValidar]
+	@idtran = @idtran
+	, @mostrar_costo = 1
+	, @error_mensaje = @error_mensaje OUTPUT
 
 IF @error_mensaje IS NOT NULL
 BEGIN
@@ -204,8 +212,8 @@ BEGIN
 	RETURN
 END
 
---------------------------------------------------------------------------------
--- ACTUALIZAR INVENTARIO DE CLIENTE ############################################
+-- ########################################################
+-- ACTUALIZAR INVENTARIO DE CLIENTE
 
 IF @inventario_partes = 1
 BEGIN
@@ -251,8 +259,8 @@ BEGIN
 		AND vtm.idtran = @idtran
 END
 
---------------------------------------------------------------------------------
--- ALMACENAR INFROACI”N PARA GARANTÕAS DE VENTA ################################
+-- ########################################################
+-- ALMACENAR INFROACI√ìN PARA GARANT√çAS DE VENTA
 
 INSERT INTO ew_ven_garantias (
 	idtran
@@ -289,12 +297,12 @@ WHERE
 	)
 	AND vt.idtran = @idtran
 
---------------------------------------------------------------------------------
--- CFDI ########################################################################
+-- ########################################################
+-- CFDI
 
 SELECT
-	 @codciudad = cd.codciudad
-	,@rfc = cf.rfc
+	@codciudad = cd.codciudad
+	, @rfc = cf.rfc
 FROM
 	ew_clientes_facturacion AS cf
 	LEFT JOIN ew_sys_ciudades AS cd
@@ -305,7 +313,7 @@ WHERE
 
 IF @codciudad = '' OR @codciudad = '0' OR @codciudad IS NULL
 BEGIN
-	RAISERROR('Error: Hay un error con la direcciÛn del cliente, revisar ciudad y/o paÌs.', 16, 1)
+	RAISERROR('Error: Hay un error con la direcci√≥n del cliente, revisar ciudad y/o pa√≠s.', 16, 1)
 	RETURN
 END
 
@@ -315,13 +323,15 @@ BEGIN
 	RETURN
 END
 
---------------------------------------------------------------------------------
--- APLICAR PAGOS EN FACTURA ####################################################
+-- ########################################################
+-- APLICAR PAGOS EN FACTURA
 
-EXEC _ven_prc_facturaPagos @idtran
+EXEC [dbo].[_ven_prc_facturaPagos]
+	@idtran = @idtran
 
---------------------------------------------------------------------------------
--- CONTABILIZAR VENTA CON COSTO ################################################
+-- ########################################################
+-- CONTABILIZAR VENTA CON COSTO
 
-EXEC _ct_prc_polizaAplicarDeConfiguracion @idtran
+EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
+	@idtran = @idtran
 GO

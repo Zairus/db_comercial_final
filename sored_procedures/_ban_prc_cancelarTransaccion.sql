@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ban_prc_cancelarTransaccion') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ban_prc_cancelarTransaccion
+END
+GO
 -- =============================================
 -- Author:		Laurence Saavedra
 -- Create date: yyyymmdd
 -- Description:	Cancelar transaccion de bancos
 -- =============================================
-ALTER PROCEDURE [dbo].[_ban_prc_cancelarTransaccion]
+CREATE PROCEDURE [dbo].[_ban_prc_cancelarTransaccion]
 	@idtran AS BIGINT
 	, @cancelado_fecha AS SMALLDATETIME
 	, @idu AS SMALLINT
@@ -30,6 +35,13 @@ DECLARE
 	, @transaccionref AS VARCHAR(4)
 
 SELECT 
+	@cancelado_fecha = fecha 
+FROM 
+	ew_ban_transacciones 
+WHERE 
+	idtran = @idtran
+
+SELECT 
 	@idtran2 = bt.idtran2
 	, @aplicado = bt.aplicado
 	, @idcuenta = bt.idcuenta
@@ -46,7 +58,7 @@ WHERE
 	bt.idtran = @idtran
 	AND bt.cancelado = 0
 
-IF @transaccionref IN ('BDT1', 'DDA4') AND @forzar = 0
+IF @transaccionref IN ('BDT1', 'BDT2', 'DDA4') AND @forzar = 0
 BEGIN
 	SELECT 
 		@msg = 'Error 1: BAN_TRANSACCIONES, la transaccion proviene de ' + o.nombre + ', se debe cancelar dicha transaccion.'
@@ -68,7 +80,7 @@ WHERE
 
 IF @@rowcount = 0
 BEGIN
-	SELECT @msg = 'Error 1: BAN_TRANSACCIONES, no se logró cancelar la transaccion.'
+	SELECT @msg = 'Error 1: BAN_TRANSACCIONES, no se logrÃ³ cancelar la transaccion.'
 	RAISERROR (@msg, 16, 1)
 	RETURN
 END
@@ -78,23 +90,23 @@ END
 --------------------------------------------------------------------------------
 INSERT INTO ew_ban_movimientos (
 	idtran
-	,idtran2
-	,idcuenta
-	,tipo
-	,idconcepto
-	,fecha
-	,importe
-	,idu
+	, idtran2
+	, idcuenta
+	, tipo
+	, idconcepto
+	, fecha
+	, importe
+	, idu
 )
 SELECT 
-	idtran
-	,idtran2
-	,idcuenta
-	,tipo
-	,[idconcepto] = @idconcepto 
-	,[fecha] = @cancelado_fecha
-	,[importe] = (importe * -1)
-	,[idu] = @idu
+	[idtran] = idtran
+	, [idtran2] = idtran2
+	, [idcuenta] = idcuenta
+	, [tipo] = tipo
+	, [idconcepto] = @idconcepto 
+	, [fecha] = @cancelado_fecha
+	, [importe] = (importe * -1)
+	, [idu] = @idu
 FROM 
 	ew_ban_movimientos 
 WHERE 
@@ -105,7 +117,7 @@ WHERE
 --------------------------------------------------------------------------------
 UPDATE ew_ban_transacciones SET
 	cancelado = 1
-	,cancelado_fecha = @cancelado_fecha
+	, cancelado_fecha = @cancelado_fecha
 WHERE
 	idtran = @idtran
 
@@ -113,10 +125,10 @@ WHERE
 -- Cancelamos el movimiento en Contabilidad
 --------------------------------------------------------------------------------
 EXEC [dbo].[_ct_prc_transaccionCancelarContabilidad]
-	 @idtran
-	,1
-	,@fecha
-	,@idu
+	@idtran = @idtran
+	, @tipo = 1
+	, @cancelado_fecha = @fecha
+	, @idu = @idu
 
 --------------------------------------------------------------------------------
 -- Cancelamos el movimiento en Cuentas por Pagar
@@ -129,17 +141,19 @@ BEGIN
 		WHERE idtran = @idtran2
 	)
 	BEGIN
-		EXEC _cxc_prc_desaplicarTransaccion @idtran2, @idu
+		EXEC [dbo].[_cxc_prc_desaplicarTransaccion]
+			@idtran = @idtran2
+			, @idu = @idu
 
 		INSERT INTO ew_sys_transacciones2 (
 			idtran
-			,idestado
-			,idu
+			, idestado
+			, idu
 		)
 		SELECT
 			[idtran] = @idtran2
-			,[idestado] = dbo.fn_sys_estadoID('RACT')
-			,[idu] = @idu
+			, [idestado] = dbo.fn_sys_estadoID('RACT')
+			, [idu] = @idu
 	END
 
 	IF EXISTS(
@@ -148,17 +162,20 @@ BEGIN
 		WHERE idtran = @idtran2
 	)
 	BEGIN
-		EXEC _cxp_prc_desaplicarTransaccion @idtran2, @cancelado_fecha, @idu
+		EXEC [dbo].[_cxp_prc_desaplicarTransaccion]
+			@idtran = @idtran2
+			, @aplicado_fecha = @cancelado_fecha
+			, @idu = @idu
 
 		INSERT INTO ew_sys_transacciones2 (
 			idtran
-			,idestado
-			,idu
+			, idestado
+			, idu
 		)
 		SELECT
 			[idtran] = @idtran2
-			,[idestado] = dbo.fn_sys_estadoID('PROG')
-			,[idu] = @idu
+			, [idestado] = dbo.fn_sys_estadoID('PROG')
+			, [idu] = @idu
 	END
 END
 GO

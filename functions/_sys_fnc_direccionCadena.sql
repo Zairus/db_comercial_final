@@ -1,8 +1,8 @@
 USE db_comercial_final
 GO
-IF OBJECT_ID('_sys_fnc_direccionCadena') IS NOT NULL
+If OBJECT_ID('_sys_fnc_direccionCadena') IS NOT NULL
 BEGIN
-	DROP FUNCTION [dbo].[_sys_fnc_direccionCadena]
+	DROP FUNCTION _sys_fnc_direccionCadena
 END
 GO
 -- =============================================

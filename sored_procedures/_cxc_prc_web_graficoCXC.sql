@@ -20,7 +20,11 @@ SELECT @fecha = ISNULL(@fecha, GETDATE())
 
 SELECT
 	[idr] = s.idr
-	, [fecha_inicial] = DATEADD(DAY, -DATEPART(WEEKDAY, DATEADD(WEEK, s.idr * -1, @fecha)), DATEADD(WEEK, s.idr * -1, @fecha))
+	, [fecha_inicial] = DATEADD(
+		DAY
+		, -DATEPART(WEEKDAY, DATEADD(WEEK, (s.idr - 1) * -1, @fecha))
+		, DATEADD(WEEK, (s.idr - 1) * -1, @fecha)
+	)
 	, [fecha_final] = GETDATE()
 	, [titulo] = CONVERT(VARCHAR(200), '')
 	, [cxc_saldo] = CONVERT(DECIMAL(18, 6), 0.00)

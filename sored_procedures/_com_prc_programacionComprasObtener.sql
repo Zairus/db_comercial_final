@@ -29,9 +29,18 @@ FROM
 WHERE
 	idtran = @idtran
 
+-- ########################################################
+-- BORRAR CONTENIDO ANTERIOR 
+
 DELETE FROM ew_com_programacion_det 
 WHERE 
 	idtran = @idtran
+
+-- ########################################################
+-- INCLUIR PRODUCTOS ACTIVOS, DE VENTA, INVENTARIABLE
+-- Y PROGRAMABLE PAR ALA VENTA (Stock (De Línea));
+-- NO SE CONSIDERAN ARTICULOS QUE EXISTEN EN PROGRAMACIONES
+-- ANTERIORES QUE ESTEN ACTIVAS
 
 INSERT INTO ew_com_programacion_det (
 	idtran
@@ -74,6 +83,10 @@ WHERE
 			AND st.idestado IN (0, 21)
 	)
 
+-- ########################################################
+-- ACTUALIZAR CANTIDAD SOLICITADA PARA SUBIR EXISTENCIA
+-- AL MAXIMO PARTIENDO DE LA EXISTENCIA ACTUAL
+
 UPDATE cpd SET
 	cpd.cantidad_solicitada = ISNULL((
 		SELECT
@@ -89,6 +102,74 @@ FROM
 	ew_com_programacion_det AS cpd
 WHERE
 	cpd.idtran = @idtran
+	
+-- ########################################################
+-- CONSIDERAR REQUISICIONES DE COMPRA
+
+UPDATE cpd SET
+	cpd.cantidad_solicitada = (
+		cpd.cantidad_solicitada
+		+ ISNULL((
+			SELECT
+				SUM(cdm.cantidad_autorizada - cdm.cantidad_ordenada)
+			FROM 
+				ew_com_documentos AS cd
+				LEFT JOIN ew_com_documentos_mov As cdm
+					ON cdm.idtran = cd.idtran
+				LEFT JOIN ew_sys_transacciones AS st
+					ON st.idtran = cd.idtran
+			WHERE
+				cd.cancelado = 0
+				AND cd.transaccion = 'CSO1'
+				AND cd.idalmacen = ISNULL(NULLIF(@idalmacen, 0), cd.idalmacen)
+				AND cdm.idarticulo = cpd.idarticulo
+				AND st.idestado IN (3, 17, 34, 35, 44)
+		), 0)
+	)
+FROM
+	ew_com_programacion_det AS cpd
+WHERE
+	cpd.idtran = @idtran
+
+-- ########################################################
+-- ACTUALIZAR ESTADO DE REQUISICIONES CONSIDERADAS
+
+INSERT INTO ew_sys_transacciones2 (
+	idtran
+	, idestado
+	, idu
+	, comentario
+)
+SELECT DISTINCT
+	[idtran] = cd.idtran
+	, [idestado] = 17
+	, [idu] = @idu
+	, [comentario] = 'Programado en PROG: ' + cp.folio
+FROM
+	ew_com_documentos AS cd
+	LEFT JOIN ew_com_documentos_mov As cdm
+		ON cdm.idtran = cd.idtran
+	LEFT JOIN ew_sys_transacciones AS st
+		ON st.idtran = cd.idtran
+	LEFT JOIN ew_com_programacion AS cp
+		ON cp.idtran = @idtran
+WHERE
+	cd.cancelado = 0
+	AND cd.transaccion = 'CSO1'
+	AND cd.idalmacen = ISNULL(NULLIF(@idalmacen, 0), cd.idalmacen)
+	AND cdm.idarticulo IN (
+		SELECT
+			cpd.idarticulo
+		FROM
+			ew_com_programacion_det AS cpd
+		WHERE
+			cpd.idtran = @idtran
+	)
+	AND st.idestado IN (3)
+
+-- ########################################################
+-- RESTAR A LA CANTIDAD PROPUESTA, LO YA ORDENADO EN
+-- ORDENES DE COMPRA ACTIVAS AUTORIZADAS
 
 UPDATE cpd SET
 	cpd.cantidad_solicitada = (
@@ -116,6 +197,10 @@ FROM
 WHERE
 	cpd.idtran = @idtran
 
+-- ########################################################
+-- AGREGAR A LA PROPUESTA, LO SOLICITADO EN PEDIDOS
+-- DE VENTA ACTIVOS QUE ESTA PENDIENTE DE SURTIR
+
 UPDATE cpd SET
 	cpd.cantidad_solicitada = (
 		cpd.cantidad_solicitada
@@ -141,10 +226,18 @@ WHERE
 	cpd.idtran = @idtran
 	AND cpd.cantidad_solicitada < 0
 
+-- ########################################################
+-- ELIMINAR TODAS LOS RENGLONES CUYA CANTIDAD PROPUESTA
+-- A ORDENAR ES IGUAL O MENOR A CERO
+
 DELETE FROM ew_com_programacion_det 
 WHERE
 	idtran = @idtran
 	AND cantidad_solicitada <= 0
+
+-- ########################################################
+-- AGREGAR PROPUESTA DE PROVEEDOR, EN BASE AL PRECIO MAS
+-- BAJO OTORGADO DE ACUERDOA A HISTORIAL DE COMPRAS
 
 UPDATE cpd SET
 	cpd.costo_unitario = ISNULL((
@@ -185,10 +278,16 @@ FROM
 WHERE
 	cpd.idtran = @idtran
 
+-- ########################################################
+-- ACTUALIZAR COSTO TOTAL DE PROPUESTA DE ORDEN
+
 UPDATE ew_com_programacion_det SET
 	costo_total = (cantidad_solicitada * costo_unitario)
 WHERE
 	idtran = @idtran
+
+-- ########################################################
+-- ACTUALIZAR TOTAL GENERAL DE LA PROGRAMACION
 
 UPDATE cp SET
 	total = ISNULL((
@@ -203,6 +302,11 @@ FROM
 	ew_com_programacion AS cp
 WHERE
 	cp.idtran = @idtran
+
+-- ########################################################
+-- EN TODOS LOS REGISTROS CUYO ALMACEN ES 0, ACTUALIZAR
+-- EL ALMACEN SELECCIONANDO EL PRIMER ALMACEN DE TIPO
+-- VENTA DE LA SUCURSAL CORRESPONDIENTE
 
 UPDATE cpd SET
 	cpd.idalmacen = (
@@ -226,7 +330,9 @@ FROM
 WHERE
 	cpd.idtran = @idtran
 
---Cambiar estado
+-- ########################################################
+-- ESTABLECER EL ESTADO DE LA PROGRAMACION A "CALCULADA"
+
 IF NOT EXISTS (
 	SELECT *
 	FROM
@@ -246,4 +352,20 @@ BEGIN
 		, [idestado] = 21
 		, [idu] = @idu
 END
+
+UPDATE cpd SET
+	cpd.cantidad_ordenada = cpd.cantidad_solicitada - ISNULL(aa.existencia, 0)
+FROM
+	ew_com_programacion_det AS cpd
+	LEFT JOIN ew_articulos_almacenes AS aa
+		ON aa.idalmacen = cpd.idalmacen
+		AND aa.idarticulo = cpd.idarticulo
+WHERE
+	cpd.idtran = @idtran
+
+UPDATE ew_com_programacion_det SET
+	cantidad_ordenada = 0
+WHERE
+	idtran = @idtran
+	AND cantidad_ordenada < 0
 GO

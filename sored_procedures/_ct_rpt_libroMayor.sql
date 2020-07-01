@@ -416,7 +416,7 @@ SELECT
 	, [cargos] = tcl.cargos
 	, [abonos] = tcl.abonos
 	, [saldo_final] = tcl.saldo_final
-	, [conceptos] = tcl.concepto
+	, [concepto] = tcl.concepto
 	, [idtran] = tcl.idtran
 	--, [poliza_idr] = tcl.poliza_idr
 	, [cp_cuenta] = tcl.cp_cuenta

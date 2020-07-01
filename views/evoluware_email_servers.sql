@@ -1,6 +1,11 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
-ALTER VIEW [dbo].[evoluware_email_servers]
+IF OBJECT_ID('evoluware_email_servers') IS NOT NULL
+BEGIN
+	DROP VIEW evoluware_email_servers
+END
+GO
+CREATE VIEW [dbo].[evoluware_email_servers]
 AS
 SELECT 
 	idserver
@@ -10,6 +15,7 @@ SELECT
 	, server_ssl
 	, server_username
 	, server_password
+	, server_sender
 FROM 
 	[dbEVOLUWARE].[dbo].[ew_sys_email_servers]
 WHERE 

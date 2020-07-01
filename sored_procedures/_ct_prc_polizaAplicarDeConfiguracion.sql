@@ -1,11 +1,16 @@
 USE db_comercial_final
 GO
+IF OBJECT_ID('_ct_prc_polizaAplicarDeConfiguracion') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ct_prc_polizaAplicarDeConfiguracion
+END
+GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20170112
 -- Description:	Contabilizar objeto por poliza automatica
 -- =============================================
-ALTER PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
+CREATE PROCEDURE [dbo].[_ct_prc_polizaAplicarDeConfiguracion]
 	@idtran AS INT
 	, @objeto_codigo AS VARCHAR(10) = NULL
 	, @idtran2 AS INT = NULL
@@ -34,7 +39,7 @@ DECLARE
 
 IF @regenerar = 1
 BEGIN
-	EXEC _ct_prc_transaccionAnularCT @idtran2, 1
+	EXEC [dbo].[_ct_prc_transaccionAnularCT] @idtran2, 1
 END
 
 SELECT
@@ -65,7 +70,7 @@ WHERE
 	
 IF @idsucursal = 0
 BEGIN
-	EXEC _sys_prc_obtenerSucursal @idtran, @idsucursal OUTPUT
+	EXEC [dbo].[_sys_prc_obtenerSucursal] @idtran, @idsucursal OUTPUT
 END
 
 SELECT
@@ -109,9 +114,9 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	SELECT @line_sql = N'SELECT
 		[orden] = ' + LTRIM(RTRIM(STR(pcm.orden))) + '
-		, [cuenta] = ' + pcm.cuenta + '
+		, [cuenta] = ISNULL(' + pcm.cuenta + ', '''')
 		, [tipomov] = ' + LTRIM(RTRIM(STR(pcm.tipomov))) + '
-		, [importe] = ' + pcm.importe + '
+		, [importe] = ISNULL(' + pcm.importe + ', 0)
 	FROM
 		' + pcm.tabla + '
 	WHERE
@@ -157,12 +162,13 @@ END
 
 IF @cuadrar = 1
 BEGIN
-	SELECT @diferencia = SUM(CASE WHEN tipomov = 0 THEN importe ELSE importe * -1 END)
+	SELECT 
+		@diferencia = SUM(CASE WHEN tipomov = 0 THEN importe ELSE importe * -1 END)
 	FROM
 		#_tmp_prepoliza
 
 	SELECT @diferencia = ISNULL(@diferencia, 0)
-
+	
 	INSERT INTO #_tmp_prepoliza (
 		orden
 		, cuenta
@@ -175,10 +181,10 @@ BEGIN
 		, [tipomov] = (CASE WHEN @diferencia < 0 THEN 0 ELSE 1 END)
 		, [importe] = ABS(@diferencia)
 	WHERE
-		ABS(@diferencia) > 0.01
+		ABS(@diferencia) > 0.00
 END
 
-EXEC _ct_prc_polizaCrear
+EXEC [dbo].[_ct_prc_polizaCrear]
 	@idtran
 	, @fecha
 	, @idtipo
@@ -224,5 +230,5 @@ ORDER BY
 
 DROP TABLE #_tmp_prepoliza
 
-EXEC _ct_prc_polizaValidarDualidad @poliza_idtran
+EXEC [dbo].[_ct_prc_polizaValidarDualidad] @poliza_idtran
 GO

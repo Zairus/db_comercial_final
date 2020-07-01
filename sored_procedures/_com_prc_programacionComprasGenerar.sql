@@ -12,18 +12,19 @@ GO
 -- =============================================
 CREATE PROCEDURE [dbo].[_com_prc_programacionComprasGenerar]
 	@idtran AS BIGINT
-	,@idu AS SMALLINT = 1
+	, @idu AS SMALLINT = 1
 AS
 
 SET NOCOUNT ON
-
---------------------------------------------------------------------------------
--- DECLARACION DE VARIABLES ####################################################
 
 DECLARE	
 	@idproveedor AS INT
 	, @fecha AS SMALLDATETIME
 	, @subtotal AS DECIMAL(12,2)
+
+DECLARE
+	@idzona_fiscal_emisor AS INT
+	, @extranjero AS BIT
 
 DECLARE	
 	@usuario AS VARCHAR(20)
@@ -40,8 +41,8 @@ DECLARE
 SELECT 
 	@fecha = GETDATE()
 
---------------------------------------------------------------------------------
--- OBTENER DATOS ###############################################################
+-- ########################################################
+-- OBTENER DATOS
 
 IF EXISTS (
 	SELECT * 
@@ -85,10 +86,9 @@ FROM
 WHERE
 	idu = @idu
 	
---------------------------------------------------------------------------------
--- GENERAR ORDENES DE COMPRA ###################################################
+-- ########################################################
+-- GENERAR ORDENES DE COMPRA
 
---Generar Órdenes de Compra
 DECLARE cur_proveedores CURSOR FOR
 	SELECT DISTINCT 
 		idproveedor
@@ -104,7 +104,7 @@ OPEN cur_proveedores
 FETCH NEXT FROM cur_proveedores INTO
 	@idproveedor
 
-WHILE @@fetch_status = 0
+WHILE @@FETCH_STATUS = 0
 BEGIN
 	SELECT 
 		@subtotal = SUM(costo_total) 
@@ -116,155 +116,18 @@ BEGIN
 	
 	SELECT @subtotal = ISNULL(@subtotal, 0)
 	
-	SELECT @sql = '
-INSERT INTO ew_com_ordenes (
-	idtran
-	,idmov
-	,idtran2
-	,idconcepto
-	,idsucursal
-	,idalmacen
-	,fecha
-	,folio
-	,transaccion
-	,idproveedor
-	,idcontacto
-	,dias_entrega
-	,dias_credito
-	,pedimento
-	,idpedimento
-	,idu
-	,idimpuesto1
-	,idmoneda
-	,tipocambio
-	,subtotal
-	,gastos
-	,impuesto1
-	,impuesto2
-	,impuesto3
-	,impuesto4
-	,total
-	,comentario
-	,cancelado
-	,cancelado_fecha
-)
+	SELECT 
+		@idzona_fiscal_emisor = [dbo].[_ct_fnc_idzonaFiscalCP](p.codigo_postal)
+		, @extranjero = p.extranjero
+	FROM
+		ew_proveedores AS p
+	WHERE
+		p.idproveedor = @idproveedor
 
-SELECT
-	[idtran] = {idtran}
-	,[idmov] = NULL
-	,[idtran2] = cprg.idtran
-	,[idconcepto] = 16
-	,[idsucursal] = cprg.idsucursal
-	,[idalmacen] = (SELECT TOP 1 cprgd.idalmacen FROM ew_com_programacion_det AS cprgd WHERE cprgd.idtran = cprg.idtran)
-	,[fecha] = cprg.fecha
-	,[folio] = ''{folio}''
-	,[transaccion] = ''' + @transaccion + '''
-	,[idproveedor] = ' + LTRIM(RTRIM(STR(@idproveedor))) + '
-	,[idcontacto] = 0
-	,[dias_entrega] = 0
-	,[dias_credito] = 0
-	,[pedimento] = ''''
-	,[idpedimento] = 0
-	,[idu] = cprg.idu
-	,[idimpuesto1] = ci.idimpuesto
-	,[idmoneda] = 0
-	,[tipocambio] = 1
-	,[subtotal] = ' + CONVERT(VARCHAR(20), @subtotal) + '
-	,[gastos] = 0
-	,[impuesto1] = (' + CONVERT(VARCHAR(20), @subtotal) + ' * ci.valor)
-	,[impuesto2] = 0
-	,[impuesto3] = 0
-	,[impuesto4] = 0
-	,[total] = (' + CONVERT(VARCHAR(20), @subtotal) + ' + (' + CONVERT(VARCHAR(20), @subtotal) + ' * ci.valor))
-	,[comentario] = cprg.comentario
-	,[cancelado] = 0
-	,[cancelado_fecha] = NULL
-FROM
-	ew_com_programacion AS cprg
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = 1
-WHERE
-	cprg.idtran = ' + LTRIM(RTRIM(STR(@idtran))) + '
+	SELECT @idzona_fiscal_emisor = ISNULL(@idzona_fiscal_emisor, 1)
+	SELECT @extranjero = ISNULL(@extranjero, 0)
 
-INSERT INTO ew_com_ordenes_mov (
-	idtran
-	,consecutivo
-	--,idmov
-	,idmov2
-	,idarticulo
-	,codigo_proveedor
-	,idum
-	,idalmacen
-	,existencia
-	,cantidad_cotizada
-	,cantidad_ordenada
-	,cantidad_autorizada
-	,cantidad_surtida
-	,cantidad_devuelta
-	,cantidad_facturada
-	,costo_unitario
-	,descuento1
-	,descuento2
-	,descuento3
-	,importe
-	,gastos
-	,impuesto1
-	,impuesto2
-	,impuesto3
-	,impuesto4
-	,total
-	,comentario
-)
-
-SELECT
-	[idtran] = {idtran}
-	,[consecutivo] = ROW_NUMBER() OVER (ORDER BY cprgd.idr)
-	--,[idmov] = NULL
-	,[idmov2] = cprgd.idmov
-	,[idarticulo] = cprgd.idarticulo
-	,[codigo_proveedor] = '''' --p.codigo
-	,[idum] = a.idum_compra
-	,[idalmacen] = cprgd.idalmacen
-	,[existencia] = aa.existencia
-	,[cantidad_cotizada] = 0
-	,[cantidad_ordenada] = cprgd.cantidad_ordenada
-	,[cantidad_autorizada] = cprgd.cantidad_ordenada
-	,[cantidad_surtida] = 0
-	,[cantidad_devuelta] = 0
-	,[cantidad_facturada] = 0
-	,[costo_unitario] = cprgd.costo_unitario
-	,[descuento1] = 0
-	,[descuento2] = 0
-	,[descuento3] = 0
-	,[importe] = cprgd.costo_total
-	,[gastos] = 0
-	,[impuesto1] = (cprgd.costo_total * ci.valor)
-	,[impuesto2] = 0
-	,[impuesto3] = 0
-	,[impuesto4] = 0
-	,[total] = (cprgd.costo_total + (cprgd.costo_total * ci.valor))
-	,[comentario] = cprgd.comentario
-FROM
-	ew_com_programacion_det AS cprgd
-	LEFT JOIN ew_cat_impuestos AS ci
-		ON ci.idimpuesto = 1
-	LEFT JOIN ew_proveedores AS p
-		ON p.idproveedor = cprgd.idproveedor
-	LEFT JOIN ew_articulos AS a
-		ON a.idarticulo = cprgd.idarticulo
-	LEFT JOIN ew_articulos_almacenes AS aa
-		ON aa.idarticulo = cprgd.idarticulo
-		AND aa.idalmacen = cprgd.idalmacen
-WHERE
-	cprgd.idtran = ' + LTRIM(RTRIM(STR(@idtran))) + '
-	AND cprgd.idproveedor = ' + LTRIM(RTRIM(STR(@idproveedor))) + '
-'
-	
-	IF @sql IS NULL OR @sql = ''
-	BEGIN
-		RAISERROR('No se pudo obtener información para generar orden de compra.', 16, 1)
-		RETURN
-	END
+	SELECT @sql = ''
 	
 	EXEC _sys_prc_insertarTransaccion
 		@usuario
@@ -284,6 +147,250 @@ WHERE
 		RETURN
 	END
 	
+	INSERT INTO ew_com_ordenes (
+		idtran
+		, idmov
+		, idtran2
+		, idconcepto
+		, idsucursal
+		, idalmacen
+		, fecha
+		, folio
+		, transaccion
+		, idproveedor
+		, idcontacto
+		, dias_entrega
+		, dias_credito
+		, pedimento
+		, idpedimento
+		, idu
+		, idimpuesto1
+		, idmoneda
+		, tipocambio
+		, subtotal
+		, gastos
+		, impuesto1
+		, impuesto2
+		, impuesto3
+		, impuesto4
+		, total
+		, comentario
+		, cancelado
+		, cancelado_fecha
+	)
+	SELECT
+		[idtran] = st.idtran
+		, [idmov] = NULL
+		, [idtran2] = cprg.idtran
+		, [idconcepto] = 16
+		, [idsucursal] = cprg.idsucursal
+		, [idalmacen] = (
+			SELECT TOP 1 cprgd.idalmacen 
+			FROM 
+				ew_com_programacion_det AS cprgd 
+			WHERE 
+				cprgd.idtran = cprg.idtran
+		)
+		, [fecha] = cprg.fecha
+		, [folio] = st.folio
+		, [transaccion] = st.transaccion
+		, [idproveedor] = @idproveedor
+		, [idcontacto] = 0
+		, [dias_entrega] = p.plazo_entrega
+		, [dias_credito] = ptr.credito_plazo
+		, [pedimento] = ''
+		, [idpedimento] = 0
+		, [idu] = cprg.idu
+		, [idimpuesto1] = 0
+		, [idmoneda] = 0
+		, [tipocambio] = 1
+		, [subtotal] = @subtotal
+		, [gastos] = 0
+		, [impuesto1] = 0
+		, [impuesto2] = 0
+		, [impuesto3] = 0
+		, [impuesto4] = 0
+		, [total] = @subtotal
+		, [comentario] = cprg.comentario
+		, [cancelado] = 0
+		, [cancelado_fecha] = NULL
+	FROM
+		ew_sys_transacciones AS st
+		LEFT JOIN ew_com_programacion AS cprg
+			ON cprg.idtran = @idtran
+		LEFT JOIN ew_proveedores AS p
+			ON p.idproveedor = @idproveedor
+		LEFT JOIN ew_proveedores_terminos AS ptr
+			ON ptr.idproveedor = @idproveedor
+	WHERE
+		st.idtran = @orden_idtran
+		
+	INSERT INTO ew_com_ordenes_mov (
+		idtran
+		, consecutivo
+		, idmov2
+		, idarticulo
+		, codigo_proveedor
+		, idum
+		, idalmacen
+		, existencia
+		, cantidad_ordenada
+		, cantidad_autorizada
+		, costo_unitario
+		, importe
+		, comentario
+	)
+	SELECT
+		[idtran] = st.idtran
+		, [consecutivo] = ROW_NUMBER() OVER (ORDER BY cprgd.idr)
+		, [idmov2] = cprgd.idmov
+		, [idarticulo] = cprgd.idarticulo
+		, [codigo_proveedor] = ISNULL(ap.codigo_proveedor, '')
+		, [idum] = a.idum_compra
+		, [idalmacen] = cprgd.idalmacen
+		, [existencia] = ISNULL(aa.existencia, 0)
+		, [cantidad_ordenada] = cprgd.cantidad_ordenada
+		, [cantidad_autorizada] = cprgd.cantidad_ordenada
+		, [costo_unitario] = cprgd.costo_unitario
+		, [importe] = cprgd.costo_total
+		, [comentario] = cprgd.comentario
+	FROM
+		ew_sys_transacciones AS st
+		LEFT JOIN ew_com_programacion_det AS cprgd
+			ON cprgd.idtran = @idtran
+		LEFT JOIN ew_proveedores AS p
+			ON p.idproveedor = cprgd.idproveedor
+		LEFT JOIN ew_articulos AS a
+			ON a.idarticulo = cprgd.idarticulo
+		LEFT JOIN ew_articulos_almacenes AS aa
+			ON aa.idarticulo = cprgd.idarticulo
+			AND aa.idalmacen = cprgd.idalmacen
+		LEFT JOIN ew_articulos_proveedores AS ap
+			ON ap.idarticulo = cprgd.idarticulo
+			AND ap.idproveedor = cprgd.idproveedor
+	WHERE
+		st.idtran = @orden_idtran
+		AND cprgd.idproveedor = @idproveedor
+
+	-- IMPUESTOS
+	UPDATE com SET
+		com.idimpuesto1 = ISNULL(cai.idimpuesto1, 0)
+		, com.idimpuesto1_valor = ISNULL(cai.idimpuesto1_valor, 0)
+		, com.idimpuesto2 = ISNULL(cai.idimpuesto2, 0)
+		, com.idimpuesto2_valor = ISNULL(cai.idimpuesto2_valor, 0)
+		, com.idimpuesto1_ret = ISNULL(cai.idimpuesto1_ret, 0)
+		, com.idimpuesto1_ret_valor = ISNULL(cai.idimpuesto1_ret_valor, 0)
+		, com.idimpuesto2_ret = ISNULL(cai.idimpuesto2_ret, 0)
+		, com.idimpuesto2_ret_valor = ISNULL(cai.idimpuesto2_ret_valor, 0)
+	FROM
+		ew_com_ordenes_mov AS com
+		LEFT JOIN ew_articulos AS a
+			ON a.idarticulo = com.idarticulo
+		LEFT JOIN ew_ct_articulos_impuestos AS cai
+			ON cai.idarticulo = a.idarticulo
+			AND (
+				cai.idzona = @idzona_fiscal_emisor
+				OR cai.idzona = 0
+			)
+			AND @extranjero = 0
+	WHERE
+		com.idtran = @orden_idtran
+
+	UPDATE com SET
+		com.idimpuesto1 = com.importe * com.idimpuesto1_valor
+		, com.idimpuesto2 = com.importe * com.idimpuesto2_valor
+		, com.idimpuesto1_ret = com.importe * com.idimpuesto1_ret_valor
+		, com.idimpuesto2_ret = com.importe * com.idimpuesto2_ret_valor
+	FROM
+		ew_com_ordenes_mov AS com
+	WHERE
+		com.idtran = @orden_idtran
+
+	UPDATE com SET
+		com.total = (
+			com.importe
+			+ com.impuesto1
+			+ com.impuesto2
+			- com.impuesto1_ret
+		)
+	FROM
+		ew_com_ordenes_mov AS com
+	WHERE
+		com.idtran = @orden_idtran
+
+	UPDATE co SET
+		co.subtotal = ISNULL((
+			SELECT SUM(com.importe) 
+			FROM 
+				ew_com_ordenes_mov AS com 
+			WHERE 
+				com.idtran = co.idtran
+		), 0)
+		, co.impuesto1 = ISNULL((
+			SELECT SUM(com.impuesto1) 
+			FROM 
+				ew_com_ordenes_mov AS com 
+			WHERE 
+				com.idtran = co.idtran
+		), 0)
+		, co.impuesto2 = ISNULL((
+			SELECT SUM(com.impuesto2) 
+			FROM 
+				ew_com_ordenes_mov AS com 
+			WHERE 
+				com.idtran = co.idtran
+		), 0)
+		, co.impuesto1_ret = ISNULL((
+			SELECT SUM(com.impuesto1_ret) 
+			FROM 
+				ew_com_ordenes_mov AS com 
+			WHERE 
+				com.idtran = co.idtran
+		), 0)
+		, co.idimpuesto1 = ISNULL((
+			SELECT TOP 1
+				com.idimpuesto1
+			FROM
+				ew_com_ordenes_mov AS com
+			WHERE
+				com.idtran = @idtran
+			ORDER BY
+				com.idr
+		), 0)
+		, co.idimpuesto1_ret = ISNULL((
+			SELECT TOP 1
+				com.idimpuesto1_ret
+			FROM
+				ew_com_ordenes_mov AS com
+			WHERE
+				com.idtran = @idtran
+			ORDER BY
+				com.idr
+		), 0)
+	FROM
+		ew_com_ordenes AS co
+	WHERE
+		co.idtran = @idtran
+		
+	UPDATE co SET
+		co.total = (
+			co.subtotal
+			+ co.impuesto1
+			+ co.impuesto2
+			+ co.impuesto3
+			+ co.impuesto4
+			- co.impuesto1_ret
+		)
+	FROM
+		ew_com_ordenes AS co
+	WHERE
+		co.idtran = @idtran
+
+	INSERT INTO ew_sys_transacciones2
+		(idtran, idestado, idu)
+	VALUES
+		(@orden_idtran, 3, @idu)
+
 	FETCH NEXT FROM cur_proveedores INTO
 		@idproveedor
 END

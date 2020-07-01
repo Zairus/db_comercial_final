@@ -1,11 +1,16 @@
-USE [db_comercial_final]
+USE db_comercial_final
+GO
+IF OBJECT_ID('_ven_prc_relacionReferenciaDetalle') IS NOT NULL
+BEGIN
+	DROP PROCEDURE _ven_prc_relacionReferenciaDetalle
+END
 GO
 -- =============================================
 -- Author:		Paul Monge
 -- Create date: 20180310
 -- Description:	Referencia de orden de venta a factura
 -- =============================================
-ALTER PROCEDURE [dbo].[_ven_prc_relacionReferenciaDetalle]
+CREATE PROCEDURE [dbo].[_ven_prc_relacionReferenciaDetalle]
 	@referencia_encabezado AS VARCHAR(15)
 	, @referencia_detalle AS VARCHAR(15)
 	, @idsucursal AS INT
@@ -16,9 +21,9 @@ SET NOCOUNT ON
 
 SELECT
 	[referencia] = doc.folio
-	, [idtran2] = om.idtran
+	, [idtran2] = doc.idtran
 	, [idmov2] = om.idmov
-	, [objidtran] = CONVERT (INT, om.idmov)
+	, [objidtran] = doc.idtran --CONVERT (INT, om.idmov)
 	, [consecutivo] = om.consecutivo
 	, [codarticulo] = a.codigo
 	, [idarticulo] = om.idarticulo
@@ -37,7 +42,13 @@ SELECT
 	, [tipocambio_m] = ISNULL(dbo.fn_ban_tipocambio(vlm.idmoneda, 0), 1)
 	, [precio_congelado]= om.precio_unitario
 	, [precio_unitario_m] = om.precio_unitario
-	, [precio_unitario] = om.precio_unitario
+	, [precio_unitario] = ISNULL(
+		NULLIF(om.precio_unitario, 0)
+		, (
+			om.importe 
+			/ ISNULL(NULLIF(om.cantidad_facturada, 0), 1)
+		)
+	)
 	, [descuento1] = om.descuento1
 	, [descuento2] = om.descuento2
 	, [descuento_pp1] = om.descuento_pp1
@@ -72,11 +83,16 @@ SELECT
 
 	, [objlevel] = om.objlevel
 FROM 
-	ew_ven_transacciones_mov AS om
+	ew_ven_transacciones AS doc 
+	LEFT JOIN ew_cxc_transacciones_rel AS ctr
+		ON doc.transaccion = 'EFA4'
+		AND ctr.idtran = doc.idtran
+	LEFT JOIN ew_ven_transacciones_mov AS om
+		ON om.idtran = ISNULL(ctr.idtran2, doc.idtran)
 	LEFT JOIN ew_articulos AS a 
 		ON a.idarticulo = om.idarticulo
-	LEFT JOIN ew_ven_transacciones AS doc 
-		ON doc.idtran = om.idtran
+	--LEFT JOIN ew_ven_transacciones AS doc 
+		--ON doc.idtran = om.idtran
 	LEFT JOIN ew_ven_listaprecios_mov AS vlm 
 		ON vlm.idarticulo = a.idarticulo 
 		AND vlm.idlista = doc.idlista 
@@ -86,7 +102,8 @@ FROM
 		ON aa.idarticulo = a.idarticulo 
 		AND aa.idalmacen = doc.idalmacen
 WHERE
-	doc.transaccion LIKE 'EFA%'
+	doc.idcliente = @idcliente
+	AND doc.transaccion LIKE 'EFA%'
 	AND doc.idsucursal = @idsucursal
 	AND doc.folio IN (
 		SELECT r.valor 
@@ -98,5 +115,4 @@ WHERE
 				END
 			), '	') AS r
 	)
-	AND doc.idcliente = @idcliente
 GO

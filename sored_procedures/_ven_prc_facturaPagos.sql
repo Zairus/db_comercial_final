@@ -1,4 +1,4 @@
-USE [db_comercial_final]
+USE db_comercial_final
 GO
 IF OBJECT_ID('_ven_prc_facturaPagos') IS NOT NULL
 BEGIN
@@ -9,16 +9,12 @@ GO
 -- Author:		Paul Monge
 -- Create date: 20100206
 -- Description:	Afectar pagos en facturas.
--- Modificacion: Arvin 2010 JUL adaptado a la nueva estructura.
 -- =============================================
 CREATE PROCEDURE [dbo].[_ven_prc_facturaPagos]
 	@idtran INT
 AS
 
 SET NOCOUNT ON
-
---------------------------------------------------------------------------------
--- DECLARACION DE VARIABLES ####################################################
 
 DECLARE
 	@idmov AS MONEY
@@ -49,8 +45,11 @@ DECLARE
 	, @pago_idtran AS INT
 	, @pago_referencia AS VARCHAR(200)
 	, @idr AS INT
---------------------------------------------------------------------------------
--- OBTENER DATOS ###############################################################
+	, @credito AS BIT
+	, @saldo DECIMAL(18,6)
+
+-- ########################################################
+-- OBTENER DATOS
 
 SELECT @error = 0
 
@@ -65,6 +64,7 @@ SELECT
 	, @idmoneda = ct.idmoneda
 	, @tipocambio = ct.tipocambio
 	, @referencia = vt.transaccion +'-'+ vt.folio
+	, @credito = ct.credito
 FROM 
 	ew_ven_transacciones vt
 	LEFT JOIN ew_cxc_transacciones ct 
@@ -81,14 +81,29 @@ FROM
 WHERE
 	idu = @idu
 	
-IF @idcuenta <= 0
+-- ########################################################
+-- VALIDAR SI SE PUEDE APLICAR PAGOS
+
+IF (
+	[dbo].[_sys_fnc_parametroActivo]('CXC_PEGOS_EN_DOC_CREDITO') = 0
+	AND @credito = 1 
+	AND (
+		SELECT COUNT(*) 
+		FROM 
+			ew_ven_transacciones_pagos AS vtp 
+		WHERE 
+			vtp.idtran = @idtran
+	) > 0
+)
 BEGIN
-	RAISERROR('Error: El usuario no tiene caja de ventas asignada.', 16, 1)
+	SELECT @error_mensaje = 'Error: No se permite aplicar pagos en documentos de crédito.'
+
+	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
 
---------------------------------------------------------------------------------
--- EFECTUAR PAGOS Y APLICACIONES ###############################################
+-- ########################################################
+-- EFECTUAR PAGOS Y APLICACIONES
 
 DECLARE cur_pagos CURSOR FOR
 	SELECT
@@ -102,7 +117,7 @@ DECLARE cur_pagos CURSOR FOR
 		, vtp.comentario
 		, vtp.forma_referencia
 	FROM 
-		ew_ven_transacciones_pagos vtp
+		ew_ven_transacciones_pagos AS vtp
 		LEFT JOIN ew_ven_transacciones v ON v.idtran=vtp.idtran		
 	WHERE
 		vtp.idtran = @idtran
@@ -124,6 +139,15 @@ FETCH NEXT FROM cur_pagos INTO
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
+	IF @idcuenta <= 0
+	BEGIN
+		CLOSE cur_pagos
+		DEALLOCATE cur_pagos
+
+		RAISERROR('Error: El usuario no tiene caja de ventas asignada.', 16, 1)
+		RETURN
+	END
+
 	SELECT @subtotal = @total - @impuesto1
 
 	IF @idforma = -1
@@ -134,7 +158,7 @@ BEGIN
 			DEALLOCATE cur_pagos
 			
 			SELECT @error = 1
-			SELECT @error_mensaje = 'Error: No se indic? transacci?n a aplicar.'
+			SELECT @error_mensaje = 'Error: No se indicó transacción a aplicar.'
 			BREAK
 		END
 		
@@ -170,7 +194,10 @@ BEGIN
 			, @comentario
 		)
 		
-		EXEC _cxc_prc_aplicarTransaccion @idtran2, @fecha, @idu
+		EXEC [dbo].[_cxc_prc_aplicarTransaccion]
+			@idtran = @idtran2
+			, @aplicado_fecha = @fecha
+			, @idu = @idu
 		
 		IF @@ERROR <> 0
 		BEGIN
@@ -178,7 +205,7 @@ BEGIN
 			DEALLOCATE cur_pagos
 			
 			SELECT @error = 1
-			SELECT @error_mensaje = 'Error: Ocurri? un error al aplicar saldo.'
+			SELECT @error_mensaje = 'Error: Ocurrió un error al aplicar saldo.'
 			BREAK
 		END
 	END
@@ -247,6 +274,7 @@ BEGIN
 			, ''' + @referencia + '''
 			, ' + CONVERT(VARCHAR(20), @idcuenta) + '
 		)
+
 		INSERT INTO ew_cxc_transacciones_mov (
 			idtran
 			, consecutivo
@@ -322,6 +350,7 @@ BEGIN
 			, ' + CONVERT(VARCHAR(20), @impuesto1) + '
 			, ' + CONVERT(VARCHAR(20), @subtotal+ @impuesto1) + '		
 		)
+
 		INSERT INTO ew_ban_transacciones_mov (
 			idtran
 			, consecutivo
@@ -348,17 +377,17 @@ BEGIN
 			BREAK
 		END
 		
-		EXEC _sys_prc_insertarTransaccion 
-			@usuario
-			, @password
-			, 'BDC2' --transaccion
-			, @idsucursal
-			, 'A' --serie
-			, @sql
-			, 5 --foliolen
-			, @pago_idtran OUTPUT
-			, '' --afolio
-			, @fecha --afecha
+		EXEC [dbo].[_sys_prc_insertarTransaccion]
+			@usuario = @usuario
+			, @password = @password
+			, @transaccion = 'BDC2'
+			, @idsucursal = @idsucursal
+			, @serie = 'A'
+			, @sql = @sql
+			, @foliolen = 6
+			, @idtran = @pago_idtran OUTPUT
+			, @afolio = ''
+			, @afecha = @fecha
 		
 		IF @pago_idtran IS NULL OR @pago_idtran = 0
 		BEGIN
@@ -370,12 +399,17 @@ BEGIN
 			BREAK
 		END
 		
-		EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] @pago_idtran, 'BDC2', @pago_idtran, NULL, 0
+		EXEC [dbo].[_ct_prc_polizaAplicarDeConfiguracion] 
+			@idtran = @pago_idtran
+			, @objeto_codigo = 'BDC2'
+			, @idtran2 = @pago_idtran
+			, @poliza_idtran = NULL
+			, @regenerar = 0
 	END
 	
-	-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	-- ########################################################
 	-- EVITAMOS LA DUPLICIDAD DEL PAGO
-	-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
 	UPDATE ew_ven_transacciones_pagos SET 
 		aplicado = 1 
 	WHERE 
@@ -392,17 +426,21 @@ BEGIN
 		, @comentario
 		, @pago_referencia
 END
+
 CLOSE cur_pagos
 DEALLOCATE cur_pagos
 
---------------------------------------------------------------------------------
--- PRESENTAR MENSAJES ##########################################################
---------------------------------------------------------------------------------
+-- ########################################################
+-- PRESENTAR MENSAJES
+
 IF @error = 1
 BEGIN
 	RAISERROR(@error_mensaje, 16, 1)
 	RETURN
 END
+
+-- ########################################################
+-- ACTUALIZAR FORMA Y METODO DE PAGO
 
 IF EXISTS (
 	SELECT * 
@@ -457,4 +495,53 @@ FROM
 WHERE
 	ct.credito = 0
 	AND ct.idtran = @idtran
+
+-- ########################################################
+-- ACTUALIZAR CONDICION DE PAGO
+
+SELECT 
+	@saldo = ISNULL(saldo, 0)
+FROM 
+	ew_cxc_transacciones 
+WHERE 
+	idtran = @idtran
+
+IF @saldo = 0
+BEGIN
+	UPDATE ew_cxc_transacciones SET 
+		credito = 0
+	WHERE 
+		idtran = @idtran
+
+	UPDATE ew_ven_transacciones SET
+		credito = 0
+		, credito_plazo = 0
+	WHERE
+		idtran = @idtran
+END
+
+UPDATE ew_cxc_transacciones SET 
+	idmetodo = (SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PUE')
+	, vencimiento = fecha 
+WHERE 
+	idtran = @idtran
+	AND credito = 0
+
+/*
+	ELSE
+BEGIN
+	UPDATE ew_cxc_transacciones SET 
+		idmetodo = (SELECT csm.idr FROM db_comercial.dbo.evoluware_cfd_sat_metodopago AS csm WHERE csm.c_metodopago = 'PPD')
+		, credito = 1
+		--, vencimiento = fecha 
+	WHERE 
+		idtran = @idtran
+
+	UPDATE ew_ven_transacciones SET
+		credito = 1
+		--, credito_plazo = 0
+	WHERE
+		idtran = @idtran
+END
+*/
 GO

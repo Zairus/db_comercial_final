@@ -1,4 +1,4 @@
-USE db_comercial_final
+USE [db_imaginn_datos]
 GO
 IF OBJECT_ID('_ven_rpt_resumenVentasServiciosMedicosFP') IS NOT NULL
 BEGIN
@@ -26,8 +26,8 @@ SELECT @fecha1 = CONVERT(DATETIME, CONVERT(VARCHAR, ISNULL(@fecha1, DATEADD(MONT
 SELECT @fecha2 = CONVERT(DATETIME, CONVERT(VARCHAR, ISNULL(@fecha2, GETDATE()), 103) + ' 23:59')
 
 SELECT
-	[forma_pago] = ISNULL(bf.nombre, '')
-	, [importe] = SUM(ISNULL(pm.importe2, 0))
+	[forma_pago] = ISNULL(bf.nombre, 'Crédito')
+	, [importe] = SUM(ISNULL(pm.importe2, vt.total))
 FROM
 	ew_ven_transacciones AS vt
 	LEFT JOIN vew_clientes AS c
@@ -62,8 +62,6 @@ WHERE
 	AND ISNULL(vtmr.idtecnico_receptor, 0) = ISNULL(NULLIF(@idtecnico_receptor, 0), ISNULL(vtmr.idtecnico_receptor, 0))
 	AND c.idclasifica = ISNULL(NULLIF(@idclasifica, 0), c.idclasifica)
 	AND vt.fecha BETWEEN @fecha1 AND @fecha2
-GROUP BY
-	ISNULL(bf.nombre, '')
-HAVING
-	SUM(ISNULL(pm.importe2, 0)) <> 0
+GROUP BY 
+	ISNULL(bf.nombre, 'Crédito')
 GO

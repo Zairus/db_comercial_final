@@ -24,21 +24,13 @@ SELECT
 	, [fecha_hora] = vt.fecha_hora
 	, [cliente] = (
 		(
-			c.codigo 
+			ISNULL(c.codigo, '')
 			+ ' - ' 
-			+ c.nombre
+			+ ISNULL(c.nombre, '')
 		) 
 		+ CHAR(13) 
-		+ CHAR(10) 
-		+ cf.calle 
-		+ ' ' 
-		+ cf.noExterior 
-		+ ' C.P. ' 
-		+ cf.codpostal 
-		+ ' ' 
-		+ scc.ciudad 
-		+ ', ' 
-		+ scc.estado
+		+ CHAR(10)
+		+ [dbo].[_ven_fnc_clienteDireccionCadena](vt.idcliente, vt.idfacturacion)
 	)
 	, [vendedor] = ISNULL(v.nombre, '')
 	, [cajero] = ISNULL(u.nombre, '')
